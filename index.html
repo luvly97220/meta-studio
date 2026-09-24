@@ -130,6 +130,7 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 <div class="toast" id="toast"></div>
 
 <script>
+window.onerror=function(m,u,l,c,e){document.title='ERR:'+m};  
 const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi',MODEL='agnes-video-2.5',FPS=24;
 const KEY_STORE='ms_api_key';
 let createMs=62000;const CREATE_MIN=62000,CREATE_MAX=90000;
