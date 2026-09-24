@@ -139,8 +139,8 @@ const KEY_STORE='ms_api_key';
 let createMs=62000;const CREATE_MIN=62000,CREATE_MAX=90000;
 const S={images:[],running:false,stop:false,queue:[],done:0,fail:0,univ:null,story:'',framing:'random',intensity:'random',duration:153,mode:'story',loading:false};
 
-fetch('univers.json').then(r=>r.json()).then(d=>{if(Array.isArray(d)&&d.length){UNIVERS=d;renderUniv();document.title='OK '+d.length+' univers';}else{document.title='JSON vide';}}).catch(e=>{document.title='ERREUR: '+e.message;});
-const PRESETS=[  
+let UNIVERS=[];
+fetch('univers.json').then(r=>r.json()).then(d=>{if(Array.isArray(d)&&d.length){UNIVERS=d;renderUniv()}}).catch(e=>console.warn('JSON',e));  
 
 
 const PRESETS=[
