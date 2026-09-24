@@ -192,7 +192,7 @@ function buildPrompt(univ,story,idx,total){
   const parts=[];
   parts.push('Animate this exact image as the starting frame. The subject must remain IDENTICAL to the input image: same face, same expression, same clothing, same pose. This is a CONTINUATION, not a re-imagination. Preserve composition.');
   if(S.mode==='story'&&total>1){parts.push('This is scene '+(idx+1)+' of '+total+' in a story.');if(story)parts.push('Story: "'+story.slice(0,300)+'".')}
-  if(univ){parts.push(univ.p);parts.push(rand(univ.acts));parts.push(rand(univ.cams));parts.push(rand(univ.lights))}
+  if(univ){parts.push(univ.p);if(univ.acts)parts.push(rand(univ.acts));if(univ.cams)parts.push(rand(univ.cams));if(univ.lights)parts.push(rand(univ.lights))}
   else{parts.push(rand(['the subject slowly moves, breathing visible','the subject turns their head gently','the subject hair moves in a soft breeze']));parts.push(rand(['slow dolly-in','static frame','handheld follow']));parts.push(rand(['soft natural light','warm glow','cool moonlight']))}
   if(story&&story.trim()&&!(S.mode==='story'&&total>1))parts.push('Direction: '+story.trim());
   if(S.framing!=='random'&&FRAMING[S.framing])parts.push(FRAMING[S.framing]);
