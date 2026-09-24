@@ -1,0 +1,218 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Méta-Studio IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d12;--p:#16161c;--p2:#1e1e26;--b:#2a2a36;--t:#e8e8ec;--d:#8a8a96;--f:#4a4a55;--ok:#2d8a4e;--err:#c0392b;--warn:#d4a017;--acc:#6c4ae0;--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;padding:1rem .8rem 6rem;font-size:14px;line-height:1.5;max-width:900px;margin:0 auto}
+header{text-align:center;margin-bottom:1.2rem}
+h1{font-size:1.3rem;font-weight:500;margin-bottom:.2rem}
+.sub{font-size:.75rem;color:var(--d);font-style:italic}
+.info{background:#1a1428;border-left:3px solid var(--acc);padding:.7rem .9rem;border-radius:8px;font-size:.75rem;color:#c4b8e8;margin-bottom:1rem;line-height:1.4}
+.card{background:var(--p);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-bottom:1rem;transition:border-color .3s}
+.card.ok{border-color:var(--ok)}
+input[type=password],input[type=text],textarea,select{width:100%;padding:.75rem .9rem;border-radius:8px;border:1px solid var(--b);background:var(--p2);color:var(--t);font-family:inherit;font-size:.88rem}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
+textarea{min-height:90px;resize:vertical;line-height:1.45}
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23e8e8ec' d='M0 0l5 6 5-6z'/></svg>");background-repeat:no-repeat;background-position:right .9rem center;background-size:10px}
+.btn{width:100%;padding:1rem;border-radius:var(--r);border:none;background:var(--acc);color:#fff;font-size:1rem;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .2s,transform .1s;margin-bottom:.7rem}
+.btn:active:not(:disabled){transform:scale(.98)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-sec{background:var(--p2);color:var(--t);border:1px solid var(--b);font-size:.85rem;padding:.75rem}
+.status{font-size:.72rem;padding:.5rem .7rem;border-radius:6px;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;background:var(--p2);color:var(--d)}
+.status.ok{background:#12281a;color:#4ade80;font-weight:600}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--f);flex-shrink:0}
+.status.ok .dot{background:#4ade80}
+.hint{font-size:.7rem;color:var(--d);margin-top:.3rem}
+.hint a{color:var(--t);text-decoration:underline}
+.up{border:2px dashed var(--b);border-radius:var(--r);padding:1.8rem 1rem;text-align:center;cursor:pointer;background:var(--p);margin-bottom:1rem}
+.up:active{border-color:var(--acc);background:var(--p2)}
+.up input{display:none}
+.up-ico{font-size:2rem;margin-bottom:.4rem;opacity:.6}
+.up-txt{font-size:.9rem;margin-bottom:.2rem}
+.up-hint{font-size:.72rem;color:var(--d)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.4rem;margin-bottom:1rem}
+.thumb{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--b);background:#000;aspect-ratio:9/16}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.75);color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:10px;cursor:pointer}
+.univ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.4rem}
+.univ{padding:.7rem .8rem;border-radius:8px;border:1px solid var(--b);background:var(--p2);cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:all .15s}
+.univ:active{transform:scale(.98)}
+.univ.sel{background:var(--acc);color:#fff;border-color:var(--acc)}
+.univ .e{font-size:1.1rem;flex-shrink:0}
+.univ .n{font-size:.78rem;font-weight:500;line-height:1.15}
+.univ .d{font-size:.62rem;opacity:.65;margin-top:.1rem}
+.no-univ{grid-column:1/-1;padding:.7rem;border-radius:8px;border:2px dashed var(--b);text-align:center;cursor:pointer;font-size:.8rem;color:var(--d)}
+.no-univ.sel{border-color:var(--acc);border-style:solid;background:var(--p2);color:var(--t);font-weight:600}
+.sec{background:var(--p);border:1px solid var(--b);border-radius:var(--r);margin-bottom:.8rem;overflow:hidden}
+.sec-h{padding:.8rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.sec-h:active{background:var(--p2)}
+.sec-t{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--d);font-weight:600}
+.sec-t .badge{display:inline-block;margin-left:.3rem;padding:.1rem .35rem;background:var(--acc);color:#fff;border-radius:10px;font-size:.6rem}
+.chev{font-size:.7rem;color:var(--f);transition:transform .2s}
+.sec.open .chev{transform:rotate(180deg)}
+.sec-b{max-height:0;overflow:hidden;transition:max-height .3s}
+.sec.open .sec-b{max-height:5000px}
+.sec-c{padding:0 1rem 1rem}
+.presets{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.preset{padding:.3rem .65rem;border-radius:14px;border:1px solid var(--b);background:var(--p2);font-size:.7rem;cursor:pointer}
+.preset:hover{border-color:var(--acc);color:#c4b8e8}
+.ctrl{margin-bottom:.8rem}
+.ctrl:last-child{margin-bottom:0}
+.lbl{display:block;font-size:.7rem;color:var(--d);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.queue{margin-top:.8rem}
+.qs{background:var(--p);border:1px solid var(--b);border-radius:8px;padding:.6rem .8rem;margin-bottom:.5rem;font-size:.75rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.3rem}
+.qi{display:flex;align-items:center;gap:.7rem;padding:.65rem .75rem;border-radius:8px;border:1px solid var(--b);margin-bottom:.35rem;background:var(--p);font-size:.78rem}
+.qi.pending{opacity:.5}.qi.creating{border-color:var(--warn)}.qi.processing{border-color:var(--acc)}.qi.done{border-color:var(--ok)}.qi.failed{border-color:var(--err)}
+.qi .ico{font-size:.95rem;width:1.4rem;text-align:center;flex-shrink:0}
+.qi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi .st{font-size:.7rem;color:var(--d);text-align:right;flex-shrink:0;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gal{margin-top:1.2rem}
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.7rem}
+.gi{border-radius:var(--r);overflow:hidden;border:1px solid var(--b);background:#000;animation:fi .4s ease}
+.gi video{width:100%;display:block;aspect-ratio:9/16;object-fit:cover}
+.gi .cap{padding:.4rem .55rem;background:var(--p);font-size:.68rem;color:var(--d);display:flex;justify-content:space-between;align-items:center;gap:.3rem}
+.gi .cap button{background:var(--acc);color:#fff;border:none;padding:.25rem .5rem;border-radius:5px;font-size:.65rem;cursor:pointer;font-family:inherit}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--acc);color:#fff;padding:.65rem 1rem;font-size:.75rem;display:flex;align-items:center;gap:.5rem;transform:translateY(100%);transition:transform .3s;z-index:100}
+.bar.vis{transform:translateY(0)}
+.spin{width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast{position:fixed;top:1.2rem;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--t);color:var(--bg);padding:.75rem 1.2rem;border-radius:10px;font-size:.8rem;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:1000;opacity:0;transition:transform .3s,opacity .3s;max-width:90vw;text-align:center}
+.toast.vis{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--ok);color:#fff}.toast.err{background:var(--err);color:#fff}.toast.warn{background:var(--warn);color:#fff}
+.hide{display:none!important}
+#nc,#nv{position:fixed;top:0;left:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1}
+</style></head><body>
+<header><h1>🎬 Méta-Studio IA</h1><p class="sub">10 univers · mode histoire · mode aléatoire</p></header>
+
+<div class="info"><strong>Comment ça marche :</strong> Choisis un univers, ajoute tes images, écris ton histoire (ou laisse vide). L'IA génère les vidéos une par une. Le sujet reste identique à ta photo.</div>
+
+<div class="card" id="apiCard">
+<input type="password" id="apiKey" placeholder="Colle ta clé API ici (sk-...)" autocomplete="off">
+<button class="btn btn-sec" id="saveKey" style="margin-top:.5rem">Enregistrer la clé</button>
+<div class="status" id="apiStatus"><span class="dot"></span><span id="apiText">Aucune clé API</span></div>
+<div class="hint">Clé gratuite sur <a href="https://platform.agnes-ai.com" target="_blank">platform.agnes-ai.com</a></div>
+</div>
+
+<div class="up" id="upZone"><input type="file" id="fileInput" accept="image/*" multiple><div class="up-ico">＋</div><div class="up-txt">Ajoute tes images</div><div class="up-hint">Une ou plusieurs — chacune deviendra une scène</div></div>
+<div class="grid" id="thumbs"></div>
+
+<div class="sec open" id="secStory">
+<div class="sec-h" data-t="secStory"><span class="sec-t">📖 Mode histoire <span class="badge">recommandé</span></span><span class="chev">▼</span></div>
+<div class="sec-b"><div class="sec-c">
+<textarea id="story" placeholder="Décris ton histoire. Par exemple :
+
+« Un chevalier traverse une forêt sombre. Il découvre une grotte illuminée. À l'intérieur, un œuf brillant. Le dragon apparaît. Le chevalier et le dragon se regardent. »
+
+L'IA générera une vidéo par scène."></textarea>
+<div class="presets" id="presets"></div>
+<div class="hint" style="margin-top:.5rem">💡 Si tu laisses vide, chaque image sera générée indépendamment avec l'univers choisi.</div>
+</div></div></div>
+
+<div class="sec" id="secUniv">
+<div class="sec-h" data-t="secUniv"><span class="sec-t">🌍 Univers <span class="badge">10</span></span><span class="chev">▼</span></div>
+<div class="sec-b"><div class="sec-c">
+<div class="univ-grid" id="univGrid"></div>
+</div></div></div>
+
+<div class="sec" id="secTech">
+<div class="sec-h" data-t="secTech"><span class="sec-t">⚙️ Réglages</span><span class="chev">▼</span></div>
+<div class="sec-b"><div class="sec-c">
+<div class="ctrl"><label class="lbl">Durée</label><select id="durSel"><option value="121">5 s</option><option value="153" selected>6,4 s</option><option value="241">10 s</option></select></div>
+<div class="ctrl"><label class="lbl">Cadrage</label><select id="framSel"><option value="random">Aléatoire</option><option value="close">Gros plan</option><option value="medium">Moyen</option><option value="wide">Large</option></select></div>
+<div class="ctrl"><label class="lbl">Intensité</label><select id="intSel"><option value="random">Aléatoire</option><option value="subtle">Subtile</option><option value="moderate">Modérée</option><option value="strong">Forte</option></select></div>
+<div class="ctrl"><label class="lbl">Mode</label><select id="modeSel"><option value="story">📖 Histoire (enchaînée)</option><option value="indep">🖼️ Indépendant</option><option value="random">🎲 Aléatoire total</option></select></div>
+</div></div></div>
+
+<button class="btn" id="genBtn" disabled>Créer les vidéos</button>
+<button class="btn btn-sec" id="stopBtn" style="display:none;color:var(--err)">⏹ Arrêter</button>
+
+<div class="queue" id="queue" style="display:none"></div>
+<div class="gal" id="gal" style="display:none"><div class="sec-t" style="margin-bottom:.7rem">Vidéos générées</div><div class="gg" id="gg"></div></div>
+<div class="bar" id="bar"><div class="spin"></div><span id="barTxt">Préparation…</span></div>
+<div class="toast" id="toast"></div>
+<canvas id="nc" width="2" height="2"></canvas><video id="nv" playsinline muted loop></video>
+<script>
+const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi',MODEL='agnes-video-v2.0',FPS=24;
+const KEY_STORE='ms_api_key';
+let createMs=62000;const CREATE_MIN=62000,CREATE_MAX=90000;
+const S={images:[],running:false,stop:false,queue:[],done:0,fail:0,univ:null,story:'',framing:'random',intensity:'random',duration:153,mode:'story',loading:false};
+
+const UNIVERS=[
+{id:'thriller',e:'🔪',n:'Thriller',d:'Suspense, ombres',p:'Create a tense, suspenseful thriller atmosphere. Deep shadows, cold blue tones, danger lurking. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject slowly turns their head, sensing something behind','the subject walks cautiously forward, looking over their shoulder','the subject freezes mid-step, listening intently','the subject backs away slowly, hands raised','the subject crouches low, hiding from something'],cams:['slow dolly-in, camera creeping toward the subject','handheld shaky camera, following the subject','rack focus from foreground to subject face','low angle, subject appears vulnerable'],lights:['cold blue moonlight, deep shadows','flickering fluorescent light','single harsh light, dramatic contrast','lightning flashes intermittently']},
+{id:'kungfu',e:'🥋',n:'Kung Fu',d:'Combat, arts martiaux',p:'Epic martial arts kung fu action. Dynamic combat, flowing movements, dramatic slow motion, wire-fu elegance. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject performs a slow controlled punch, then snaps faster','the subject spins and executes a high kick','the subject blocks an incoming strike and counters','the subject moves through a flowing tai chi sequence','the subject leaps into the air in slow motion'],cams:['camera orbits around the subject during combat','slow motion mid-punch, camera pushes in','low angle looking up at the subject, heroic','camera circles the subject, sweeping 180 degrees'],lights:['golden temple light, dust particles','dramatic side lighting, deep shadows','misty bamboo forest light','warm sunset backlight']},
+{id:'hiphop',e:'🎤',n:'Hip-Hop',d:'Urbain, danse, rue',p:'Urban hip-hop culture aesthetic. Street style, graffiti walls, gold chains, confident swagger, neon night. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject performs a hip-hop dance move, arms and legs popping','the subject bounces to an invisible beat, head nodding','the subject freezes in a b-boy pose','the subject pops and locks with sharp isolations','the subject struts forward with confident swagger'],cams:['low angle looking up, powerful presence','camera circles the subject, music video style','handheld follow, energetic','whip pan to the subject mid-move'],lights:['neon pink and cyan street lights','warm streetlight glow, urban night','dramatic spotlight from above','car headlights sweeping by']},
+{id:'anime',e:'🌸',n:'Anime Ghibli',d:'Style Miyazaki',p:'Studio Ghibli anime aesthetic, Hayao Miyazaki style, hand-painted watercolor backgrounds, soft cel-shaded characters, magical atmosphere. Transform the image into this anime style.',acts:['the subject hair gently moves in a soft breeze','the subject looks up at the sky with wonder','the subject takes a slow step forward, cape flowing','a gentle wind stirs leaves around the subject','the subject smiles softly, eyes brightening'],cams:['gentle camera drift revealing the painted landscape','slow zoom on the subject face, anime style','camera pans across the scenic background','subtle parallax revealing depth'],lights:['warm golden hour anime light','soft diffused watercolor light','dappled sunlight through leaves','magical blue twilight glow']},
+{id:'cyberpunk',e:'🌃',n:'Cyberpunk',d:'Néon, futur',p:'Cyberpunk futuristic aesthetic. Neon pink and cyan lighting, holographic advertisements, rain-slicked streets, Blade Runner atmosphere. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject looks up at towering neon holograms','the subject reflection shimmers in a puddle','rain falls around the subject, neon reflections','the subject raises a hand toward a holographic display','the subject walks through a crowded neon alley'],cams:['low angle, camera tilts up revealing neon skyscrapers','camera drifts through the rain, cyberpunk style','slow orbit around the subject','rack focus through neon signs'],lights:['neon pink and cyan dominant','holographic purple and blue','rain-soaked reflections of signs','flickering neon signs']},
+{id:'western',e:'🤠',n:'Western',d:'Cowboy, désert',p:'Classic western aesthetic. Dusty desert, cowboy hats, saloon, sunset, showdown atmosphere. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject tips their hat slowly','the subject squints into the distance','a tumbleweed rolls past the subject','the subject poncho moves in the desert wind','the subject rests a hand near their holster'],cams:['wide shot, camera slowly pushes in','low angle, dramatic western framing','camera pans across the desert landscape','slow zoom on the subject eyes'],lights:['warm orange desert sunset','harsh midday sun, long shadows','dusty golden haze','dramatic backlight at dusk']},
+{id:'horror',e:'👻',n:'Horreur',d:'Peur, ombres',p:'Horror atmosphere. Deep darkness, unsettling shadows, creeping dread, subtle wrongness, fear building. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject eyes widen in terror','something moves in the shadows behind the subject','the subject slowly turns toward an unseen threat','the subject breath fogs in cold air','the subject backs away, hands trembling'],cams:['slow creeping dolly-in, horror style','handheld shaky, panicked','camera slowly reveals something behind the subject','rack focus to a shadowy figure in the background'],lights:['single flickering light source','cold moonlight through window','deep darkness with one dim light','emergency red light pulsing']},
+{id:'fantasy',e:'🧙',n:'Fantasy',d:'Magie, créatures',p:'Epic fantasy aesthetic. Magical creatures, enchanted forests, glowing runes, mythical atmosphere, epic scale. Preserve the exact subject identity, face, pose, clothing.',acts:['magical particles float around the subject','the subject raises a hand and glowing runes appear','a dragon silhouette passes overhead','the subject cloak billows in a magical wind','the subject gazes at a distant glowing castle'],cams:['epic wide shot, camera cranes up','slow orbit around the subject, fantasy style','camera pushes in as magic awakens','sweeping aerial reveal of the fantasy landscape'],lights:['magical blue and purple glow','warm enchanted forest light','moonlight through magical fog','glowing runes illuminating the subject']},
+{id:'gh',e:'🌅',n:'Golden Hour',d:'Lumière dorée',p:'Golden hour warm sunlight, soft amber glow, long shadows, luminous atmosphere, hazy warm tones. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject turns slowly toward the warm light','the subject hair glows in the golden light','a soft breeze moves the subject clothes','the subject closes their eyes, basking in the warmth','the subject walks slowly through the golden field'],cams:['slow dolly-in, warm and intimate','camera drifts around the subject, golden hour','static frame, light shifts subtly','slow pan across the warm scene'],lights:['warm golden backlight, lens flare','soft amber glow from the side','hazy warm sunset light','sunlight filtering through trees']},
+{id:'bw',e:'⚫',n:'Noir & Blanc',d:'Monochrome',p:'Elegant black and white, high contrast monochrome, deep blacks and luminous whites, classic photography aesthetic. Preserve the exact subject identity, face, pose, clothing.',acts:['the subject slowly turns their head, dramatic','the subject expression shifts subtly','smoke drifts slowly through the frame','the subject hand moves elegantly','the subject looks directly at the camera'],cams:['slow zoom on the subject eyes','camera drifts laterally, noir style','static frame, dramatic composition','slow dolly-in, classic cinema'],lights:['single hard light source, deep shadows','soft diffused black and white light','venetian blind shadows','dramatic rim lighting']}
+];
+
+const PRESETS=[
+{l:'🔪 Poursuite',t:'La camera suit le sujet qui marche vite, puis court. Des pas resonnent derriere lui. Il tourne la tete, panique. Garde chaque sujet exactement identique a la photo originale.'},
+{l:'🌬️ Vent leger',t:'Anime doucement chaque image comme si le temps s arretait. Un vent leger fait bouger les cheveux et les feuilles. La lumiere est chaude et doree. Garde chaque sujet exactement identique a la photo originale.'},
+{l:'💭 Reve eveille',t:'Prolonge cette image dans un reve eveille. Mouvements tres lents, respiration visible, lumiere douce et diffuse. Atmosphere onirique et paisible. Le sujet reste identique a la photo.'},
+{l:'🎬 Cinematique',t:'Anime cette image avec une esthetique cinematographique. Mouvement de camera lent, lumiere dramatique, profondeur de champ. Le sujet reste identique a la photo originale.'},
+{l:'🌙 Nuit calme',t:'Prolonge cette image dans une ambiance nocturne paisible. Lumiere bleutee, reflets argentes, mouvement tres lent. Le sujet reste identique a la photo.'}
+];
+
+const FRAMING={close:'extreme close-up framing, tight on the subject, intimate and intense',medium:'medium shot, subject framed from waist up, balanced composition',wide:'wide shot, subject framed with the environment visible'};
+const INTENS={subtle:'very subtle movement, barely perceptible change, minimal animation',moderate:'moderate movement, clear but controlled motion, balanced energy',strong:'strong dynamic movement, energetic motion, pronounced action'};
+
+function $(id){return document.getElementById(id)}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(msg,type='ok',dur=2200){const t=$('toast');t.className='toast '+type;t.textContent=msg;requestAnimationFrame(()=>t.classList.add('vis'));setTimeout(()=>t.classList.remove('vis'),dur)}
+function bar(txt){const b=$('bar');if(txt){b.classList.add('vis');$('barTxt').textContent=txt}else b.classList.remove('vis')}
+
+function getKey(){try{return (localStorage.getItem(KEY_STORE)||'').trim()}catch(e){return''}}
+function saveKey(){const k=$('apiKey').value.trim();if(!k){localStorage.removeItem(KEY_STORE);updApi();toast('Cle supprimee','warn');return}if(!k.startsWith('sk-')&&!confirm('La cle ne commence pas par sk-. Sauvegarder ?'))return;try{localStorage.setItem(KEY_STORE,k);updApi();toast('Cle enregistree','ok');$('apiKey').blur()}catch(e){toast('Erreur','err')}}
+function updApi(){const k=getKey(),c=$('apiCard'),s=$('apiStatus'),t=$('apiText');if(k){c.classList.add('ok');s.classList.add('ok');t.textContent='Cle active · '+k.slice(0,8)+'...'+k.slice(-4);$('apiKey').value=k}else{c.classList.remove('ok');s.classList.remove('ok');t.textContent='Aucune cle API';$('apiKey').value=''}updGen()}
+function updGen(){const b=$('genBtn');const hasImg=S.images.length>0,hasKey=!!getKey();b.disabled=!hasImg||!hasKey||S.running||S.loading;if(S.loading)b.textContent='Chargement... ('+S.images.length+')';else if(S.running){const t=S.queue.length,d=S.done+S.fail;b.textContent='En cours... ('+d+'/'+t+')'}else if(!hasKey)b.textContent='Ajoute ta cle API';else if(!hasImg)b.textContent='Ajoute des images';else b.textContent='Creer '+S.images.length+' video'+(S.images.length>1?'s':'')}
+
+function fileToUri(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('read'));r.readAsDataURL(f)})}
+function mkThumb(uri){return new Promise(res=>{const i=new Image();i.onload=()=>{try{const c=document.createElement('canvas'),rt=i.height/i.width;c.width=200;c.height=Math.round(200*rt);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.7))}catch(e){res(uri)}};i.onerror=()=>res(uri);i.src=uri})}
+async function processFile(f){if(!f.type.startsWith('image/'))return null;if(f.size>12*1024*1024)return null;try{const u=await fileToUri(f);const th=await mkThumb(u);return{uri:u,thumb:th,id:Date.now()+Math.random()}}catch(e){return null}}
+async function handleFiles(files){const imgs=Array.from(files).filter(f=>f.type.startsWith('image/'));if(!imgs.length)return;S.loading=true;updGen();bar('Chargement...');const B=4;let n=0;for(let i=0;i<imgs.length;i+=B){const r=await Promise.allSettled(imgs.slice(i,i+B).map(processFile));for(const x of r)if(x.status==='fulfilled'&&x.value){S.images.push(x.value);n++}renderThumbs()}S.loading=false;bar(null);updGen()}
+function renderThumbs(){$('thumbs').innerHTML=S.images.map(i=>'<div class="thumb"><img src="'+i.thumb+'"><button class="x" data-x="'+i.id+'">✕</button></div>').join('');document.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.images=S.images.filter(i=>i.id!==parseFloat(b.dataset.x));renderThumbs();updGen()})}
+
+function renderUniv(){const g=$('univGrid');let h='<div class="no-univ '+(S.univ===null?'sel':'')+'" data-u="none">'+(S.univ===null?'Aucun univers - histoire seule':'Aucun univers')+'</div>';h+=UNIVERS.map(u=>'<div class="univ '+(S.univ===u.id?'sel':'')+'" data-u="'+u.id+'"><div class="e">'+u.e+'</div><div><div class="n">'+esc(u.n)+'</div><div class="d">'+esc(u.d)+'</div></div></div>').join('');g.innerHTML=h;g.querySelectorAll('[data-u]').forEach(el=>el.onclick=()=>{const v=el.dataset.u;S.univ=v==='none'?null:v;renderUniv();toast(S.univ?UNIVERS.find(u=>u.id===S.univ).n+' selectionne':'Aucun univers','ok',1200)})}
+function renderPresets(){$('presets').innerHTML=PRESETS.map((p,i)=>'<div class="preset" data-p="'+i+'">'+esc(p.l)+'</div>').join('');document.querySelectorAll('[data-p]').forEach(el=>el.onclick=()=>{const p=PRESETS[+el.dataset.p];$('story').value=p.t;S.story=p.t;toast('Exemple applique','ok',1200)})}
+
+function buildScenePrompt(univ,storyText,sceneIdx,totalScenes){
+  const parts=[];
+  parts.push('Animate this exact image as the starting frame. The subject must remain IDENTICAL to the input image: same face, same expression, same clothing, same pose, same identity. This is a CONTINUATION of the source image, not a re-imagination. Preserve the exact composition, framing, and layout of the original image.');
+  if(S.mode==='story'&&totalScenes>1){
+    parts.push('This is scene '+(sceneIdx+1)+' of '+totalScenes+' in a continuous visual story. Maintain visual consistency with the other scenes.');
+    if(storyText)parts.push('Overall story: "'+storyText.slice(0,400)+'".');
+  }
+  if(univ){parts.push(univ.p);parts.push(rand(univ.acts));parts.push(rand(univ.cams));parts.push(rand(univ.lights))}
+  else{parts.push(rand(['the subject slowly moves, breathing visible, subtle life','the subject turns their head gently','the subject hair moves in a soft breeze','the subject blinks and looks around']));parts.push(rand(['slow dolly-in','static frame','handheld follow','slow pan']));parts.push(rand(['soft natural light','warm glow','cool moonlight','golden hour light']))}
+  if(S.story&&S.story.trim()&&!(S.mode==='story'&&totalScenes>1))parts.push('Artistic direction: '+S.story.trim());
+  if(S.framing!=='random'&&FRAMING[S.framing])parts.push(FRAMING[S.framing]);
+  if(S.intensity!=='random'&&INTENS[S.intensity])parts.push(INTENS[S.intensity]);else parts.push(INTENS.moderate);
+  parts.push('Sound design: minimal foley, soft ambient textures, no music, no dialogue');
+  parts.push('Portrait orientation 9:16 vertical, 24fps, no text, no subtitles, no watermarks, consistent character design with the source image');
+  return parts.join('. ');
+}
+
+async function apiFetch(url,opt,label){for(let a=0;a<7;a++){if(S.stop)throw new Error('stop');try{const r=await fetch(url,opt);if(r.status===429){const w=[15,30,45,60,90,120,180][Math.min(a,6)];bar('Preparation... ('+w+'s)');await sleep(w*1000);continue}if(r.status===503){const w=[5,10,15,20,30,45][Math.min(a,5)];bar('Preparation... ('+w+'s)');await sleep(w*1000);continue}return r}catch(e){if(e.message==='stop')throw e;const w=[3,5,8,12,20,30][Math.min(a,5)];bar('Connexion... ('+w+'s)');await sleep(w*1000)}}return fetch(url,opt)}
+async function createTask(uri,prompt){const r=await apiFetch(API+'/videos',{method:'POST',headers:{'Authorization':'Bearer '+getKey(),'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,prompt:prompt,image:uri,num_frames:S.duration,frame_rate:FPS})},'create');if(!r.ok){const e=await r.text();throw new Error('HTTP '+r.status+' - '+e.slice(0,150))}const d=await r.json();const id=d.video_id||d.id||d.task_id;if(!id)throw new Error('Pas de video_id');return id}
+async function pollTask(id,onProg){let wait=25;while(wait>0){if(S.stop)throw new Error('stop');onProg('Preparation... - '+wait+'s');await sleep(1000);wait--}for(let a=0;a<100;a++){if(S.stop)throw new Error('stop');if(a>0){let r=8;while(r>0){if(S.stop)throw new Error('stop');onProg('En cours... - '+r+'s');await sleep(1000);r--}}const r=await apiFetch(POLL+'?video_id='+encodeURIComponent(id)+'&model_name='+encodeURIComponent(MODEL),{method:'GET',headers:{'Authorization':'Bearer '+getKey()}},'poll');const d=await r.json();const st=d.status||'?';onProg('Creation - '+(d.progress||0)+'%');if(['completed','succeeded','done'].includes(st)){const u=(d.metadata&&d.metadata.url)||d.url||(d.output&&d.output.url);if(!u)throw new Error('Pas d URL');return u}if(['failed','error','cancelled'].includes(st))throw new Error('Echec ('+st+')')}throw new Error('Delai depasse')}
+
+function renderQueue(){const q=$('queue');if(!S.queue.length){q.style.display='none';return}q.style.display='block';const t=S.queue.length,d=S.done+S.fail;let h='<div class="qs"><span><b>'+d+'/'+t+'</b></span><span>'+(d<t?'en cours':'termine')+'</span></div>';h+=S.queue.map(i=>{let ic='○',st='En attente',cl='pending';if(i.status==='creating'){ic='◐';st='Preparation';cl='creating'}else if(i.status==='processing'){ic='◐';st=i.progress||'En cours';cl='processing'}else if(i.status==='done'){ic='●';st='Termine';cl='done'}else if(i.status==='failed'){ic='✕';st='Echec';cl='failed'}return '<div class="qi '+cl+'"><div class="ico">'+ic+'</div><div class="nm">Scene '+(i.idx+1)+'</div><div class="st">'+esc(st)+'</div></div>'}).join('');q.innerHTML=h}
+
+function addGal(url,label){$('gal').style.display='block';const d=document.createElement('div');d.className='gi';d.innerHTML='<video controls preload="metadata" playsinline><source src="'+url+'" type="video/mp4"></video><div class="cap"><span>'+esc(label)+'</span><button data-dl="'+url+'" data-name="'+esc(label)+'">Telecharger</button></div>';$('gg').appendChild(d);d.querySelector('[data-dl]').onclick=async()=>{try{const r=await fetch(url);const b=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=label.replace(/[^a-z0-9]/gi,'_')+'.mp4';a.click();toast('Telechargement...','ok')}catch(e){window.open(url,'_blank')}}}
+
+async function runScene(item,prompt){item.status='creating';item.progress='Preparation';renderQueue();try{const id=await createTask(item.img.uri,prompt);item.vid=id;item.start=Date.now();item.status='processing';renderQueue();const url=await pollTask(id,p=>{item.progress=p;renderQueue()});item.status='done';item.url=url;S.done++;renderQueue();updGen();addGal(url,'Scene '+(item.idx+1))}catch(e){item.status='failed';item.progress=e.message==='stop'?'Arrete':'Echec';if(e.message!=='stop')S.fail++;renderQueue();updGen()}}
+
+async function start(){if(S.running||!S.images.length)return;if(!getKey()){toast('Ajoute ta cle API','err');return}S.story=$('story').value.trim();S.mode=$('modeSel').value;if(S.mode==='random'){S.univ=rand(UNIVERS).id;renderUniv()}S.running=true;S.stop=false;S.done=0;S.fail=0;S.queue=S.images.map((img,i)=>({idx:i,img,status:'pending',progress:null,vid:null,url:null,start:null}));$('gg').innerHTML='';$('gal').style.display='none';$('stopBtn').style.display='block';$('genBtn').disabled=true;renderQueue();updGen();const u=S.univ?UNIVERS.find(x=>x.id===S.univ):null;const total=S.queue.length;const isStory=S.mode==='story'&&total>1;const tasks=[];for(let i=0;i<total;i++){if(S.stop)break;const it=S.queue[i];const prompt=buildScenePrompt(u,S.story,i,isStory?total:1);tasks.push(runScene(it,prompt));if(i<total-1&&!S.stop){const w=Math.ceil(createMs/1000);for(let r=w;r>0;r--){if(S.stop)break;bar('Scene '+(i+2)+'/'+total+' dans '+r+'s');await sleep(1000)}}}if(tasks.length)bar('Finalisation...');await Promise.allSettled(tasks);const summary=S.stop?'Arrete - '+S.done+'/'+total:'✦ '+S.done+'/'+total+' videos creees ✦';bar(summary);await sleep(3500);bar(null);S.running=false;S.stop=false;$('stopBtn').style.display='none';updGen();toast(S.done+' video'+(S.done>1?'s':'')+' creee'+(S.done>1?'s':''),'ok')}
+function stop(){if(!S.running)return;S.stop=true;bar('Arret...')}
+
+(function(){updApi();renderUniv();renderPresets();renderThumbs();$('saveKey').onclick=saveKey;$('apiKey').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveKey()}});$('genBtn').onclick=start;$('stopBtn').onclick=stop;$('durSel').onchange=e=>S.duration=+e.target.value;$('framSel').onchange=e=>S.framing=e.target.value;$('intSel').onchange=e=>S.intensity=e.target.value;$('modeSel').onchange=e=>S.mode=e.target.value;$('story').addEventListener('input',e=>S.story=e.target.value);$('upZone').onclick=()=>$('fileInput').click();$('fileInput').onchange=e=>{handleFiles(e.target.files);e.target.value=''};document.querySelectorAll('[data-t]').forEach(h=>h.onclick=()=>$(h.dataset.t).classList.toggle('open'));})();
+</script></body></html>
