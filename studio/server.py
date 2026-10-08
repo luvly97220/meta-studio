@@ -161,6 +161,23 @@ def burn_subs(src, subs, stamp):
     return out, False
 
 
+def fit_filter(src):
+    """Remplit l'ecran 9:16 : recadre les images presque verticales (pas de bandes noires),
+    garde des bandes seulement pour les videos carrees ou horizontales."""
+    w = h = 0
+    try:
+        out = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                   "stream=width,height", "-of", "csv=p=0", src]).strip().split(",")
+        w, h = int(out[0]), int(out[1])
+    except Exception:
+        pass
+    tail = ",setsar=1,fps=30,format=yuv420p"
+    if w and h and w / float(h) <= 0.8:
+        return "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280" + tail
+    return ("scale=720:1280:force_original_aspect_ratio=decrease,"
+            "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black" + tail)
+
+
 def concat(files, music=None, music_volume=0.35, title="histoire",
            mute=False, music_start=0.0, durations=None, subs=None):
     """Assemble des clips + musique optionnelle.
@@ -181,8 +198,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         D = None
         if durations and i < len(durations) and durations[i]:
             D = float(durations[i])
-        vf = ("scale=720:1280:force_original_aspect_ratio=decrease,"
-              "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p")
+        vf = fit_filter(src)
         if D:
             vf += ",tpad=stop_mode=clone:stop_duration=%.2f" % D
         tail = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21",

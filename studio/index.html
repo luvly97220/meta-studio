@@ -234,6 +234,9 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="up" data-pick="anEnd"><input type="file" id="anEnd" accept="image/*"><div class="t" id="anEndName">La vidéo se termine sur cette image</div></div>
   </div>
   <div class="card">
+    <label class="lbl">Apparence du personnage (verrouille son look)</label>
+    <input type="text" id="anChar" placeholder="ex : homme noir musclé, masque LED rouge aux yeux en X et sourire cousu, cagoule noire">
+    <div class="hint">Décris ce qui ne doit jamais changer (masque, visage, tenue). Indispensable si on le voit de dos sur une image.</div>
     <label class="lbl">Ce qui se passe (optionnel)</label>
     <textarea id="anStory" placeholder="ex : il se retourne et sourit, le vent fait voler sa chemise"></textarea>
     <div class="chips" id="anPresets"></div>
@@ -1367,9 +1370,10 @@ async function anGo(){
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;padding:.5rem;text-align:center" data-p>Scène '+(i+1)+'<br>en attente</div>';$('anOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
     try{
-      const sfx='. Same character, mask and outfit as the starting frame. '+INTENS[$('anInt').value]+', cinematic action, no blood, no gore'+(o.audio?', natural sound effects (impacts, wind, ambience), no music':'')+'. No text.';
+      const look=$('anChar').value.trim();
+      const sfx='. Same character, mask and outfit as the starting frame'+(look?' — always: '+look:'')+'. '+INTENS[$('anInt').value]+', cinematic action, no blood, no gore'+(o.audio?', natural sound effects (impacts, wind, ambience), no music':'')+'. No text.';
       const bi=beatsFor(i);
-      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
       addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
@@ -1607,9 +1611,10 @@ async function checkServer(){
   $('anFiles').onchange=async e=>{AN.images.push(...await loadImages(e.target.files));renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();e.target.value=''};
   $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';e.target.value=''};
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
+  $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;
-  persoPicker($('anPersos'),(p,imgs)=>{AN.images.push(...imgs);renderThumbs($('anThumbs'),AN.images,anPrice);anPrice()});
+  persoPicker($('anPersos'),(p,imgs)=>{AN.images.push(...imgs);if(p.desc){$('anChar').value=p.desc;LS.set('ms_anChar',p.desc)}renderThumbs($('anThumbs'),AN.images,anPrice);anPrice()});
   $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
 
   // Texte
