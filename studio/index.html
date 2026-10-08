@@ -232,6 +232,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="grid" id="anThumbs"></div>
     <label class="lbl">Image de fin (optionnel, Kling 3.0)</label>
     <div class="up" data-pick="anEnd"><input type="file" id="anEnd" accept="image/*"><div class="t" id="anEndName">La vidéo se termine sur cette image</div></div>
+    <button class="btn sec small hide" id="anEndClear" style="margin-top:.4rem">✕ Retirer l'image de fin</button>
   </div>
   <div class="card">
     <label class="lbl">Apparence du personnage (verrouille son look)</label>
@@ -838,7 +839,8 @@ function videoInput(mk,kind,o){
     const n=Math.min(o.beats.length,Math.max(1,o.duration));const base=Math.floor(o.duration/n);let extra=o.duration-base*n;
     b={multi_prompt:o.beats.slice(0,n).map((t,i)=>({prompt:fitPrompt(t,[i===n-1?o.lastSuffix:'',o.beatSuffix,o.beatPrefix,o.beatTail],MULTI_MAX),duration:String(base+(i<extra?1:0))})),shot_type:'customize',generate_audio:!!o.audio};
   }else b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
-  if(kind==='i2v'){b.image_url=o.image;if(o.end)b.end_image_url=o.end}else b.aspect_ratio='9:16';
+  // Kling refuse l'image de fin avec le multi-plans
+  if(kind==='i2v'){b.image_url=o.image;if(o.end&&!b.multi_prompt)b.end_image_url=o.end}else b.aspect_ratio='9:16';
   return b;
 }
 function videoCost(mk,dur,audio){const m=VIDEO_MODELS[mk];if(mk==='eco')dur=dur>5?10:5;return dur*(audio&&m.audio?m.priceAudio:m.price)}
@@ -1379,6 +1381,7 @@ async function anGo(){
   const blocks=$('anBeats').value.split(/\n\s*-{3,}\s*\n?/).map(splitBeats).filter(b=>b.length);
   const beatsFor=i=>blocks.length?blocks[Math.min(i,blocks.length-1)]:[];
   const beats=beatsFor(0);const multiOk=VIDEO_MODELS[o.model].multi;
+  if(AN.end&&multiOk&&beatsFor(total-1).length>1)toast('Image de fin ignorée : Kling ne l\'accepte pas avec la chorégraphie multi-plans','warn',5000);
   if(blocks.some(b=>b.length>1)&&!multiOk)toast('La chorégraphie en plusieurs plans marche avec Kling 3.0 / 3.0 Pro','warn',4000);
   const tasks=AN.images.map((img,i)=>async()=>{
     const u=mode==='random'?rand(UNIVERS):anUniv.get();
@@ -1625,7 +1628,8 @@ async function checkServer(){
   anUniv=univPicker($('anUnivGrid'),$('anUnivSearch'),'anim',true);
   anModel=modelPicker($('anModelCard'),'anim',anPrice,{def:'eco'});
   $('anFiles').onchange=async e=>{AN.images.push(...await loadImages(e.target.files));renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();e.target.value=''};
-  $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';e.target.value=''};
+  $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';$('anEndClear').classList.toggle('hide',!AN.end);e.target.value=''};
+  $('anEndClear').onclick=()=>{AN.end=null;$('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide')};
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
