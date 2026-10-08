@@ -78,7 +78,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
 .stat{background:var(--p2);border-radius:10px;padding:.7rem}.stat .v{font-size:1.1rem;font-weight:600}.stat .k{font-size:.66rem;color:var(--d)}
 nav{position:fixed;bottom:0;left:0;right:0;background:#121218f2;backdrop-filter:blur(8px);border-top:1px solid var(--b);display:flex;z-index:60;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:none;color:var(--d);padding:.55rem 0 .5rem;font-family:inherit;font-size:.6rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem}
+nav button{flex:1;min-width:0;background:none;border:none;color:var(--d);padding:.55rem 0 .5rem;font-family:inherit;font-size:.58rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem}
 nav button .i{font-size:1.15rem}
 nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 .tab{display:none}.tab.on{display:block}
@@ -153,6 +153,55 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <button class="btn hide" id="stMontage" style="background:var(--ok)">🎞️ Assembler la vidéo finale</button>
   <div class="prog" id="stProg"></div>
   <div class="out" id="stOut"></div>
+</section>
+
+<!-- ================= CLIP MUSICAL ================= -->
+<section class="tab" id="t-clip">
+  <h2>🎵 Clip musical</h2>
+  <p class="lead">Ton son + ton artiste → l'IA imagine le clip, crée les plans (dont des plans où l'artiste chante en play-back sur ta voix) et les cale exactement sur ta musique.</p>
+  <div class="card">
+    <label class="lbl">1. Ton morceau</label>
+    <div class="up" data-pick="clSong"><input type="file" id="clSong" accept="audio/*"><div class="ico">🎵</div><div class="t" id="clSongName">Choisir le son (mp3, m4a, wav…)</div><div class="h" id="clSongInfo">Il sera calé exactement sous les images</div></div>
+    <div class="row">
+      <div><label class="lbl">Début de l'extrait (s)</label><input type="number" id="clStart" min="0" step="1" value="0"></div>
+      <div><label class="lbl">Durée du clip</label><select id="clLen"><option value="15">15 s</option><option value="30">30 s</option><option value="45">45 s</option><option value="60" selected>60 s (monétisable)</option><option value="90">90 s</option><option value="0">Morceau entier</option></select></div>
+    </div>
+    <div class="hint">💡 Commence l'extrait sur le refrain pour accrocher dès la 1re seconde.</div>
+  </div>
+  <div class="card">
+    <label class="lbl">2. Artiste / personnage (optionnel)</label>
+    <div class="up" data-pick="clRef"><input type="file" id="clRef" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) de l'artiste</div><div class="h">1 à 3 photos du même visage. Sans photo, l'IA invente le personnage.</div></div>
+    <div class="grid" id="clRefThumbs"></div>
+    <label class="lbl">Description (optionnel)</label>
+    <input type="text" id="clChar" placeholder="ex : jeune homme, dreadlocks, veste en cuir noire, chaîne en or">
+  </div>
+  <div class="card">
+    <label class="lbl">3. Le clip</label>
+    <div class="row">
+      <div><label class="lbl">Titre du son</label><input type="text" id="clTitle" placeholder="ex : PORSCHE"></div>
+      <div><label class="lbl">Style</label><input type="text" id="clGenre" placeholder="ex : dancehall, afro, drill"></div>
+    </div>
+    <label class="lbl">Idée du clip</label>
+    <textarea id="clIdea" placeholder="ex : il roule de nuit dans Paris en Porsche, néons partout, puis danse sur un toit avec ses potes au lever du soleil"></textarea>
+    <label class="lbl">Paroles de l'extrait (optionnel, l'IA colle les images au texte)</label>
+    <textarea id="clLyrics" placeholder="Colle les paroles de l'extrait"></textarea>
+    <label class="lbl">Univers (optionnel)</label>
+    <input type="text" id="clUnivSearch" placeholder="🔎 Chercher un univers (néon, nuit, désert…)">
+    <div class="univ-grid" id="clUnivGrid"></div>
+    <label class="lbl">Plans où l'artiste chante (play-back)</label>
+    <select id="clSing"><option value="0">Aucun</option><option value="3" selected>1 plan sur 3</option><option value="2">1 plan sur 2</option><option value="1">Tous les plans</option></select>
+    <div class="hint">🎤 Sur ces plans, le visage chante en synchro avec ta voix (~0,06 $/s). Les autres plans sont des scènes de cinéma, ta musique est posée par-dessus au montage.</div>
+  </div>
+  <div class="card" id="clModelCard"></div>
+  <button class="btn sec" id="clWrite">🎬 Imaginer le clip avec l'IA (~0,01 $)</button>
+  <button class="btn sec" id="clAdd">＋ Ajouter un plan vide (écrire moi-même)</button>
+  <div id="clScenes"></div>
+  <div class="price hide" id="clPrice"></div>
+  <button class="btn hide" id="clGen">🎬 Générer les plans</button>
+  <button class="btn danger hide" id="clStop">⏹ Arrêter</button>
+  <button class="btn hide" id="clMontage" style="background:var(--ok)">🎞️ Monter le clip sur ma musique</button>
+  <div class="prog" id="clProg"></div>
+  <div class="out" id="clOut"></div>
 </section>
 
 <!-- ================= ANIMER ================= -->
@@ -750,15 +799,15 @@ function modelPicker(el,key,onChange,opts){
     const m=VIDEO_MODELS[st.m];if(!m.durations.includes(st.d))st.d=m.def;
     el.innerHTML='<label class="lbl">Modèle vidéo</label><div class="chips">'+Object.keys(VIDEO_MODELS).map(k=>'<button class="chip '+(st.m===k?'sel':'')+'" data-m="'+k+'">'+esc(VIDEO_MODELS[k].label)+'</button>').join('')+'</div>'+
       '<label class="lbl">Durée '+(opts.perScene?'par scène':'')+'</label><select data-d>'+m.durations.map(d=>'<option value="'+d+'" '+(d===st.d?'selected':'')+'>'+d+' s</option>').join('')+'</select>'+
-      (m.audio?'<div class="toggle"><span>🔊 Son et voix générés avec la vidéo</span><label class="sw"><input type="checkbox" data-a '+(st.a?'checked':'')+'><span></span></label></div>':'<div class="hint">Ce modèle ne génère pas de son.</div>')+
-      '<div class="hint">'+(st.m==='k3'?'≈ '+money(st.a?m.priceAudio:m.price)+' par seconde':'≈ '+money(m.price)+' par seconde · le moins cher')+'</div>';
+      (opts.noAudio?'<div class="hint">🔇 Plans muets : ta musique est posée au montage.</div>':m.audio?'<div class="toggle"><span>🔊 Son et voix générés avec la vidéo</span><label class="sw"><input type="checkbox" data-a '+(st.a?'checked':'')+'><span></span></label></div>':'<div class="hint">Ce modèle ne génère pas de son.</div>')+
+      '<div class="hint">'+(st.m==='k3'?'≈ '+money(st.a&&!opts.noAudio?m.priceAudio:m.price)+' par seconde':'≈ '+money(m.price)+' par seconde · le moins cher')+'</div>';
     el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{st.m=b.dataset.m;save()});
     el.querySelector('[data-d]').onchange=e=>{st.d=+e.target.value;save()};
     const a=el.querySelector('[data-a]');if(a)a.onchange=e=>{st.a=e.target.checked;save()};
   };
   const save=()=>{LS.set('ms_mp_'+key,st);draw();onChange&&onChange()};
   draw();
-  return{get:()=>({model:st.m,duration:st.d||VIDEO_MODELS[st.m].def,audio:VIDEO_MODELS[st.m].audio&&st.a})};
+  return{get:()=>({model:st.m,duration:st.d||VIDEO_MODELS[st.m].def,audio:!opts.noAudio&&VIDEO_MODELS[st.m].audio&&st.a})};
 }
 
 /* ---------- grille d'univers réutilisable ---------- */
@@ -925,6 +974,170 @@ async function stMontage(){
 }
 
 /* =====================================================================
+   ONGLET CLIP MUSICAL
+   ===================================================================== */
+const CL={refs:[],scenes:LS.get('ms_clip_scenes',[]),song:LS.get('ms_clip_song',null),busy:false};
+let clModel,clUniv;
+function clSave(){LS.set('ms_clip_scenes',CL.scenes.map(s=>({decor:s.decor,action:s.action,sing:!!s.sing,img:s.img,vid:s.vid,local:s.local,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function clStartS(){return Math.max(0,+$('clStart').value||0)}
+function clLength(){const L=+$('clLen').value;if(L)return L;return CL.song&&CL.song.duration?Math.max(5,Math.floor(CL.song.duration-clStartS())):60}
+function clPlan(){const o=clModel.get();const d=o.duration;let n=Math.max(1,Math.round(clLength()/d));let capped=false;
+  if(CL.song&&CL.song.duration){const rest=CL.song.duration-clStartS();if(clStartS()+n*d>CL.song.duration+1){n=Math.max(1,Math.floor(rest/d));capped=true}}
+  return{o,d,n,total:n*d,capped}}
+function clSingFlags(n){const k=+$('clSing').value;return Array.from({length:n},(_,i)=>k>0&&(k===1||i%k===1))}
+function fmtT(s){s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function clSceneCost(s,p){if(s.local||s.vid)return 0;return (s.img?0:IMG_PRICE)+(s.sing?p.d*AVATAR.standard.price:videoCost(p.o.model,p.d,false))}
+function clRender(){
+  const p=clPlan();const box=$('clScenes');
+  box.innerHTML=CL.scenes.map((s,i)=>'<div class="scene '+(s.status||'')+'" data-i="'+i+'">'+
+    '<div class="scene-h"><b>Plan '+(i+1)+' · '+fmtT(i*p.d)+'–'+fmtT((i+1)*p.d)+'</b><span class="st">'+esc(s.msg||(s.local||s.vid?'✓ Prêt':s.img?'Image prête':'À générer'))+'</span></div>'+
+    '<div class="toggle" style="margin-top:.2rem"><span>🎤 L\'artiste chante (play-back)</span><label class="sw"><input type="checkbox" data-sing '+(s.sing?'checked':'')+'><span></span></label></div>'+
+    '<span class="mini">Décor (image)</span><textarea data-k="decor" placeholder="Où on est, lumière, ce qu\'on voit">'+esc(s.decor)+'</textarea>'+
+    '<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Mouvement, caméra, énergie">'+esc(s.action)+'</textarea>'+
+    ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
+    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire le plan</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+  '</div>').join('');
+  box.querySelectorAll('.scene').forEach(el=>{
+    const i=+el.dataset.i;
+    el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{CL.scenes[i][t.dataset.k]=t.value;clSave()});
+    el.querySelector('[data-sing]').onchange=e=>{const s=CL.scenes[i];if(s.sing!==e.target.checked){s.sing=e.target.checked;s.vid=null;s.local=null;s.status='';s.msg=''}clSave();clRender()};
+    el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>clAction(i,b.dataset.a));
+  });
+  clPrice();
+}
+function clPrice(){
+  const pr=$('clPrice');const has=CL.scenes.length>0;
+  if(!clModel)return;
+  const p=clPlan();let total=0,todo=0;
+  CL.scenes.forEach(s=>{const c=clSceneCost(s,p);if(c){todo++;total+=c}});
+  const ready=has&&CL.scenes.every(s=>s.local||s.vid);
+  pr.classList.toggle('hide',!has&&!CL.song);
+  const est=CL.song?'Clip de <b>'+CL.scenes.length*p.d+' s</b> ('+CL.scenes.length+' plans de '+p.d+' s)':'';
+  if(!has){const n=p.n,f=clSingFlags(n);let c=0;f.forEach(x=>c+=IMG_PRICE+(x?p.d*AVATAR.standard.price:videoCost(p.o.model,p.d,false)));pr.innerHTML='Prévu : <b>'+n+' plans de '+p.d+' s</b> = '+p.total+' s · coût estimé ≈ <b>'+money(c)+'</b>'+(p.capped?'<br>✂️ Limité à la durée de ton morceau (après le début choisi).':'')+(p.total<60?'<br>💡 Il faut au moins 60 s pour être payé par TikTok.':'')}
+  else pr.innerHTML=todo?'Coût estimé : <b>'+money(total)+'</b> pour '+todo+' plan'+(todo>1?'s':'')+' · '+est:'Tous les plans sont prêts · '+est;
+  $('clGen').classList.toggle('hide',!todo||CL.busy);
+  $('clGen').textContent=todo===CL.scenes.length?'🎬 Générer les '+todo+' plans':'🎬 Générer les '+todo+' plan'+(todo>1?'s':'')+' restant'+(todo>1?'s':'');
+  $('clStop').classList.toggle('hide',!CL.busy);
+  $('clMontage').classList.toggle('hide',!ready||CL.busy);
+}
+function clAction(i,a){
+  const s=CL.scenes[i];if(CL.busy&&a!=='up'&&a!=='down')return toast('Attends la fin de la génération','warn');
+  if(a==='del'){if(!confirm('Supprimer le plan '+(i+1)+' ?'))return;CL.scenes.splice(i,1)}
+  if(a==='up'&&i>0)[CL.scenes[i-1],CL.scenes[i]]=[CL.scenes[i],CL.scenes[i-1]];
+  if(a==='down'&&i<CL.scenes.length-1)[CL.scenes[i+1],CL.scenes[i]]=[CL.scenes[i],CL.scenes[i+1]];
+  // un plan chanté est calé sur son moment du morceau : s'il change de place, il faut le refaire
+  if((a==='up'||a==='down')&&CL.scenes.some(x=>x.sing&&x.vid))toast('Les plans chantés déplacés ne seront plus synchro : refais leur vidéo','warn',4500);
+  if(a==='regen'){s.img=null;s.vid=null;s.local=null;s.status='';s.msg='';clSave();clRender();return clGenerate([i])}
+  if(a==='revid'){s.vid=null;s.local=null;s.status='';s.msg='';clSave();clRender();return clGenerate([i])}
+  clSave();clRender();
+}
+function clUnivText(){const u=clUniv.get();return u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':''}
+async function clWrite(){
+  if(!CL.song)return toast('Ajoute d\'abord ton morceau','warn');
+  const idea=$('clIdea').value.trim();
+  if(!idea&&!clUniv.get()&&!$('clGenre').value.trim())return toast('Écris une idée, un style ou choisis un univers','warn');
+  const p=clPlan();const flags=clSingFlags(p.n);
+  const sys='You are a creative music video director for TikTok. You design visually striking, cinematic vertical music videos made with AI video generation. Answer ONLY with valid JSON, no markdown.';
+  const lyr=$('clLyrics').value.trim();
+  const prompt='Design a '+p.n+'-shot vertical music video.\nSong title: "'+($('clTitle').value.trim()||'untitled')+'"\nGenre / mood: '+($('clGenre').value.trim()||'free')+'\nArtist / main character: '+($('clChar').value.trim()||'the person in the reference photo')+'\nUniverse / look: '+(clUnivText()||'free choice that fits the song')+'\nIdea: '+(idea||'surprise me, make it cinematic and catchy')+'\n'+(lyr?'Lyrics of this excerpt (follow them visually, in order):\n'+lyr.slice(0,1500)+'\n':'')+
+    'Each shot lasts '+p.d+' seconds; shot i covers seconds '+'[(i-1)*'+p.d+', i*'+p.d+'] of the excerpt.\nPerformance shots (the artist faces the camera and sings): '+(flags.map((f,i)=>f?i+1:0).filter(Boolean).join(', ')||'none')+'.\n'+
+    'Rules:\n- Shot 1 must be a strong visual hook.\n- Vary framing (close-up, wide, low angle, tracking), places and lighting, but keep one coherent visual story.\n- Keep the same main character and outfit unless the idea says otherwise.\n- For performance shots, describe only a striking setting and mood (the face will sing).\n- "decor": English, one sentence: place, lighting, what is visible around the character (no face description).\n- "action": English, one sentence: movement, camera move and energy during the '+p.d+'-second shot.\n'+
+    'Return: {"title":"short title","scenes":[{"decor":"...","action":"..."}]} with exactly '+p.n+' scenes.';
+  const b=$('clWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> L\'IA imagine le clip…';
+  try{
+    const j=await llm(sys,prompt);
+    if(CL.scenes.some(s=>s.vid)&&!confirm('Remplacer les plans actuels par ce nouveau clip ?'))return;
+    const sc=j.scenes.slice(0,p.n);while(sc.length<p.n)sc.push(Object.assign({},sc[sc.length-1]||{decor:'',action:''}));
+    CL.scenes=sc.map((s,i)=>({decor:s.decor||'',action:s.action||'',sing:flags[i]}));
+    LS.set('ms_clip_name',$('clTitle').value.trim()||j.title||'clip');
+    clSave();clRender();toast('Clip imaginé : '+p.n+' plans — modifie ce que tu veux','ok',3500);
+    $('clScenes').scrollIntoView({behavior:'smooth'});
+  }catch(e){toast(e.message==='stop'?'Arrêté':'Clip : '+e.message+' — réessaie, ou ajoute des plans vides','err',6000)}
+  finally{b.disabled=false;b.textContent='🎬 Imaginer le clip avec l\'IA (~0,01 $)'}
+}
+function clImgPrompt(s,hasRef){
+  const ch=$('clChar').value.trim();const u=clUniv.get();
+  return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
+    (s.decor||'')+(u?' Visual style: '+u.p.replace(/Preserve identity\.?/i,'')+'.':'')+
+    (s.sing?' The person faces the camera, singing with emotion, medium close-up, face clearly visible and well lit, mouth slightly open.':'')+
+    ' Cinematic music video still, dramatic lighting, vertical 9:16, no text, no watermark.';
+}
+function clVidPrompt(s){
+  const u=clUniv.get();const g=$('clGenre').value.trim();
+  return 'Cinematic music video shot'+(g?' for a '+g+' song':'')+'. '+(s.action||'')+' '+(u?u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights)+'. ':'')+
+    'Rhythmic, dynamic camera movement. Keep the same face and outfit as the first frame. No dialogue, no lip movement, no text, no subtitles.';
+}
+async function clGenerate(only){
+  if(CL.busy)return;
+  if(!CL.song)return toast('Ajoute ton morceau','warn');
+  const p=clPlan();
+  const idx=only||CL.scenes.map((s,i)=>i).filter(i=>!(CL.scenes[i].local||CL.scenes[i].vid));
+  if(!idx.length)return;
+  if(idx.some(i=>CL.scenes[i].sing)&&!S.server)return toast('Les plans chantés ont besoin du serveur : lance python server.py','err',5000);
+  let cost=0;idx.forEach(i=>cost+=clSceneCost(CL.scenes[i],p));
+  if(!budgetOk(cost))return;
+  CL.busy=true;S.stop.clip=false;clRender();
+  const refs=CL.refs.map(r=>r.uri);
+  const anchor=()=>{if(refs.length)return refs;const f=CL.scenes.find(s=>s.img);return f?[f.img]:[]};
+  const runOne=async i=>{
+    const s=CL.scenes[i];const upd=(m,st)=>{s.msg=m;if(st)s.status=st;const el=document.querySelector('#clScenes .scene[data-i="'+i+'"]');if(el){el.className='scene '+(s.status||'');el.querySelector('.st').textContent=m}};
+    try{
+      s.status='busy';clRender();
+      if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(clImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'clip');clSave();clRender()}
+      if(s.sing){
+        upd('Découpe du son…');
+        const rc=await fetch('/api/audiocut',{method:'POST',body:JSON.stringify({path:CL.song.path,start:clStartS()+i*p.d,dur:p.d})});
+        const cut=await rc.json();if(!rc.ok)throw new Error(cut.detail||'découpe du son impossible');
+        const res=await falRun(AVATAR.standard.id,{image_url:s.img,audio_url:cut.datauri,prompt:'singing passionately into the camera, expressive face, natural head and shoulder movement, music video performance. '+(s.action||'')},m=>upd('Play-back · '+m),'clip');
+        const u=res.video&&res.video.url;if(!u)throw new Error('Pas de vidéo reçue');
+        addSpend((res.duration||p.d)*AVATAR.standard.price);s.vid=u;
+      }else{
+        upd('Vidéo…');
+        s.vid=await genVideo(p.o.model,'i2v',{prompt:clVidPrompt(s),image:s.img,duration:p.d,audio:false},m=>upd('Vidéo · '+m),'clip');
+      }
+      s.local=await saveLocal(s.vid,'plan'+(i+1));
+      s.status='done';s.msg='✓ Prêt';
+    }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêté':'✕ '+e.message}
+    clSave();clRender();
+  };
+  try{
+    const rest=idx.slice();
+    if(!refs.length&&!CL.scenes.some(s=>s.img))await runOne(rest.shift());
+    let k=0;
+    await Promise.all(Array.from({length:2},async()=>{while(k<rest.length&&!S.stop.clip){const i=rest[k++];$('clProg').textContent='Plans en cours… ('+(idx.length-rest.length+k)+'/'+idx.length+')';await runOne(i)}}));
+  }finally{
+    CL.busy=false;clRender();
+    const fails=CL.scenes.filter(s=>s.status==='fail').length;
+    $('clProg').textContent=fails?fails+' plan(s) en échec : appuie sur « ↻ Refaire le plan ».':S.stop.clip?'Arrêté.':'Plans prêts ! Vérifie-les puis monte le clip.';
+    if(!fails&&!S.stop.clip)toast('Plans prêts ✓','ok');
+  }
+}
+async function clMontage(){
+  if(!S.server)return toast('Lance python server.py dans Termux pour le montage','err',4500);
+  if(!S.ffmpeg)return toast('Installe ffmpeg : pkg install ffmpeg','err',4500);
+  if(!CL.song)return toast('Ajoute ton morceau','warn');
+  const b=$('clMontage');b.disabled=true;b.innerHTML='<span class="spin"></span> Montage sur ta musique…';
+  try{
+    const p=clPlan();
+    for(let i=0;i<CL.scenes.length;i++){const s=CL.scenes[i];if(!s.local){s.local=await saveLocal(s.vid,'plan'+(i+1));if(!s.local)throw new Error('impossible de récupérer le plan '+(i+1)+' (refais-le)')}}
+    clSave();
+    const name=LS.get('ms_clip_name','clip');
+    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:CL.scenes.map(s=>s.local),music:CL.song.path,music_volume:1,music_start:clStartS(),mute:true,durations:CL.scenes.map(()=>p.d),title:'clip_'+name})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
+    addHist({kind:'video',type:'Clip',title:name,local:d.path,cost:0});
+    $('clOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Clip · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('clOut').appendChild(c);
+    $('clProg').textContent='🎉 Clip enregistré dans MetaStudio/videos ('+Math.round(d.duration)+' s).';
+    toast('Clip prêt !','ok');$('clOut').scrollIntoView({behavior:'smooth'});
+  }catch(e){toast('Montage : '+e.message,'err',5000)}
+  finally{b.disabled=false;b.textContent='🎞️ Monter le clip sur ma musique'}
+}
+function clSongInfo(){
+  if(!CL.song){$('clSongName').textContent='Choisir le son (mp3, m4a, wav…)';$('clSongInfo').textContent='Il sera calé exactement sous les images';return}
+  $('clSongName').textContent='🎵 '+CL.song.name;
+  $('clSongInfo').textContent=(CL.song.duration?'Durée '+fmtT(CL.song.duration)+' · ':'')+'touche pour changer';
+}
+
+/* =====================================================================
    ONGLET ANIMER (ancien Méta-Studio)
    ===================================================================== */
 const AN={images:[],end:null,busy:false};let anModel,anUniv;
@@ -1076,7 +1289,7 @@ function libRender(){
   const h=hist();const sp=LS.get('ms_spend',{});
   const total=Object.values(sp).reduce((a,b)=>a+b,0);
   $('libStats').innerHTML='<div class="stat"><div class="v">'+money(spentMonth())+'</div><div class="k">Dépensé ce mois (estim.)</div></div><div class="stat"><div class="v">'+money(total)+'</div><div class="k">Depuis le début</div></div><div class="stat"><div class="v">'+h.filter(x=>x.kind==='video').length+'</div><div class="k">Vidéos</div></div><div class="stat"><div class="v">'+h.filter(x=>x.kind==='image').length+'</div><div class="k">Images</div></div>';
-  const types=['all','Histoire','Photo→vidéo','Texte→vidéo','Parlant','Image'];
+  const types=['all','Histoire','Clip','Photo→vidéo','Texte→vidéo','Parlant','Image'];
   $('libFilter').innerHTML=types.map(t=>'<button class="chip '+(libFilter===t?'sel':'')+'" data-t="'+t+'">'+(t==='all'?'Tout':t)+'</button>').join('');
   $('libFilter').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{libFilter=b.dataset.t;libRender()});
   const out=$('libOut');out.innerHTML='';
@@ -1092,7 +1305,7 @@ function libRender(){
 /* =====================================================================
    NAVIGATION + INIT
    ===================================================================== */
-const TABS=[['story','🎬','Histoire'],['anim','🖼️','Animer'],['text','✍️','Texte'],['talk','🗣️','Parlant'],['img','🎨','Image'],['lib','📁','Créations']];
+const TABS=[['story','🎬','Histoire'],['clip','🎵','Clip'],['anim','🖼️','Animer'],['text','✍️','Texte'],['talk','🗣️','Parlant'],['img','🎨','Image'],['lib','📁','Créations']];
 function go(t){LS.set('ms_tab',t);document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='lib')libRender();window.scrollTo(0,0)}
 function updKey(){const k=getKey();$('keyCard').classList.toggle('ok',!!k);$('apiStatus').classList.toggle('ok',!!k);$('apiText').textContent=k?'Clé active · '+k.slice(0,6)+'…'+k.slice(-4):'Aucune clé';$('apiKey').value=k;$('noKey').classList.toggle('hide',!!k)}
 function chips(el,opts,cur,onPick){el.innerHTML=opts.map(([v,l])=>'<button class="chip '+(cur===v?'sel':'')+'" data-v="'+v+'">'+l+'</button>').join('');el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{onPick(b.dataset.v);chips(el,opts,b.dataset.v,onPick)})}
@@ -1127,6 +1340,24 @@ async function checkServer(){
   $('stStop').onclick=()=>{S.stop.story=true;toast('Arrêt après les scènes en cours…','warn')};
   $('stMontage').onclick=stMontage;
   stRender();
+
+  // Clip musical
+  clUniv=univPicker($('clUnivGrid'),$('clUnivSearch'),'clip',true);
+  clModel=modelPicker($('clModelCard'),'clip',clRender,{def:'eco',perScene:true,noAudio:true});
+  ['clStart','clLen','clChar','clTitle','clGenre','clIdea','clLyrics','clSing'].forEach(id=>{const v=LS.get('ms_'+id,null);if(v!==null)$(id).value=v;const ev=$(id).tagName==='SELECT'?'onchange':'oninput';$(id)[ev]=e=>{LS.set('ms_'+id,e.target.value);clPrice()}});
+  $('clSing').onchange=e=>{LS.set('ms_clSing',e.target.value);if(CL.scenes.length&&!CL.scenes.some(s=>s.vid)){const f=clSingFlags(CL.scenes.length);CL.scenes.forEach((s,i)=>s.sing=f[i]);clSave()}clRender()};
+  $('clLen').onchange=e=>{LS.set('ms_clLen',e.target.value);clRender()};
+  $('clStart').oninput=e=>{LS.set('ms_clStart',e.target.value);clRender()};
+  $('clRef').onchange=async e=>{CL.refs.push(...await loadImages(e.target.files));CL.refs.splice(3);renderThumbs($('clRefThumbs'),CL.refs);e.target.value=''};
+  $('clSong').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!S.server)return toast('Lance python server.py pour ajouter ton son','err');$('clSongName').textContent='Envoi…';
+    try{const ext=(f.name.split('.').pop()||'mp3').toLowerCase();const r=await fetch('/api/upload?name=son&ext='+ext,{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.detail||'');CL.song={path:d.path,name:f.name,duration:d.duration||0};LS.set('ms_clip_song',CL.song);clSongInfo();clRender();toast('Son ajouté ✓','ok')}
+    catch(err){$('clSongName').textContent='Erreur, réessaie'}e.target.value=''};
+  $('clWrite').onclick=clWrite;
+  $('clAdd').onclick=()=>{const p=clPlan();const f=clSingFlags(CL.scenes.length+1);CL.scenes.push({decor:'',action:'',sing:f[CL.scenes.length]});clSave();clRender()};
+  $('clGen').onclick=()=>clGenerate();
+  $('clStop').onclick=()=>{S.stop.clip=true;toast('Arrêt après les plans en cours…','warn')};
+  $('clMontage').onclick=clMontage;
+  clSongInfo();clRender();
 
   // Animer
   anUniv=univPicker($('anUnivGrid'),$('anUnivSearch'),'anim',true);

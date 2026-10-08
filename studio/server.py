@@ -80,8 +80,14 @@ def duration(path):
         return 0.0
 
 
-def concat(files, music=None, music_volume=0.35, title="histoire"):
-    """Assemble des clips (memes reglages pour tous) + musique optionnelle."""
+def concat(files, music=None, music_volume=0.35, title="histoire",
+           mute=False, music_start=0.0, durations=None):
+    """Assemble des clips + musique optionnelle.
+
+    mute=True       : on coupe le son des clips, seule la musique reste (clip musical)
+    music_start     : debut de l'extrait de musique, en secondes
+    durations       : duree exacte de chaque clip (coupe ou prolonge la derniere image)
+    """
     if not has_ffmpeg():
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
     stamp = time.strftime("%Y%m%d_%H%M%S")
@@ -91,18 +97,25 @@ def concat(files, music=None, music_volume=0.35, title="histoire"):
         if not os.path.isfile(src):
             raise RuntimeError("clip introuvable : " + f)
         out = os.path.join(WORK, "p%s_%02d.mp4" % (stamp, i))
+        D = None
+        if durations and i < len(durations) and durations[i]:
+            D = float(durations[i])
         vf = ("scale=720:1280:force_original_aspect_ratio=decrease,"
               "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p")
-        if has_audio(src):
-            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", vf,
-                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-                   "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k", out]
+        if D:
+            vf += ",tpad=stop_mode=clone:stop_duration=%.2f" % D
+        tail = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+                "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k"]
+        if D:
+            tail += ["-t", "%.3f" % D]
+        if has_audio(src) and not mute:
+            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", vf] + \
+                  (["-af", "apad"] if D else []) + tail + [out]
         else:
             cmd = ["ffmpeg", "-y", "-v", "error", "-i", src,
                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-                   "-vf", vf, "-map", "0:v", "-map", "1:a", "-shortest",
-                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-                   "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k", out]
+                   "-vf", vf, "-map", "0:v", "-map", "1:a"] + \
+                  ([] if D else ["-shortest"]) + tail + [out]
         run(cmd)
         parts.append(out)
 
@@ -119,9 +132,14 @@ def concat(files, music=None, music_volume=0.35, title="histoire"):
         msrc = local_path(music)
         total = duration(joined)
         fade_start = max(0.0, total - 2.0)
-        fc = ("[1:a]volume=%.2f,afade=t=out:st=%.2f:d=2[m];"
-              "[0:a][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]") % (music_volume, fade_start)
-        run(["ffmpeg", "-y", "-v", "error", "-i", joined, "-stream_loop", "-1", "-i", msrc,
+        if mute:
+            fc = ("[1:a]volume=%.2f,afade=t=in:st=0:d=0.3,afade=t=out:st=%.2f:d=2[a]"
+                  % (music_volume, fade_start))
+        else:
+            fc = ("[1:a]volume=%.2f,afade=t=out:st=%.2f:d=2[m];"
+                  "[0:a][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]") % (music_volume, fade_start)
+        run(["ffmpeg", "-y", "-v", "error", "-i", joined,
+             "-stream_loop", "-1", "-ss", "%.2f" % max(0.0, float(music_start or 0)), "-i", msrc,
              "-filter_complex", fc, "-map", "0:v", "-map", "[a]", "-c:v", "copy",
              "-c:a", "aac", "-b:a", "192k", "-t", "%.2f" % total, final])
     else:
@@ -133,6 +151,24 @@ def concat(files, music=None, music_volume=0.35, title="histoire"):
         except OSError:
             pass
     return "/videos/" + final_name, duration(final)
+
+
+def audio_cut_datauri(rel, start, dur):
+    """Decoupe un morceau du son (pour faire chanter l'artiste en play-back)."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    src = local_path(rel)
+    if not os.path.isfile(src):
+        raise RuntimeError("son introuvable, remets ton morceau")
+    out = os.path.join(WORK, "cut_%d.mp3" % int(time.time() * 1000))
+    run(["ffmpeg", "-y", "-v", "error", "-ss", "%.2f" % float(start), "-t", "%.2f" % float(dur),
+         "-i", src, "-ac", "1", "-ar", "44100", "-b:a", "128k", out])
+    with open(out, "rb") as fh:
+        data = fh.read()
+    os.remove(out)
+    if len(data) < 2000:
+        raise RuntimeError("extrait vide : le debut depasse la fin du morceau ?")
+    return "data:audio/mpeg;base64," + base64.b64encode(data).decode()
 
 
 def to_mp3_datauri(raw, ext):
@@ -240,7 +276,9 @@ class Handler(SimpleHTTPRequestHandler):
             if p.path == "/api/concat":
                 d = json.loads(self.body() or b"{}")
                 path, dur = concat(d.get("files", []), d.get("music"),
-                                   float(d.get("music_volume", 0.35)), d.get("title", "histoire"))
+                                   float(d.get("music_volume", 0.35)), d.get("title", "histoire"),
+                                   bool(d.get("mute")), float(d.get("music_start") or 0),
+                                   d.get("durations"))
                 return self.send_json({"path": path, "duration": dur})
 
             if p.path == "/api/upload":
@@ -251,9 +289,21 @@ class Handler(SimpleHTTPRequestHandler):
                     uri, rel = to_mp3_datauri(raw, ext)
                     return self.send_json({"datauri": uri, "path": rel})
                 name = "%s_%s.%s" % (safe_name(q.get("name", ["fichier"])[0]), int(time.time()), ext)
-                with open(os.path.join(UPLOADS, name), "wb") as fh:
+                dest = os.path.join(UPLOADS, name)
+                with open(dest, "wb") as fh:
                     fh.write(raw)
-                return self.send_json({"path": "/uploads/" + name})
+                dur = 0.0
+                if has_ffmpeg():
+                    try:
+                        dur = duration(dest)
+                    except Exception:
+                        dur = 0.0
+                return self.send_json({"path": "/uploads/" + name, "duration": dur})
+
+            if p.path == "/api/audiocut":
+                d = json.loads(self.body() or b"{}")
+                uri = audio_cut_datauri(d.get("path", ""), d.get("start", 0), d.get("dur", 5))
+                return self.send_json({"datauri": uri})
 
             if p.path == "/api/delete":
                 d = json.loads(self.body() or b"{}")
