@@ -97,7 +97,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <h1>🎬 Méta-Studio</h1>
   <div style="display:flex;align-items:center">
     <div class="spent">Dépensé ce mois<br><b id="spentMonth">0,00 $</b></div>
-    <button class="gear" id="openSettings" aria-label="Réglages">⚙️</button>
+    <button class="gear" id="openPersos" aria-label="Personnages">👤</button><button class="gear" id="openSettings" aria-label="Réglages">⚙️</button>
   </div>
 </header>
 
@@ -112,10 +112,12 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 
   <div class="card">
     <label class="lbl">1. Personnage (ta photo, conseillé)</label>
+    <div class="chips" id="stPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="stRef"><input type="file" id="stRef" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) du personnage</div><div class="h">1 à 3 photos du même visage. Sans photo, l'IA invente le personnage.</div></div>
     <div class="grid" id="stRefThumbs"></div>
     <label class="lbl">Description du personnage (optionnel)</label>
     <input type="text" id="stChar" placeholder="ex : homme 30 ans, chemise en lin blanche, tatouages aux bras">
+    <button class="btn sec small" id="stSavePerso" style="margin-top:.5rem">💾 Enregistrer comme personnage</button>
   </div>
 
   <div class="card">
@@ -124,6 +126,8 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Nom du personnage principal</label><input type="text" id="stName" placeholder="ex : Luna"></div>
       <div><label class="lbl">Sa voix</label><select id="stVoice"></select></div>
     </div>
+    <label class="lbl">Personnalité (optionnel)</label>
+    <input type="text" id="stPersona" placeholder="ex : drôle, taquine, finit souvent par une question">
     <label class="lbl">Autres personnages (dialogues)</label>
     <div id="stOthers"></div>
     <button class="btn sec" id="stAddChar">＋ Ajouter un personnage</button>
@@ -153,6 +157,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="up" data-pick="stMusic"><input type="file" id="stMusic" accept="audio/*"><div class="ico">🎵</div><div class="t" id="stMusicName">Ajouter ta musique</div><div class="h">Mixée sous les voix au montage</div></div>
     <label class="lbl">Volume de la musique : <span id="stVolV">35</span>%</label>
     <input type="range" id="stVol" min="5" max="100" value="35">
+    <div class="toggle"><span>💬 Sous-titres incrustés <span class="hint" style="display:block;margin:0">Conseillé : beaucoup regardent TikTok sans le son</span></span><label class="sw"><input type="checkbox" id="stSubs" checked><span></span></label></div>
   </div>
 
   <button class="btn sec" id="stWrite">✍️ Écrire le script avec l'IA (~0,01 $)</button>
@@ -182,6 +187,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   </div>
   <div class="card">
     <label class="lbl">2. Artiste / personnage (optionnel)</label>
+    <div class="chips" id="clPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="clRef"><input type="file" id="clRef" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) de l'artiste</div><div class="h">1 à 3 photos du même visage. Sans photo, l'IA invente le personnage.</div></div>
     <div class="grid" id="clRefThumbs"></div>
     <label class="lbl">Description (optionnel)</label>
@@ -221,6 +227,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <h2>🖼️ Photo → Vidéo</h2>
   <p class="lead">Anime une ou plusieurs photos avec un des 300 univers. Chaque photo devient une vidéo.</p>
   <div class="card">
+    <div class="chips" id="anPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="anFiles"><input type="file" id="anFiles" accept="image/*" multiple><div class="ico">＋</div><div class="t">Ajoute tes images</div><div class="h">Une ou plusieurs — chacune devient une scène</div></div>
     <div class="grid" id="anThumbs"></div>
     <label class="lbl">Image de fin (optionnel, Kling 3.0)</label>
@@ -278,6 +285,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <h2>🗣️ Vidéo parlante</h2>
   <p class="lead">Une photo + une voix → le visage parle avec les lèvres synchronisées (Kling AI Avatar).</p>
   <div class="card">
+    <div class="chips" id="tkPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="tkFiles"><input type="file" id="tkFiles" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) qui vont parler</div><div class="h">Visage bien visible, de face</div></div>
     <div class="grid" id="tkThumbs"></div>
   </div>
@@ -323,6 +331,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <p class="lead">Crée une image, ou mets une personne de tes photos dans un nouveau décor (~0,04 $ l'image).</p>
   <div class="card">
     <label class="lbl">Photo(s) de référence (optionnel)</label>
+    <div class="chips" id="imPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="imRef"><input type="file" id="imRef" accept="image/*" multiple><div class="t">＋ Ajouter des photos à modifier</div></div>
     <div class="grid" id="imThumbs"></div>
     <label class="lbl">Ce que tu veux</label>
@@ -349,6 +358,31 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 </section>
 
 <!-- ================= REGLAGES ================= -->
+<div class="modal" id="persos"><div class="sheet">
+  <h2>👤 Mes personnages</h2>
+  <p class="lead">Enregistre tes personnages une fois (photos, voix, personnalité), puis choisis-les d'un clic dans tous les onglets. Idéal pour une influenceuse IA, une série ou les avatars de tes clients.</p>
+  <div id="psList"></div>
+  <div class="card" id="psForm">
+    <label class="lbl" id="psFormTitle">Nouveau personnage</label>
+    <input type="text" id="psName" placeholder="Nom (ex : Luna)">
+    <label class="lbl">Photos de référence (1 à 3, visage net et de face)</label>
+    <div class="up" data-pick="psFiles"><input type="file" id="psFiles" accept="image/*" multiple><div class="t">＋ Ajouter des photos</div></div>
+    <div class="grid" id="psThumbs"></div>
+    <label class="lbl">Apparence</label>
+    <input type="text" id="psDesc" placeholder="ex : 22 ans, longs cheveux noirs ondulés, yeux bleus, taches de rousseur">
+    <div class="row">
+      <div><label class="lbl">Voix (vidéos)</label><select id="psVoice"></select></div>
+      <div><label class="lbl">Voix (onglet Parlant)</label><select id="psTts"></select></div>
+    </div>
+    <label class="lbl">Langue</label><select id="psLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option><option value="Brazilian Portuguese">Portugais (Brésil)</option><option value="Italian">Italien</option><option value="German">Allemand</option><option value="Dutch">Néerlandais</option><option value="Arabic">Arabe</option><option value="Moroccan Arabic (Darija)">Arabe darija (expérimental)</option><option value="Turkish">Turc</option><option value="Russian">Russe</option><option value="Polish">Polonais</option><option value="Chinese (Mandarin)">Chinois</option><option value="Japanese">Japonais</option><option value="Korean">Coréen</option><option value="Hindi">Hindi</option><option value="Haitian Creole">Créole haïtien (expérimental)</option><option value="Antillean French Creole">Créole antillais (expérimental)</option><option value="Wolof">Wolof (expérimental)</option><option value="Lingala">Lingala (expérimental)</option><option value="Swahili">Swahili (expérimental)</option></select>
+    <label class="lbl">Personnalité, façon de parler</label>
+    <textarea id="psPerso" placeholder="ex : drôle et un peu taquine, petit accent, adore la mode et les cafés, finit souvent par une question au public"></textarea>
+    <button class="btn" id="psSave">💾 Enregistrer le personnage</button>
+    <button class="btn sec hide" id="psCancel">Annuler la modification</button>
+  </div>
+  <button class="btn sec" id="closePersos">Fermer</button>
+</div></div>
+
 <div class="modal" id="settings"><div class="sheet">
   <h2>⚙️ Réglages</h2>
   <div class="card" id="keyCard" style="margin-top:.8rem">
@@ -796,22 +830,7 @@ async function genVideo(mk,kind,o,onProg,stopKey){
   addSpend(videoCost(mk,o.duration,o.audio));
   const u=res.video&&res.video.url;if(!u)throw new Error('Pas de vidéo reçue');return u;
 }
-async function llm(system,prompt){
-  // Essaie plusieurs modèles : si l'un renvoie une réponse vide ou coupée, on passe au suivant.
-  let last='réponse vide';
-  for(const model of LLM_MODELS){
-    try{
-      const res=await falRun(LLM,{model,system_prompt:system,prompt,temperature:0.8,max_tokens:8000});
-      addSpend(LLM_PRICE);
-      const out=res.output||res.text||(res.choices&&res.choices[0]&&res.choices[0].message&&res.choices[0].message.content)||'';
-      if(res.error&&!out){last=String(res.error).slice(0,150);continue}
-      const j=parseJSON(out);
-      if(j&&j.scenes&&j.scenes.length)return j;
-      last='script illisible ('+(out?out.slice(0,60):'vide')+')';
-    }catch(e){if(e.message==='stop')throw e;last=e.message}
-  }
-  throw new Error(last);
-}
+async function llm(system,prompt){return llmJSON(system,prompt,j=>j.scenes&&j.scenes.length)}
 function parseJSON(t){
   if(!t)return null;
   t=String(t).replace(/```json|```/g,'');
@@ -908,7 +927,7 @@ function resCard(o){
    ===================================================================== */
 const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
 let stModel,stUniv;
-function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
 function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
 function stInit(){
   $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
@@ -961,7 +980,7 @@ async function stWrite(){
   const n=+$('stCount').value;const o=stModel.get();const lang=$('stLang').value;
   const words=Math.max(4,Math.round(o.duration*2.3));
   const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
-  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
+  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+($('stPersona').value.trim()?'\nPersonality / way of speaking of '+stMainName()+': '+$('stPersona').value.trim()+' (make the lines sound like this)':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
     '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+(stChars().length>1?'- "line": dialogue in '+lang+', natural spoken style. One line per speaker, formatted "Name: text", separated by \\n. Use the characters\' exact names. Max '+words+' words in total (it must fit in '+o.duration+' seconds). Can be empty.\n- When another character speaks or appears, mention them by name in "decor".\n':'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n')+
     'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
@@ -1013,7 +1032,7 @@ async function stGenerate(only){
       upd('Vidéo…');
       const bt=splitBeats(s.action);
       s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
-      s.local=await saveLocal(s.vid,'scene'+(i+1));
+      s.local=await saveLocal(s.vid,'scene'+(i+1));s.dur=o.duration;
       s.status='done';s.msg='✓ Prête';
     }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêtée':'✕ '+e.message}
     stSave();stRender();
@@ -1038,15 +1057,117 @@ async function stMontage(){
   try{
     for(let i=0;i<ST.scenes.length;i++){const s=ST.scenes[i];if(!s.local){s.local=await saveLocal(s.vid,'scene'+(i+1));if(!s.local)throw new Error('impossible de récupérer la scène '+(i+1)+' (lien expiré ? refais-la)')}}
     stSave();
-    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire')})});
+    const dd=stModel.get().duration;const durs=ST.scenes.map(s=>s.dur||dd);
+    const subs=[];
+    if($('stSubs').checked){let t=0;const many=stChars().length>1;
+      ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];
+        parts.forEach((pt,k)=>{const a=t+D*k/parts.length,b=t+D*(k+1)/parts.length;subs.push({start:a+0.1,end:b-0.1,text:(many?pt.char.name+' : ':'')+pt.text})});t+=D});}
+    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire'),durations:durs,subs})});
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
+    if(d.subs_skipped)toast('Sous-titres non ajoutés : aucune police trouvée sur le téléphone','warn',4500);
     ST.final=d.path;
     addHist({kind:'video',type:'Histoire',title:LS.get('ms_story_title','Histoire'),local:d.path,cost:0});
     $('stOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Vidéo finale · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('stOut').appendChild(c);
+    captionTool($('stOut'),()=>'Type: '+FORMATS[ST.format].l+'\nTitle: '+LS.get('ms_story_title','')+'\nMain character: '+stMainName()+'\nIdea: '+$('stIdea').value+'\nLines: '+ST.scenes.map(s=>s.line).filter(Boolean).join(' / '));
     $('stProg').textContent='🎉 Vidéo finale enregistrée dans MetaStudio/videos ('+Math.round(d.duration)+' s).';
     toast('Vidéo finale prête !','ok');$('stOut').scrollIntoView({behavior:'smooth'});
   }catch(e){toast('Montage : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎞️ Assembler la vidéo finale'}
+}
+
+/* =====================================================================
+   PERSONNAGES (fiches réutilisables)
+   ===================================================================== */
+const TTS_LANG={French:'fr',English:'en',Spanish:'es',Portuguese:'pt','Brazilian Portuguese':'pt',Italian:'it',German:'de',Dutch:'nl',Arabic:'ar',Turkish:'tr',Russian:'ru',Polish:'pl','Chinese (Mandarin)':'zh',Japanese:'ja',Korean:'ko',Hindi:'hi'};
+const PS={edit:null,photos:[],pickers:[]};
+function persos(){return LS.get('ms_persos',[])}
+function savePersos(l){LS.set('ms_persos',l);PS.pickers.forEach(f=>f());psRenderList()}
+async function blobToUri(b){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}
+async function uriToBlob(u){return await (await fetch(u)).blob()}
+async function persoImages(p){
+  const out=[];
+  for(const ph of p.photos||[]){
+    try{let uri=ph.uri;if(!uri&&ph.path){const r=await fetch(ph.path);if(!r.ok)continue;uri=await blobToUri(await r.blob())}
+      if(uri)out.push({uri,thumb:ph.thumb||await shrink(uri,240,.7),id:Date.now()+Math.random()})}catch(e){}
+  }
+  return out;
+}
+function persoPicker(el,onPick){
+  const draw=()=>{
+    const l=persos();
+    el.innerHTML=l.length?l.map(p=>'<button class="chip" data-p="'+p.id+'">'+(p.photos&&p.photos[0]?'<img src="'+p.photos[0].thumb+'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-4px;margin-right:4px">':'👤 ')+esc(p.name)+'</button>').join(''):'<span class="hint">💡 Enregistre tes personnages avec 👤 en haut pour les choisir ici d\'un clic</span>';
+    el.querySelectorAll('[data-p]').forEach(b=>b.onclick=async()=>{const p=persos().find(x=>x.id===b.dataset.p);if(!p)return;b.innerHTML='<span class="spin"></span>';const imgs=await persoImages(p);onPick(p,imgs);draw();toast(p.name+' sélectionné ✓','ok')});
+  };
+  PS.pickers.push(draw);draw();
+}
+function psForm(p){
+  PS.edit=p?p.id:null;PS.photos=p?(p.photos||[]).map(x=>Object.assign({id:Date.now()+Math.random()},x)):[];
+  $('psFormTitle').textContent=p?'Modifier '+p.name:'Nouveau personnage';
+  $('psName').value=p?p.name:'';$('psDesc').value=p?p.desc||'':'';$('psPerso').value=p?p.perso||'':'';
+  $('psVoice').value=p?p.voice||'auto':'auto';$('psTts').value=p?p.tts||'George':'George';$('psLang').value=p?p.lang||'French':'French';
+  $('psCancel').classList.toggle('hide',!p);psThumbs();
+}
+function psThumbs(){renderThumbs($('psThumbs'),PS.photos.map(x=>({thumb:x.thumb,id:x.id})),null);$('psThumbs').querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();PS.photos=PS.photos.filter(x=>x.id!==parseFloat(b.dataset.x));psThumbs()})}
+function psRenderList(){
+  const l=persos();
+  $('psList').innerHTML=l.map(p=>'<div class="scene" style="display:flex;gap:.6rem;align-items:center"><div style="width:52px;height:52px;border-radius:10px;overflow:hidden;background:#000;flex-shrink:0">'+(p.photos&&p.photos[0]?'<img src="'+p.photos[0].thumb+'" style="width:100%;height:100%;object-fit:cover">':'')+'</div><div style="flex:1;min-width:0"><b>'+esc(p.name)+'</b><div class="hint" style="margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.desc||'')+'</div></div><button class="btn sec small" data-e="'+p.id+'">✏️</button><button class="btn danger small" data-d="'+p.id+'">✕</button></div>').join('')||'<div class="hint">Aucun personnage pour l\'instant.</div>';
+  $('psList').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{psForm(persos().find(x=>x.id===b.dataset.e));$('psForm').scrollIntoView({behavior:'smooth'})});
+  $('psList').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{if(confirm('Supprimer ce personnage ?'))savePersos(persos().filter(x=>x.id!==b.dataset.d))});
+}
+async function psAddFiles(files){
+  const imgs=await loadImages(files);
+  for(const im of imgs){
+    if(PS.photos.length>=3)break;
+    let ph={thumb:im.thumb};
+    if(S.server){try{const r=await fetch('/api/upload?name=perso&ext=jpg',{method:'POST',body:await uriToBlob(im.uri)});const d=await r.json();if(r.ok&&d.path)ph.path=d.path}catch(e){}}
+    if(!ph.path)ph.uri=await shrink(im.uri,768,.85);
+    ph.id=Date.now()+Math.random();PS.photos.push(ph);
+  }
+  psThumbs();
+}
+function psSave(){
+  const name=$('psName').value.trim();if(!name)return toast('Donne un nom au personnage','warn');
+  if(!PS.photos.length&&!$('psDesc').value.trim())return toast('Ajoute au moins une photo ou une description','warn');
+  const p={id:PS.edit||('p'+Date.now()),name,desc:$('psDesc').value.trim(),voice:$('psVoice').value,tts:$('psTts').value,lang:$('psLang').value,perso:$('psPerso').value.trim(),photos:PS.photos.map(({path,uri,thumb})=>({path,uri,thumb}))};
+  const l=persos();const k=l.findIndex(x=>x.id===p.id);if(k>=0)l[k]=p;else l.push(p);
+  try{savePersos(l)}catch(e){return toast('Mémoire pleine : lance le serveur pour stocker les photos','err',5000)}
+  psForm(null);toast(name+' enregistré ✓','ok');
+}
+
+/* ---------- légende TikTok ---------- */
+async function llmJSON(system,prompt,check){
+  let last='réponse vide';
+  for(const model of LLM_MODELS){
+    try{
+      const res=await falRun(LLM,{model,system_prompt:system,prompt,temperature:0.8,max_tokens:8000});
+      addSpend(LLM_PRICE);
+      const out=res.output||res.text||(res.choices&&res.choices[0]&&res.choices[0].message&&res.choices[0].message.content)||'';
+      if(res.error&&!out){last=String(res.error).slice(0,150);continue}
+      const j=parseJSON(out);
+      if(j&&check(j))return j;
+      last='réponse illisible ('+(out?out.slice(0,60):'vide')+')';
+    }catch(e){if(e.message==='stop')throw e;last=e.message}
+  }
+  throw new Error(last);
+}
+function captionTool(container,ctxFn){
+  const box=document.createElement('div');box.className='card';box.style.marginTop='.8rem';
+  box.innerHTML='<button class="btn sec" data-gen>📝 Légende + hashtags pour TikTok (~0,01 $)</button><div data-out></div>';
+  container.appendChild(box);
+  const out=box.querySelector('[data-out]');
+  box.querySelector('[data-gen]').onclick=async e=>{
+    const b=e.target;b.disabled=true;b.innerHTML='<span class="spin"></span> Rédaction…';
+    try{
+      const j=await llmJSON('You are a TikTok growth expert writing for a French-speaking audience. Answer ONLY with valid JSON.',
+        'Write the TikTok publishing kit for this video.\n'+ctxFn()+'\nRules: French language, natural and catchy, no fake claims, the account is an openly AI-generated character (mention it lightly when relevant).\nReturn {"hook":"text overlay for the first 2 seconds, max 8 words","caption":"caption max 150 characters ending with a question to make people comment","hashtags":["#...", 5 to 8 relevant niche hashtags, include #ia"]}',
+        j=>j.caption);
+      const tags=(j.hashtags||[]).map(t=>t.startsWith('#')?t:'#'+t).join(' ');
+      const items=[['🎯 Texte d\'accroche (à mettre à l\'écran)',j.hook||''],['✍️ Légende',(j.caption||'')+(tags?' '+tags:'')]];
+      out.innerHTML=items.map(([l,t],i)=>'<label class="lbl">'+l+'</label><div class="price" style="margin-top:0;white-space:pre-wrap">'+esc(t)+'</div><button class="btn sec small" data-c="'+i+'" style="margin-top:.35rem">📋 Copier</button>').join('');
+      out.querySelectorAll('[data-c]').forEach(c=>c.onclick=async()=>{const t=items[+c.dataset.c][1];try{await navigator.clipboard.writeText(t);toast('Copié ✓','ok')}catch(err){prompt('Copie ce texte :',t)}});
+    }catch(err){toast('Légende : '+err.message,'err',4500)}
+    finally{b.disabled=false;b.textContent='📝 Refaire la légende (~0,01 $)'}
+  };
 }
 
 /* =====================================================================
@@ -1202,6 +1323,7 @@ async function clMontage(){
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
     addHist({kind:'video',type:'Clip',title:name,local:d.path,cost:0});
     $('clOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Clip · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('clOut').appendChild(c);
+    captionTool($('clOut'),()=>'Type: music video clip\nSong title: '+$('clTitle').value+'\nArtist: ONDEZENMUSIC style artist\nGenre: '+$('clGenre').value+'\nIdea: '+$('clIdea').value);
     $('clProg').textContent='🎉 Clip enregistré dans MetaStudio/videos ('+Math.round(d.duration)+' s).';
     toast('Clip prêt !','ok');$('clOut').scrollIntoView({behavior:'smooth'});
   }catch(e){toast('Montage : '+e.message,'err',5000)}
@@ -1271,6 +1393,7 @@ async function anMontage(){
     const d=await res.json();if(!res.ok)throw new Error(d.detail||'erreur de montage');
     addHist({kind:'video',type:'Photo→vidéo',title:'Film assemblé',local:d.path,cost:0});
     $('anFinal').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Film · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('anFinal').appendChild(c);
+    captionTool($('anFinal'),()=>'Type: short cinematic film\nStory: '+$('anStory').value+'\nChoreography: '+$('anBeats').value.replace(/\n/g,' / '));
     toast('Film assemblé ✓','ok');$('anFinal').scrollIntoView({behavior:'smooth'});
   }catch(e){toast('Montage : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎞️ Assembler les vidéos dans l\'ordre'}
@@ -1435,6 +1558,16 @@ async function checkServer(){
   $('txVoice').innerHTML=voiceOpts(LS.get('ms_txVoice','auto'));$('txVoice').onchange=e=>LS.set('ms_txVoice',e.target.value);
   $('txLang').value=LS.get('ms_txLang','French');$('txLang').onchange=e=>LS.set('ms_txLang',e.target.value);
   $('tkLang').value=LS.get('ms_tkLang','fr');$('tkLang').onchange=e=>LS.set('ms_tkLang',e.target.value);
+  // Personnages
+  $('psVoice').innerHTML=voiceOpts('auto');$('psTts').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');
+  $('openPersos').onclick=()=>{psForm(null);psRenderList();$('persos').classList.add('on')};
+  $('closePersos').onclick=()=>$('persos').classList.remove('on');
+  $('persos').onclick=e=>{if(e.target.id==='persos')$('persos').classList.remove('on')};
+  $('psFiles').onchange=async e=>{await psAddFiles(e.target.files);e.target.value=''};
+  $('psSave').onclick=psSave;$('psCancel').onclick=()=>psForm(null);
+  $('stSavePerso').onclick=async()=>{psForm(null);$('psName').value=$('stName').value;$('psDesc').value=$('stChar').value;$('psVoice').value=$('stVoice').value;$('psLang').value=$('stLang').value;$('psPerso').value=$('stPersona').value;
+    $('persos').classList.add('on');psRenderList();for(const r of ST.refs){if(PS.photos.length>=3)break;let ph={thumb:r.thumb,id:Date.now()+Math.random()};if(S.server){try{const x=await fetch('/api/upload?name=perso&ext=jpg',{method:'POST',body:await uriToBlob(r.uri)});const d=await x.json();if(x.ok)ph.path=d.path}catch(e){}}if(!ph.path)ph.uri=await shrink(r.uri,768,.85);PS.photos.push(ph)}psThumbs()};
+  $('stPersona').value=LS.get('ms_stPersona','');$('stPersona').oninput=e=>LS.set('ms_stPersona',e.target.value);
   stInit();stUniv=univPicker($('stUnivGrid'),$('stUnivSearch'),'story',true);
   stModel=modelPicker($('stModelCard'),'story',stPrice,{def:'k3',perScene:true});
   ['stChar','stPlace','stIdea'].forEach(id=>{$(id).value=LS.get('ms_'+id,'');$(id).oninput=e=>LS.set('ms_'+id,e.target.value)});
@@ -1447,6 +1580,7 @@ async function checkServer(){
   $('stStop').onclick=()=>{S.stop.story=true;toast('Arrêt après les scènes en cours…','warn')};
   $('stMontage').onclick=stMontage;
   stRender();
+  persoPicker($('stPersos'),(p,imgs)=>{ST.refs=imgs.slice(0,3);renderThumbs($('stRefThumbs'),ST.refs);$('stChar').value=p.desc||'';LS.set('ms_stChar',p.desc||'');$('stName').value=p.name;LS.set('ms_stName',p.name);$('stVoice').value=p.voice||'auto';LS.set('ms_stVoice',p.voice||'auto');if(p.lang){$('stLang').value=p.lang;LS.set('ms_stLang',p.lang)}$('stPersona').value=p.perso||'';LS.set('ms_stPersona',p.perso||'')});
 
   // Clip musical
   clUniv=univPicker($('clUnivGrid'),$('clUnivSearch'),'clip',true);
@@ -1465,6 +1599,7 @@ async function checkServer(){
   $('clStop').onclick=()=>{S.stop.clip=true;toast('Arrêt après les plans en cours…','warn')};
   $('clMontage').onclick=clMontage;
   clSongInfo();clRender();
+  persoPicker($('clPersos'),(p,imgs)=>{CL.refs=imgs.slice(0,3);renderThumbs($('clRefThumbs'),CL.refs);$('clChar').value=p.desc||'';LS.set('ms_clChar',p.desc||'')});
 
   // Animer
   anUniv=univPicker($('anUnivGrid'),$('anUnivSearch'),'anim',true);
@@ -1474,6 +1609,7 @@ async function checkServer(){
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;
+  persoPicker($('anPersos'),(p,imgs)=>{AN.images.push(...imgs);renderThumbs($('anThumbs'),AN.images,anPrice);anPrice()});
   $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
 
   // Texte
@@ -1491,9 +1627,11 @@ async function checkServer(){
   $('tkAudio').onchange=async e=>{const f=e.target.files[0];if(!f)return;TK.fileUri=await fileToUri(f);$('tkAudioName').textContent='🎵 '+f.name;const a=new Audio(TK.fileUri);a.onloadedmetadata=()=>{TK.dur=a.duration;tkPrice()}};
   $('tkPreview').onclick=async()=>{const l=tkLines()[0]||$('tkText').value.trim().split('\n')[0];if(!l)return toast('Écris un texte','warn');$('tkPreview').disabled=true;try{const u=await tts(l);$('tkAudioPrev').src=u;$('tkAudioPrev').classList.remove('hide');$('tkAudioPrev').play().catch(()=>{})}catch(e){toast(e.message,'err')}$('tkPreview').disabled=false};
   $('tkGo').onclick=tkGo;tkPrice();
+  persoPicker($('tkPersos'),(p,imgs)=>{if(imgs[0]){TK.images=[imgs[0]];renderThumbs($('tkThumbs'),TK.images,tkPrice)}if(p.tts)$('tkVoice').value=p.tts;const lc=TTS_LANG[p.lang];if(lc){$('tkLang').value=lc;LS.set('ms_tkLang',lc)}tkPrice()});
 
   // Image
   $('imRef').onchange=async e=>{IM.refs.push(...await loadImages(e.target.files));renderThumbs($('imThumbs'),IM.refs);e.target.value=''};
+  persoPicker($('imPersos'),(p,imgs)=>{IM.refs=imgs.slice(0,3);renderThumbs($('imThumbs'),IM.refs)});
   $('imNum').onchange=imPrice;$('imGo').onclick=imGo;imPrice();
 
   $('libClear').onclick=()=>{if(confirm('Vider l\'historique ? Les fichiers restent dans MetaStudio/videos.')){LS.set('ms_hist',[]);libRender()}};

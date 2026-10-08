@@ -80,8 +80,89 @@ def duration(path):
         return 0.0
 
 
+FONT_CANDIDATES = [
+    "/system/fonts/Roboto-Black.ttf", "/system/fonts/Roboto-Bold.ttf",
+    "/system/fonts/RobotoStatic-Bold.ttf", "/system/fonts/Roboto-Regular.ttf",
+    "/system/fonts/NotoSans-Bold.ttf", "/system/fonts/DroidSans-Bold.ttf",
+    os.path.expanduser("~/../usr/share/fonts/TTF/DejaVuSans-Bold.ttf"),
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
+
+def find_font():
+    for f in FONT_CANDIDATES:
+        if os.path.isfile(f):
+            return f
+    if os.path.isdir("/system/fonts"):
+        for f in sorted(os.listdir("/system/fonts")):
+            if f.lower().endswith(".ttf"):
+                return os.path.join("/system/fonts", f)
+    return None
+
+
+def clean_sub(txt):
+    """Retire les emojis (non affichables) et les espaces en trop."""
+    out = []
+    for ch in str(txt):
+        o = ord(ch)
+        if o > 0xFFFF or 0x2600 <= o <= 0x27BF or 0xFE00 <= o <= 0xFE0F or o == 0x200D:
+            continue
+        out.append(ch)
+    return " ".join("".join(out).replace("\r", "").split(" ")).strip()
+
+
+def wrap_sub(txt, width=24):
+    lines = []
+    for para in txt.split("\n"):
+        cur = ""
+        for word in para.split():
+            if cur and len(cur) + 1 + len(word) > width:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = (cur + " " + word).strip()
+        if cur:
+            lines.append(cur)
+    return lines[:4]
+
+
+def burn_subs(src, subs, stamp):
+    """Incruste des sous-titres (gros, blancs, contour noir, centres) sur la video."""
+    font = find_font()
+    if not font or not subs:
+        return src, bool(subs) and not font
+    filters, tmp = [], []
+    size, gap = 46, 60
+    for i, sub in enumerate(subs):
+        lines = wrap_sub(clean_sub(sub.get("text", "")))
+        if not lines:
+            continue
+        a, b = float(sub.get("start", 0)), float(sub.get("end", 0))
+        top = 0.74 - (len(lines) - 1) * gap / 2.0 / 1280
+        for j, line in enumerate(lines):
+            tf = os.path.join(WORK, "st_%s_%02d_%d.txt" % (stamp, i, j))
+            with open(tf, "w", encoding="utf-8") as fh:
+                fh.write(line)
+            tmp.append(tf)
+            filters.append(
+                "drawtext=fontfile='%s':textfile='%s':expansion=none:fontcolor=white:fontsize=%d:"
+                "borderw=5:bordercolor=black@0.9:fix_bounds=1:"
+                "x=(w-text_w)/2:y=h*%.4f+%d:enable='between(t,%.2f,%.2f)'" % (font, tf, size, top, j * gap, a, b))
+    if not filters:
+        return src, False
+    out = os.path.join(WORK, "subs_%s.mp4" % stamp)
+    run(["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", ",".join(filters),
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "copy", out])
+    for t in tmp:
+        try:
+            os.remove(t)
+        except OSError:
+            pass
+    return out, False
+
+
 def concat(files, music=None, music_volume=0.35, title="histoire",
-           mute=False, music_start=0.0, durations=None):
+           mute=False, music_start=0.0, durations=None, subs=None):
     """Assemble des clips + musique optionnelle.
 
     mute=True       : on coupe le son des clips, seule la musique reste (clip musical)
@@ -125,6 +206,12 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
             fh.write("file '%s'\n" % p.replace("'", "'\\''"))
     joined = os.path.join(WORK, "joint_%s.mp4" % stamp)
     run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listfile, "-c", "copy", joined])
+    no_font = False
+    if subs:
+        subbed, no_font = burn_subs(joined, subs, stamp)
+        if subbed != joined:
+            os.remove(joined)
+            joined = subbed
 
     final_name = "%s_%s.mp4" % (safe_name(title, "histoire"), stamp)
     final = os.path.join(VIDEOS, final_name)
@@ -150,7 +237,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
             os.remove(p)
         except OSError:
             pass
-    return "/videos/" + final_name, duration(final)
+    return "/videos/" + final_name, duration(final), no_font
 
 
 def audio_cut_datauri(rel, start, dur):
@@ -275,11 +362,11 @@ class Handler(SimpleHTTPRequestHandler):
 
             if p.path == "/api/concat":
                 d = json.loads(self.body() or b"{}")
-                path, dur = concat(d.get("files", []), d.get("music"),
-                                   float(d.get("music_volume", 0.35)), d.get("title", "histoire"),
-                                   bool(d.get("mute")), float(d.get("music_start") or 0),
-                                   d.get("durations"))
-                return self.send_json({"path": path, "duration": dur})
+                path, dur, no_font = concat(d.get("files", []), d.get("music"),
+                                            float(d.get("music_volume", 0.35)), d.get("title", "histoire"),
+                                            bool(d.get("mute")), float(d.get("music_start") or 0),
+                                            d.get("durations"), d.get("subs"))
+                return self.send_json({"path": path, "duration": dur, "subs_skipped": no_font})
 
             if p.path == "/api/upload":
                 q = urllib.parse.parse_qs(p.query)

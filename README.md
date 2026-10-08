@@ -2,7 +2,13 @@
 Studio IA vidéo
 
 - `index.html` : version web (20 versions, API Agnès)
-- `studio/` : Méta-Studio complet (fal.ai) — histoires d'une minute, photo → vidéo, texte → vidéo, vidéo parlante, images, historique
+- `studio/` : Méta-Studio complet (fal.ai)
+  - 🎬 Histoire : script IA, scènes parlantes, dialogues à plusieurs voix, 22 langues, sous-titres incrustés
+  - 🎵 Clip musical : plans calés sur le morceau, play-back chanté
+  - 🖼️ Animer : photo → vidéo, chorégraphie multi-plans (combats), assemblage
+  - ✍️ Texte → vidéo, 🗣️ Parlant, 🎨 Image, 📁 Créations
+  - 👤 Personnages : fiches réutilisables (photos, voix, personnalité)
+  - 📝 Légende + hashtags TikTok générés pour chaque vidéo finie
 
 ## Lancer le studio dans Termux
 
