@@ -608,7 +608,6 @@ const PRESETS=[
 ];
 const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
 const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
-const ACCENT={French:'a natural native Parisian French accent, no English accent',Spanish:'a native Spanish accent',Portuguese:'a native Portuguese accent'};
 const NEG='blur, distort, low quality, deformed face, extra limbs, extra fingers, text, watermark, subtitles';
 
 /* ---------- utilitaires ---------- */
@@ -867,7 +866,7 @@ function stVidPrompt(s,o){
   const f=FORMATS[ST.format];const u=stUniv.get();
   let p=f.vid+' '+(s.action||'')+' ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
-  if(o.audio){p+=s.line&&s.line.trim()?'The person speaks to the camera with accurate lip-sync, saying in '+$('stLang').value+(ACCENT[$('stLang').value]?' with '+ACCENT[$('stLang').value]:'')+': "'+s.line.trim()+'". ':'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
+  if(o.audio){p+=s.line&&s.line.trim()?'The person speaks to the camera with accurate lip-sync, saying in '+$('stLang').value+': "'+s.line.trim()+'". ':'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
   else if(s.line&&s.line.trim())p+='The person is talking expressively.';
   return p+' Keep the same face and outfit as the first frame. No subtitles, no text.';
 }
