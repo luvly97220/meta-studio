@@ -244,6 +244,14 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <label class="lbl">🥊 Chorégraphie en plusieurs plans (Kling 3.0, optionnel)</label>
     <textarea id="anBeats" placeholder="Une étape par ligne, ex :&#10;le soldat attaque, il esquive&#10;il contre avec un coup de pied retourné&#10;il court vers la rampe et saute dans le vide"></textarea>
     <div class="hint">Chaque ligne devient un plan (avec coupes de montage) dans la même vidéo. Plusieurs images ? Sépare la chorégraphie de chaque image par une ligne <b>---</b>, dans l'ordre des images.</div>
+    <label class="lbl">🎙️ Répliques en voix off (langue garantie)</label>
+    <textarea id="anVO" placeholder="Une réplique par ligne : seconde, personnage (voix) : texte&#10;1 Soldat (homme grave) : Ne bouge pas !&#10;3 Lui (homme posé) : Jamais vous ne m'aurez."></textarea>
+    <div class="hint">Idéal avec un masque ou un personnage de dos. La vidéo est générée sans paroles, puis les voix sont posées en vrai français (ou autre langue) avec sous-titres. Voix possibles : homme grave, homme jeune, homme posé, homme rauque, femme douce, femme énergique, femme grave, femme jeune, narrateur, robot. N'écris pas les répliques dans la chorégraphie.</div>
+    <div class="row">
+      <div><label class="lbl">Langue des voix</label><select id="anVOLang"><option value="fr">Français</option><option value="en">Anglais</option><option value="es">Espagnol</option><option value="pt">Portugais</option><option value="it">Italien</option><option value="de">Allemand</option><option value="nl">Néerlandais</option><option value="ar">Arabe</option><option value="tr">Turc</option><option value="ru">Russe</option><option value="pl">Polonais</option><option value="zh">Chinois</option><option value="ja">Japonais</option><option value="ko">Coréen</option><option value="hi">Hindi</option></select></div>
+      <div><label class="lbl">Son de la vidéo : <span id="anVOVolV">60</span>%</label><input type="range" id="anVOVol" min="0" max="100" value="60"></div>
+    </div>
+    <div class="toggle"><span>💬 Sous-titres des répliques</span><label class="sw"><input type="checkbox" id="anVOSubs" checked><span></span></label></div>
     <label class="lbl">Univers</label>
     <input type="text" id="anUnivSearch" placeholder="🔎 Chercher un univers">
     <div class="univ-grid" id="anUnivGrid"></div>
@@ -259,6 +267,13 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <div class="prog" id="anProg"></div>
   <button class="btn hide" id="anMontage" style="background:var(--ok)">🎞️ Assembler les vidéos dans l'ordre</button>
   <div class="out" id="anFinal"></div>
+  <div class="card" style="margin-top:.8rem">
+    <label class="lbl">🎙️ Poser les voix off</label>
+    <div class="hint" id="anVOTarget">Sur la dernière vidéo créée (ou le film assemblé), ou choisis une vidéo :</div>
+    <div class="up" data-pick="anVOFile" style="padding:.7rem"><input type="file" id="anVOFile" accept="video/*"><div class="t" id="anVOFileName">📂 Choisir une vidéo déjà faite (optionnel)</div></div>
+    <button class="btn" id="anVOGo">🎙️ Ajouter les voix off (~0,01 $)</button>
+    <div class="out" id="anVOOut"></div>
+  </div>
   <div class="res-grid" id="anOut"></div>
 </section>
 
@@ -1375,7 +1390,7 @@ async function anGo(){
   const o=anModel.get();const mode=$('anMode').value;const story=$('anStory').value.trim();
   const cost=AN.images.length*videoCost(o.model,o.duration,o.audio);
   if(!budgetOk(cost))return;
-  AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');
+  AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');AN.finalPath=null;AN.voFile=null;$('anVOFileName').textContent='📂 Choisir une vidéo déjà faite (optionnel)';
   let done=0,fail=0;const total=AN.images.length;AN.results=new Array(total).fill(null);
   // une chorégraphie par image : blocs séparés par une ligne ---
   const blocks=$('anBeats').value.split(/\n\s*-{3,}\s*\n?/).map(splitBeats).filter(b=>b.length);
@@ -1390,7 +1405,8 @@ async function anGo(){
     try{
       const look=$('anChar').value.trim();
       const sfx=look?'Same character as the first frame: '+look+'.':'Same character, mask and outfit as the first frame.';
-      const tail=INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?', realistic sound, no music':'')+', no text.';
+      const vo=parseVO($('anVO').value).length>0;const ln=LANG_NAME[$('anVOLang').value]||'French';
+      const tail=INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?(vo?', no dialogue, no voices, only sound effects and ambience':', all speech in '+ln+' only, never Chinese')+', no music':'')+', no text.';
       const bi=beatsFor(i);
       const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:story,beatSuffix:sfx,beatTail:tail},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
@@ -1406,6 +1422,46 @@ async function anGo(){
   if(ok>1){$('anMontage').textContent='🎞️ Assembler les '+ok+' vidéos dans l\'ordre'+(ok<total?' (sans les ratées)':'');$('anMontage').classList.remove('hide')}
   toast(done+' vidéo'+(done>1?'s':'')+' créée'+(done>1?'s':''),done?'ok':'err');
 }
+/* ---------- voix off ---------- */
+const LANG_NAME={fr:'French',en:'English',es:'Spanish',pt:'Portuguese',it:'Italian',de:'German',nl:'Dutch',ar:'Arabic',tr:'Turkish',ru:'Russian',pl:'Polish',zh:'Chinese',ja:'Japanese',ko:'Korean',hi:'Hindi'};
+const VO_VOICE=[['homme grave','Brian'],['grave et posée','Charlotte'],['femme grave','Charlotte'],['homme jeune','Liam'],['jeune homme','Liam'],['homme posé','George'],['homme rauque','Bill'],['homme âgé','Bill'],['vieil homme','Bill'],['femme douce','Sarah'],['femme énergique','Laura'],['femme jeune','Lily'],['jeune femme','Lily'],['femme âgée','Matilda'],['enfant','Lily'],['narrateur','Daniel'],['robot','Roger'],['grave','Brian'],['posé','George'],['douce','Sarah']];
+const VO_DEFAULT=['George','Brian','Sarah','Liam','Charlotte','Daniel'];
+function voVoice(hint){const h=norm(hint||'');if(!h)return null;const direct=VOICES.find(([v])=>norm(v)===h);if(direct)return direct[0];const m=VO_VOICE.find(([k])=>h.includes(norm(k)));return m?m[1]:null}
+function parseVO(text){
+  const out=[];const seen={};let k=0;
+  String(text||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(l=>{
+    const m=l.match(/^(?:(\d+(?:[.,]\d+)?)\s*s?\s*[|\-–:]?\s+)?(?:([^:()]{1,30}?)\s*(?:\(([^)]*)\))?\s*:\s*)?(.+)$/);
+    if(!m)return;const start=m[1]!=null?parseFloat(m[1].replace(',','.')):null;const name=(m[2]||'').trim();const txt=m[4].trim();
+    let voice=voVoice(m[3]);const key=norm(name)||'_';
+    if(!voice)voice=seen[key]||VO_DEFAULT.find(v=>!Object.values(seen).includes(v))||VO_DEFAULT[k++%VO_DEFAULT.length];seen[key]=voice;
+    out.push({start,name,voice,text:txt});
+  });
+  return out;
+}
+async function anVoiceOver(){
+  if(!S.server)return toast('Lance python server.py pour les voix off','err',4500);
+  const lines=parseVO($('anVO').value);if(!lines.length)return toast('Écris au moins une réplique dans « Répliques en voix off »','warn',4500);
+  let target=AN.voFile||AN.finalPath||((AN.results||[]).find(Boolean)||{}).local;
+  if(!target)return toast('Crée d\'abord une vidéo, ou choisis-en une','warn',4500);
+  const b=$('anVOGo');b.disabled=true;b.innerHTML='<span class="spin"></span> Voix…';
+  try{
+    const lang=$('anVOLang').value;const voices=[];
+    for(const l of lines){
+      const res=await falRun(TTS,{text:l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
+      addSpend(l.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix non reçue');
+      voices.push({url:u,start:l.start,text:(lines.some(x=>x.name)&&l.name?l.name+' : ':'')+l.text});
+    }
+    b.innerHTML='<span class="spin"></span> Mixage…';
+    const r=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:target,voices,orig_volume:+$('anVOVol').value/100,subs:$('anVOSubs').checked,title:'voixoff'})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||'mixage impossible');
+    addHist({kind:'video',type:'Photo→vidéo',title:'Avec voix off',local:d.path,cost:0});
+    $('anVOOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Voix off · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='.6rem auto 0';$('anVOOut').appendChild(c);
+    captionTool($('anVOOut'),()=>'Type: short cinematic action film\nLines: '+lines.map(l=>l.text).join(' / ')+'\nStory: '+$('anStory').value);
+    toast('Voix off ajoutées ✓','ok');
+  }catch(e){toast('Voix off : '+e.message,'err',5000)}
+  finally{b.disabled=false;b.textContent='🎙️ Ajouter les voix off (~0,01 $)'}
+}
+
 async function anMontage(){
   if(!S.server)return toast('Lance python server.py dans Termux pour le montage','err',4500);
   if(!S.ffmpeg)return toast('Installe ffmpeg : pkg install ffmpeg','err',4500);
@@ -1415,6 +1471,7 @@ async function anMontage(){
     const res=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:list,title:'film'})});
     const d=await res.json();if(!res.ok)throw new Error(d.detail||'erreur de montage');
     addHist({kind:'video',type:'Photo→vidéo',title:'Film assemblé',local:d.path,cost:0});
+    AN.finalPath=d.path;
     $('anFinal').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Film · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('anFinal').appendChild(c);
     captionTool($('anFinal'),()=>'Type: short cinematic film\nStory: '+$('anStory').value+'\nChoreography: '+$('anBeats').value.replace(/\n/g,' / '));
     toast('Film assemblé ✓','ok');$('anFinal').scrollIntoView({behavior:'smooth'});
@@ -1634,6 +1691,11 @@ async function checkServer(){
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;
+  $('anVO').value=LS.get('ms_anVO','');$('anVO').oninput=e=>LS.set('ms_anVO',e.target.value);
+  $('anVOLang').value=LS.get('ms_anVOLang','fr');$('anVOLang').onchange=e=>LS.set('ms_anVOLang',e.target.value);
+  $('anVOVol').oninput=e=>$('anVOVolV').textContent=e.target.value;
+  $('anVOGo').onclick=anVoiceOver;
+  $('anVOFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!S.server)return toast('Lance python server.py','err');$('anVOFileName').textContent='Envoi…';try{const r=await fetch('/api/upload?name=video&ext=mp4',{method:'POST',body:f});const d=await r.json();AN.voFile=d.path;$('anVOFileName').textContent='🎬 '+f.name+' (touche pour changer)'}catch(err){$('anVOFileName').textContent='Erreur, réessaie'}e.target.value=''};
   persoPicker($('anPersos'),(p,imgs)=>{AN.images.push(...imgs);if(p.desc){$('anChar').value=p.desc;LS.set('ms_anChar',p.desc)}renderThumbs($('anThumbs'),AN.images,anPrice);anPrice()});
   $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
 

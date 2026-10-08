@@ -256,6 +256,66 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
     return "/videos/" + final_name, duration(final), no_font
 
 
+def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
+    """Pose des voix off (fichiers fal) sur une video, avec sous-titres optionnels."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    src = local_path(video)
+    if not os.path.isfile(src):
+        raise RuntimeError("video introuvable")
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    total = duration(src)
+    files, t = [], 0.3
+    for i, v in enumerate(voices):
+        url = v.get("url", "")
+        if not host_ok(url):
+            raise RuntimeError("adresse de voix refusee")
+        dest = os.path.join(WORK, "vo_%s_%02d.mp3" % (stamp, i))
+        with urllib.request.urlopen(url, timeout=120) as r, open(dest, "wb") as fh:
+            shutil.copyfileobj(r, fh)
+        d = duration(dest)
+        st = v.get("start")
+        st = float(st) if st not in (None, "") else t
+        files.append((dest, st, d, v.get("text", "")))
+        t = st + d + 0.25
+    work = src
+    if subs:
+        work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx) in files], stamp)
+    cmd = ["ffmpeg", "-y", "-v", "error", "-i", work]
+    if not has_audio(work):
+        cmd += ["-f", "lavfi", "-t", "%.2f" % total, "-i", "anullsrc=r=44100:cl=stereo"]
+        base = 1
+    else:
+        base = 0
+    first = len(cmd)
+    for (f, _, _, _) in files:
+        cmd += ["-i", f]
+    n0 = 2 if base == 1 else 1
+    fc = ["[%d:a]volume=%.2f,aresample=44100[a0]" % (base, float(orig_volume))]
+    labels = ["[a0]"]
+    for i, (_, st, _, _) in enumerate(files):
+        ms = int(st * 1000)
+        fc.append("[%d:a]aresample=44100,volume=1.8,adelay=%d|%d[v%d]" % (n0 + i, ms, ms, i))
+        labels.append("[v%d]" % i)
+    fc.append("%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0[a]" % ("".join(labels), len(labels)))
+    name = "%s_%s.mp4" % (safe_name(title, "voixoff"), stamp)
+    out = os.path.join(VIDEOS, name)
+    cmd += ["-filter_complex", ";".join(fc), "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+            "-c:a", "aac", "-b:a", "192k", "-t", "%.2f" % total, out]
+    run(cmd)
+    for (f, _, _, _) in files:
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    if work != src:
+        try:
+            os.remove(work)
+        except OSError:
+            pass
+    return "/videos/" + name, duration(out)
+
+
 def audio_cut_datauri(rel, start, dur):
     """Decoupe un morceau du son (pour faire chanter l'artiste en play-back)."""
     if not has_ffmpeg():
@@ -402,6 +462,13 @@ class Handler(SimpleHTTPRequestHandler):
                     except Exception:
                         dur = 0.0
                 return self.send_json({"path": "/uploads/" + name, "duration": dur})
+
+            if p.path == "/api/mixvoices":
+                d = json.loads(self.body() or b"{}")
+                path, dur = mix_voices(d.get("video", ""), d.get("voices", []),
+                                       float(d.get("orig_volume", 0.7)), bool(d.get("subs", True)),
+                                       d.get("title", "voixoff"))
+                return self.send_json({"path": path, "duration": dur})
 
             if p.path == "/api/audiocut":
                 d = json.loads(self.body() or b"{}")
