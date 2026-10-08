@@ -592,7 +592,7 @@ const VIDEO_MODELS={
 const IMG_EDIT='fal-ai/nano-banana/edit',IMG_GEN='fal-ai/nano-banana',IMG_PRICE=0.039;
 const AVATAR={standard:{id:'fal-ai/kling-video/ai-avatar/v2/standard',price:0.0562},pro:{id:'fal-ai/kling-video/ai-avatar/v2/pro',price:0.115}};
 const TTS='fal-ai/elevenlabs/tts/multilingual-v2',TTS_PRICE=0.1/1000;
-const LLM='openrouter/router',LLM_MODEL='google/gemini-2.5-flash',LLM_PRICE=0.01;
+const LLM='openrouter/router',LLM_MODELS=['openai/gpt-4o-mini','google/gemini-2.5-flash','meta-llama/llama-3.3-70b-instruct'],LLM_PRICE=0.01;
 const VOICES=[['George','Homme · posé'],['Brian','Homme · grave'],['Liam','Homme · jeune'],['Charlie','Homme · décontracté'],['Daniel','Homme · narrateur'],['Chris','Homme · naturel'],['Roger','Homme · assuré'],['Will','Homme · amical'],['Bill','Homme · âgé'],['Rachel','Femme · calme'],['Sarah','Femme · douce'],['Charlotte','Femme · séduisante'],['Laura','Femme · enjouée'],['Alice','Femme · claire'],['Matilda','Femme · chaleureuse'],['Jessica','Femme · expressive'],['Lily','Femme · jeune'],['Aria','Femme · dynamique']];
 const FORMATS={
   vlog:{l:'🤳 Vlog selfie',img:'Selfie photo: the person holds the phone at arm\'s length, looking into the camera, other arm partly visible, natural handheld smartphone framing.',vid:'Handheld selfie vlog shot. The person holds the phone at arm\'s length and talks directly to the camera with expressive face and hand gestures. Slight natural camera shake.',llm:'A first-person selfie vlog: the character films himself/herself with a phone and talks to the viewers, reacting to what happens around. Every scene is a selfie shot where the character speaks to the camera.'},
@@ -716,10 +716,30 @@ async function genVideo(mk,kind,o,onProg,stopKey){
   const u=res.video&&res.video.url;if(!u)throw new Error('Pas de vidéo reçue');return u;
 }
 async function llm(system,prompt){
-  const res=await falRun(LLM,{model:LLM_MODEL,system_prompt:system,prompt,temperature:0.9,max_tokens:3000});
-  addSpend(LLM_PRICE);
-  if(res.error)throw new Error(String(res.error).slice(0,150));
-  return res.output||'';
+  // Essaie plusieurs modèles : si l'un renvoie une réponse vide ou coupée, on passe au suivant.
+  let last='réponse vide';
+  for(const model of LLM_MODELS){
+    try{
+      const res=await falRun(LLM,{model,system_prompt:system,prompt,temperature:0.8,max_tokens:8000});
+      addSpend(LLM_PRICE);
+      const out=res.output||res.text||(res.choices&&res.choices[0]&&res.choices[0].message&&res.choices[0].message.content)||'';
+      if(res.error&&!out){last=String(res.error).slice(0,150);continue}
+      const j=parseJSON(out);
+      if(j&&j.scenes&&j.scenes.length)return j;
+      last='script illisible ('+(out?out.slice(0,60):'vide')+')';
+    }catch(e){if(e.message==='stop')throw e;last=e.message}
+  }
+  throw new Error(last);
+}
+function parseJSON(t){
+  if(!t)return null;
+  t=String(t).replace(/```json|```/g,'');
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<=a)return null;
+  try{return JSON.parse(t.slice(a,b+1))}catch(e){}
+  // réponse coupée : on garde les scènes complètes
+  try{const m=t.slice(a).match(/\{[^{}]*"decor"[^{}]*\}/g);if(m)return{title:(t.match(/"title"\s*:\s*"([^"]*)"/)||[])[1]||'histoire',scenes:m.map(x=>JSON.parse(x))}}catch(e){}
+  return null;
 }
 
 /* ---------- sélecteur de modèle réutilisable ---------- */
@@ -828,15 +848,13 @@ async function stWrite(){
     'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
   try{
-    const out=await llm(sys,prompt);
-    const j=JSON.parse(out.slice(out.indexOf('{'),out.lastIndexOf('}')+1));
-    if(!j.scenes||!j.scenes.length)throw new Error('script vide');
+    const j=await llm(sys,prompt);
     if(ST.scenes.some(s=>s.vid)&&!confirm('Remplacer les scènes actuelles par ce nouveau script ?')){return}
     ST.scenes=j.scenes.map(s=>({decor:s.decor||'',action:s.action||'',line:s.line||''}));
     ST.title=j.title||'histoire';LS.set('ms_story_title',ST.title);
     stSave();stRender();toast('Script prêt : « '+ST.title+' » — tu peux modifier chaque scène','ok',3500);
     $('stScenes').scrollIntoView({behavior:'smooth'});
-  }catch(e){toast(e.message==='stop'?'Arrêté':'Script : '+e.message,'err',4500)}
+  }catch(e){toast(e.message==='stop'?'Arrêté':'Script : '+e.message+' — réessaie, ou utilise « Ajouter une scène vide »','err',6000)}
   finally{b.disabled=false;b.textContent='✍️ Écrire le script avec l\'IA (~0,01 $)'}
 }
 function stImgPrompt(s,hasRef){
