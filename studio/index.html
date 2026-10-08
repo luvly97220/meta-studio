@@ -119,6 +119,18 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   </div>
 
   <div class="card">
+    <label class="lbl">🎙️ Voix & personnages</label>
+    <div class="row">
+      <div><label class="lbl">Nom du personnage principal</label><input type="text" id="stName" placeholder="ex : Luna"></div>
+      <div><label class="lbl">Sa voix</label><select id="stVoice"></select></div>
+    </div>
+    <label class="lbl">Autres personnages (dialogues)</label>
+    <div id="stOthers"></div>
+    <button class="btn sec" id="stAddChar">＋ Ajouter un personnage</button>
+    <div class="hint">Dans les répliques, écris une ligne par personne : <b>Luna : Salut !</b> puis <b>Marc : Tu es en retard.</b> Chacun parle avec sa voix.</div>
+  </div>
+
+  <div class="card">
     <label class="lbl">2. Format</label>
     <div class="chips" id="stFormat"></div>
     <label class="lbl">3. Époque / univers</label>
@@ -130,7 +142,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <textarea id="stIdea" placeholder="ex : je me réveille à l'âge de glace, je filme les mammouths, une tempête arrive, je me cache dans une grotte, à la fin je trouve un truc incroyable…"></textarea>
     <div class="row">
       <div><label class="lbl">Scènes</label><select id="stCount"></select></div>
-      <div><label class="lbl">Langue des répliques</label><select id="stLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option></select></div>
+      <div><label class="lbl">Langue des répliques</label><select id="stLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option><option value="Brazilian Portuguese">Portugais (Brésil)</option><option value="Italian">Italien</option><option value="German">Allemand</option><option value="Dutch">Néerlandais</option><option value="Arabic">Arabe</option><option value="Moroccan Arabic (Darija)">Arabe darija (expérimental)</option><option value="Turkish">Turc</option><option value="Russian">Russe</option><option value="Polish">Polonais</option><option value="Chinese (Mandarin)">Chinois</option><option value="Japanese">Japonais</option><option value="Korean">Coréen</option><option value="Hindi">Hindi</option><option value="Haitian Creole">Créole haïtien (expérimental)</option><option value="Antillean French Creole">Créole antillais (expérimental)</option><option value="Wolof">Wolof (expérimental)</option><option value="Lingala">Lingala (expérimental)</option><option value="Swahili">Swahili (expérimental)</option></select></div>
     </div>
   </div>
 
@@ -249,6 +261,10 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <label class="lbl">Univers (optionnel)</label>
     <input type="text" id="txUnivSearch" placeholder="🔎 Chercher un univers">
     <div class="univ-grid" id="txUnivGrid"></div>
+    <div class="row">
+      <div><label class="lbl">Voix (si quelqu'un parle)</label><select id="txVoice"></select></div>
+      <div><label class="lbl">Langue</label><select id="txLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option><option value="Brazilian Portuguese">Portugais (Brésil)</option><option value="Italian">Italien</option><option value="German">Allemand</option><option value="Dutch">Néerlandais</option><option value="Arabic">Arabe</option><option value="Moroccan Arabic (Darija)">Arabe darija (expérimental)</option><option value="Turkish">Turc</option><option value="Russian">Russe</option><option value="Polish">Polonais</option><option value="Chinese (Mandarin)">Chinois</option><option value="Japanese">Japonais</option><option value="Korean">Coréen</option><option value="Hindi">Hindi</option><option value="Haitian Creole">Créole haïtien (expérimental)</option><option value="Antillean French Creole">Créole antillais (expérimental)</option><option value="Wolof">Wolof (expérimental)</option><option value="Lingala">Lingala (expérimental)</option><option value="Swahili">Swahili (expérimental)</option></select></div>
+    </div>
     <label class="lbl">Nombre de vidéos</label><select id="txCount"><option>1</option><option>2</option><option>3</option><option>4</option></select>
   </div>
   <div class="card" id="txModelCard"></div>
@@ -274,6 +290,9 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div class="chips" id="tkSplit"></div>
       <div class="row">
         <div><label class="lbl">Voix IA</label><select id="tkVoice"></select></div>
+        <div><label class="lbl">Langue</label><select id="tkLang"><option value="fr">Français</option><option value="en">Anglais</option><option value="es">Espagnol</option><option value="pt">Portugais</option><option value="it">Italien</option><option value="de">Allemand</option><option value="nl">Néerlandais</option><option value="ar">Arabe</option><option value="tr">Turc</option><option value="ru">Russe</option><option value="pl">Polonais</option><option value="zh">Chinois</option><option value="ja">Japonais</option><option value="ko">Coréen</option><option value="hi">Hindi</option><option value="">Automatique (autre langue)</option></select></div>
+      </div>
+      <div class="row">
         <div><label class="lbl">Vitesse</label><select id="tkSpeed"><option value="0.9">Lente</option><option value="1" selected>Normale</option><option value="1.1">Rapide</option></select></div>
       </div>
       <button class="btn sec" id="tkPreview">▶️ Écouter la voix (première ligne)</button>
@@ -804,6 +823,43 @@ function parseJSON(t){
   return null;
 }
 
+/* ---------- voix et personnages ---------- */
+const VOICE_TYPES=[['auto','Automatique',''],['homme_grave','Homme · grave','deep, low male voice'],['homme_jeune','Homme · jeune','young, energetic male voice'],['homme_pose','Homme · posé','calm, warm male voice'],['homme_rauque','Homme · rauque','raspy, gritty male voice'],['homme_age','Homme · âgé','old man voice, slightly raspy'],['femme_douce','Femme · douce','soft, gentle female voice'],['femme_energique','Femme · énergique','bright, energetic female voice'],['femme_grave','Femme · grave et posée','low, smooth, confident female voice'],['femme_jeune','Femme · jeune','young female voice, playful'],['femme_agee','Femme · âgée','elderly woman voice'],['enfant','Enfant','child voice'],['robot','Voix robotique','slightly robotic, synthetic voice'],['narrateur','Narrateur de film','deep cinematic movie-trailer narrator voice']];
+function voiceOpts(sel){return VOICE_TYPES.map(([v,l])=>'<option value="'+v+'" '+(v===sel?'selected':'')+'>'+l+'</option>').join('')}
+function voiceDesc(v){const t=VOICE_TYPES.find(x=>x[0]===v);return t?t[2]:''}
+function stMainName(){return $('stName').value.trim()||'the main character'}
+function stOthers(){return LS.get('ms_others',[])}
+function stRenderOthers(){
+  const list=stOthers();
+  $('stOthers').innerHTML=list.map((c,i)=>'<div class="scene" data-c="'+i+'" style="margin-top:.4rem"><div class="row"><div><input type="text" data-f="name" placeholder="Nom (ex : Marc)" value="'+esc(c.name)+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div><input type="text" data-f="desc" placeholder="Description (ex : homme 40 ans, costume noir, barbe)" value="'+esc(c.desc)+'" style="margin-top:.4rem"><div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div></div>').join('');
+  $('stOthers').querySelectorAll('[data-c]').forEach(el=>{const i=+el.dataset.c;
+    el.querySelectorAll('[data-f]').forEach(inp=>{const ev=inp.tagName==='SELECT'?'onchange':'oninput';inp[ev]=()=>{const l=stOthers();l[i][inp.dataset.f]=inp.value;LS.set('ms_others',l)}});
+    el.querySelector('[data-del]').onclick=()=>{const l=stOthers();l.splice(i,1);LS.set('ms_others',l);stRenderOthers()};
+  });
+  $('stAddChar').classList.toggle('hide',list.length>=3);
+}
+function stChars(){
+  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim()})));
+}
+// "Luna : salut\nMarc : tu es en retard" -> [{who, text, char}]
+function parseDialogue(line){
+  const chars=stChars();const out=[];
+  String(line||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(l=>{
+    const m=l.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/);
+    let c=null,text=l;
+    if(m){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;if(c||chars.length>1)text=m[2].trim();if(!c&&chars.length>1)c={name:m[1].trim(),voice:'auto',desc:''}}
+    out.push({char:c||chars[0],text});
+  });
+  return out;
+}
+function dialoguePrompt(line,lang,masked){
+  const parts=parseDialogue(line);if(!parts.length)return '';
+  const desc=c=>{const v=voiceDesc(c.voice);const d=[v,c.main?'':c.desc].filter(Boolean).join(', ');return c.name+(d?' ('+d+')':'')};
+  if(parts.length===1&&parts[0].char.main)return 'The person speaks to the camera'+(masked?'':' with accurate lip-sync')+(voiceDesc(parts[0].char.voice)?' with a '+voiceDesc(parts[0].char.voice):'')+', saying in '+lang+': "'+parts[0].text+'". ';
+  return 'Dialogue in '+lang+', each character with their own distinct voice and accurate lip-sync: '+parts.map((p,i)=>desc(p.char)+(i?' replies':' says')+': "'+p.text+'"').join('. Then ')+'. ';
+}
+function othersInScene(s){const t=((s.line||'')+' '+(s.decor||'')+' '+(s.action||'')).toLowerCase();return stChars().filter(c=>!c.main&&t.includes(c.name.toLowerCase()))}
+
 /* ---------- sélecteur de modèle réutilisable ---------- */
 function modelPicker(el,key,onChange,opts){
   opts=opts||{};
@@ -905,8 +961,8 @@ async function stWrite(){
   const n=+$('stCount').value;const o=stModel.get();const lang=$('stLang').value;
   const words=Math.max(4,Math.round(o.duration*2.3));
   const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
-  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+($('stChar').value.trim()||'the person in the reference photo')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
-    '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n'+
+  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
+    '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+(stChars().length>1?'- "line": dialogue in '+lang+', natural spoken style. One line per speaker, formatted "Name: text", separated by \\n. Use the characters\' exact names. Max '+words+' words in total (it must fit in '+o.duration+' seconds). Can be empty.\n- When another character speaks or appears, mention them by name in "decor".\n':'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n')+
     'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
   try{
@@ -922,7 +978,7 @@ async function stWrite(){
 function stImgPrompt(s,hasRef){
   const f=FORMATS[ST.format];const place=stPlace();const ch=$('stChar').value.trim();
   return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
-    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
+    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
 }
 function stBeatSuffix(s,o){
   const u=stUniv.get();let p='. '+(u?u.p.replace(/Preserve identity\.?/i,'')+' ':'');
@@ -934,7 +990,7 @@ function stVidPrompt(s,o){
   const f=FORMATS[ST.format];const u=stUniv.get();
   let p=f.vid+' '+(s.action||'')+' ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
-  if(o.audio){p+=s.line&&s.line.trim()?'The person speaks to the camera with accurate lip-sync, saying in '+$('stLang').value+': "'+s.line.trim()+'". ':'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
+  if(o.audio){p+=s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value):'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
   else if(s.line&&s.line.trim())p+='The person is talking expressively.';
   return p+' Keep the same face and outfit as the first frame. No subtitles, no text.';
 }
@@ -956,7 +1012,7 @@ async function stGenerate(only){
       if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(stImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
       upd('Vidéo…');
       const bt=splitBeats(s.action);
-      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&s.line&&s.line.trim()?'The character says in '+$('stLang').value+': "'+s.line.trim()+'".':''},m=>upd('Vidéo · '+m),'story');
+      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
       s.local=await saveLocal(s.vid,'scene'+(i+1));
       s.status='done';s.msg='✓ Prête';
     }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêtée':'✕ '+e.message}
@@ -1231,7 +1287,7 @@ async function txGo(){
   const o=txModel.get();const n=+$('txCount').value;const u=txUniv.get();
   if(!budgetOk(n*videoCost(o.model,o.duration,o.audio)))return;
   $('txGo').disabled=true;let done=0;
-  const prompt=t.replace(/[.!?\s]+$/,'')+(u?'. '+u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights):'')+(o.audio?'. Natural sound effects; characters speak with accurate lip-sync if they talk':'')+'. Vertical 9:16, no text.';
+  const prompt=t.replace(/[.!?\s]+$/,'')+(u?'. '+u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights):'')+(o.audio?'. Natural sound effects; characters speak '+$('txLang').value+(voiceDesc($('txVoice').value)?' with a '+voiceDesc($('txVoice').value):'')+' with accurate lip-sync if they talk':'')+'. Vertical 9:16, no text.';
   await Promise.all(Array.from({length:n},async(_,i)=>{
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('txOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
@@ -1255,8 +1311,8 @@ function tkPrice(){
   return cost;
 }
 async function tts(text){
-  const key=text+'|'+$('tkVoice').value+'|'+$('tkSpeed').value;if(TK.ttsCache[key])return TK.ttsCache[key];
-  const res=await falRun(TTS,{text,voice:$('tkVoice').value,speed:+$('tkSpeed').value,language_code:'fr',stability:0.5,similarity_boost:0.75});
+  const key=text+'|'+$('tkVoice').value+'|'+$('tkSpeed').value+'|'+$('tkLang').value;if(TK.ttsCache[key])return TK.ttsCache[key];
+  const res=await falRun(TTS,{text,voice:$('tkVoice').value,speed:+$('tkSpeed').value,...($('tkLang').value?{language_code:$('tkLang').value}:{}),stability:0.5,similarity_boost:0.75});
   addSpend(text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');TK.ttsCache[key]=u;return u;
 }
 async function tkRecToggle(){
@@ -1371,6 +1427,14 @@ async function checkServer(){
 
   // Histoire
   $('stCount').innerHTML=[3,4,5,6,7,8,10,12].map(n=>'<option '+(n===6?'selected':'')+'>'+n+'</option>').join('');
+  $('stVoice').innerHTML=voiceOpts(LS.get('ms_stVoice','auto'));$('stVoice').onchange=e=>LS.set('ms_stVoice',e.target.value);
+  $('stName').value=LS.get('ms_stName','');$('stName').oninput=e=>LS.set('ms_stName',e.target.value);
+  $('stLang').value=LS.get('ms_stLang','French');$('stLang').onchange=e=>LS.set('ms_stLang',e.target.value);
+  $('stAddChar').onclick=()=>{const l=stOthers();if(l.length<3){l.push({name:'',voice:'auto',desc:''});LS.set('ms_others',l);stRenderOthers()}};
+  stRenderOthers();
+  $('txVoice').innerHTML=voiceOpts(LS.get('ms_txVoice','auto'));$('txVoice').onchange=e=>LS.set('ms_txVoice',e.target.value);
+  $('txLang').value=LS.get('ms_txLang','French');$('txLang').onchange=e=>LS.set('ms_txLang',e.target.value);
+  $('tkLang').value=LS.get('ms_tkLang','fr');$('tkLang').onchange=e=>LS.set('ms_tkLang',e.target.value);
   stInit();stUniv=univPicker($('stUnivGrid'),$('stUnivSearch'),'story',true);
   stModel=modelPicker($('stModelCard'),'story',stPrice,{def:'k3',perScene:true});
   ['stChar','stPlace','stIdea'].forEach(id=>{$(id).value=LS.get('ms_'+id,'');$(id).oninput=e=>LS.set('ms_'+id,e.target.value)});
