@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Meta-Studio - serveur local pour Termux.
+
+Lance avec :  python server.py
+Puis ouvre :  http://localhost:8080
+
+Ce serveur :
+  - affiche l'application (index.html)
+  - transmet les demandes a fal.ai (evite les blocages du navigateur)
+  - enregistre les videos dans le dossier "videos"
+  - assemble les scenes en une seule video (montage avec ffmpeg)
+"""
+import base64
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+PORT = int(os.environ.get("PORT", "8080"))
+ROOT = os.path.dirname(os.path.abspath(__file__))
+VIDEOS = os.path.join(ROOT, "videos")
+UPLOADS = os.path.join(ROOT, "uploads")
+WORK = os.path.join(ROOT, ".travail")
+FAL_QUEUE = "https://queue.fal.run/"
+ALLOWED_HOSTS = ("fal.run", "fal.media", "fal.ai", "falserverless", "googleapis.com", "fal-cdn")
+
+for d in (VIDEOS, UPLOADS, WORK):
+    os.makedirs(d, exist_ok=True)
+
+
+def has_ffmpeg():
+    return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+
+
+def host_ok(url):
+    try:
+        h = urllib.parse.urlparse(url).hostname or ""
+    except Exception:
+        return False
+    return url.startswith("https://") and any(a in h for a in ALLOWED_HOSTS)
+
+
+def safe_name(s, default="fichier"):
+    s = "".join(c if c.isalnum() or c in "-_" else "_" for c in (s or ""))[:60]
+    return s or default
+
+
+def local_path(rel):
+    """Convertit '/videos/x.mp4' en chemin disque, sans sortir du dossier."""
+    p = os.path.normpath(os.path.join(ROOT, rel.lstrip("/")))
+    if not p.startswith(ROOT + os.sep):
+        raise ValueError("chemin refuse")
+    return p
+
+
+def run(cmd):
+    r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr[-600:])
+    return r.stdout
+
+
+def has_audio(path):
+    out = run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries",
+               "stream=index", "-of", "csv=p=0", path])
+    return bool(out.strip())
+
+
+def duration(path):
+    out = run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path])
+    try:
+        return float(out.strip())
+    except ValueError:
+        return 0.0
+
+
+def concat(files, music=None, music_volume=0.35, title="histoire"):
+    """Assemble des clips (memes reglages pour tous) + musique optionnelle."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    parts = []
+    for i, f in enumerate(files):
+        src = local_path(f)
+        if not os.path.isfile(src):
+            raise RuntimeError("clip introuvable : " + f)
+        out = os.path.join(WORK, "p%s_%02d.mp4" % (stamp, i))
+        vf = ("scale=720:1280:force_original_aspect_ratio=decrease,"
+              "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p")
+        if has_audio(src):
+            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", vf,
+                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+                   "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k", out]
+        else:
+            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src,
+                   "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                   "-vf", vf, "-map", "0:v", "-map", "1:a", "-shortest",
+                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+                   "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k", out]
+        run(cmd)
+        parts.append(out)
+
+    listfile = os.path.join(WORK, "liste_%s.txt" % stamp)
+    with open(listfile, "w") as fh:
+        for p in parts:
+            fh.write("file '%s'\n" % p.replace("'", "'\\''"))
+    joined = os.path.join(WORK, "joint_%s.mp4" % stamp)
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listfile, "-c", "copy", joined])
+
+    final_name = "%s_%s.mp4" % (safe_name(title, "histoire"), stamp)
+    final = os.path.join(VIDEOS, final_name)
+    if music:
+        msrc = local_path(music)
+        total = duration(joined)
+        fade_start = max(0.0, total - 2.0)
+        fc = ("[1:a]volume=%.2f,afade=t=out:st=%.2f:d=2[m];"
+              "[0:a][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]") % (music_volume, fade_start)
+        run(["ffmpeg", "-y", "-v", "error", "-i", joined, "-stream_loop", "-1", "-i", msrc,
+             "-filter_complex", fc, "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+             "-c:a", "aac", "-b:a", "192k", "-t", "%.2f" % total, final])
+    else:
+        shutil.copy(joined, final)
+
+    for p in parts + [listfile, joined]:
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+    return "/videos/" + final_name, duration(final)
+
+
+def to_mp3_datauri(raw, ext):
+    """Convertit un enregistrement micro (webm/ogg/m4a...) en MP3 base64 pour fal."""
+    stamp = str(int(time.time() * 1000))
+    src = os.path.join(UPLOADS, "micro_%s.%s" % (stamp, safe_name(ext, "webm")))
+    with open(src, "wb") as fh:
+        fh.write(raw)
+    if not has_ffmpeg():
+        return "data:audio/%s;base64,%s" % (ext, base64.b64encode(raw).decode()), "/uploads/" + os.path.basename(src)
+    dst = src.rsplit(".", 1)[0] + ".mp3"
+    run(["ffmpeg", "-y", "-v", "error", "-i", src, "-ac", "1", "-ar", "44100", "-b:a", "128k", dst])
+    with open(dst, "rb") as fh:
+        data = fh.read()
+    return "data:audio/mpeg;base64," + base64.b64encode(data).decode(), "/uploads/" + os.path.basename(dst)
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, directory=ROOT, **kw)
+
+    def log_message(self, fmt, *args):
+        if "/api/fal" in (args[0] if args else ""):
+            return
+        sys.stderr.write("  %s\n" % (fmt % args))
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+    # ---------- utilitaires ----------
+    def send_json(self, obj, code=200):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def body(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        return self.rfile.read(n) if n else b""
+
+    def forward(self, method, url, data=None):
+        if not host_ok(url):
+            return self.send_json({"detail": "adresse refusee"}, 400)
+        headers = {"Content-Type": "application/json"}
+        if self.headers.get("Authorization"):
+            headers["Authorization"] = self.headers["Authorization"]
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                payload, code = r.read(), r.status
+        except urllib.error.HTTPError as e:
+            payload, code = e.read(), e.code
+        except Exception as e:
+            return self.send_json({"detail": "reseau : %s" % e}, 502)
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    # ---------- routes ----------
+    def do_GET(self):
+        p = urllib.parse.urlparse(self.path)
+        if p.path == "/api/health":
+            return self.send_json({"ok": True, "ffmpeg": has_ffmpeg(), "dossier": ROOT})
+        if p.path == "/api/get":
+            url = urllib.parse.parse_qs(p.query).get("url", [""])[0]
+            return self.forward("GET", url)
+        if p.path == "/api/videos":
+            items = []
+            for f in sorted(os.listdir(VIDEOS), reverse=True):
+                if f.endswith(".mp4"):
+                    st = os.stat(os.path.join(VIDEOS, f))
+                    items.append({"path": "/videos/" + f, "name": f, "size": st.st_size, "time": int(st.st_mtime)})
+            return self.send_json({"videos": items})
+        return super().do_GET()
+
+    def do_POST(self):
+        p = urllib.parse.urlparse(self.path)
+        try:
+            if p.path.startswith("/api/fal/"):
+                model = p.path[len("/api/fal/"):]
+                return self.forward("POST", FAL_QUEUE + model, self.body())
+
+            if p.path == "/api/save":
+                d = json.loads(self.body() or b"{}")
+                url = d.get("url", "")
+                if not host_ok(url):
+                    return self.send_json({"detail": "adresse refusee"}, 400)
+                ext = ".mp4"
+                low = url.split("?")[0].lower()
+                for e in (".png", ".jpg", ".jpeg", ".webp", ".mp3", ".wav"):
+                    if low.endswith(e):
+                        ext = e
+                name = "%s_%s%s" % (safe_name(d.get("name"), "video"), time.strftime("%Y%m%d_%H%M%S"), ext)
+                dest = os.path.join(VIDEOS if ext == ".mp4" else UPLOADS, name)
+                with urllib.request.urlopen(url, timeout=300) as r, open(dest, "wb") as fh:
+                    shutil.copyfileobj(r, fh)
+                rel = ("/videos/" if ext == ".mp4" else "/uploads/") + name
+                return self.send_json({"path": rel})
+
+            if p.path == "/api/concat":
+                d = json.loads(self.body() or b"{}")
+                path, dur = concat(d.get("files", []), d.get("music"),
+                                   float(d.get("music_volume", 0.35)), d.get("title", "histoire"))
+                return self.send_json({"path": path, "duration": dur})
+
+            if p.path == "/api/upload":
+                q = urllib.parse.parse_qs(p.query)
+                ext = safe_name(q.get("ext", ["bin"])[0], "bin")
+                raw = self.body()
+                if q.get("mp3", ["0"])[0] == "1":
+                    uri, rel = to_mp3_datauri(raw, ext)
+                    return self.send_json({"datauri": uri, "path": rel})
+                name = "%s_%s.%s" % (safe_name(q.get("name", ["fichier"])[0]), int(time.time()), ext)
+                with open(os.path.join(UPLOADS, name), "wb") as fh:
+                    fh.write(raw)
+                return self.send_json({"path": "/uploads/" + name})
+
+            if p.path == "/api/delete":
+                d = json.loads(self.body() or b"{}")
+                f = local_path(d.get("path", ""))
+                if os.path.dirname(f) == VIDEOS and os.path.isfile(f):
+                    os.remove(f)
+                return self.send_json({"ok": True})
+        except Exception as e:
+            return self.send_json({"detail": str(e)[:500]}, 500)
+        self.send_json({"detail": "route inconnue"}, 404)
+
+
+if __name__ == "__main__":
+    print("")
+    print("  Meta-Studio est lance !")
+    print("  Ouvre dans ton navigateur :  http://localhost:%d" % PORT)
+    print("  Montage video (ffmpeg) : %s" % ("OK" if has_ffmpeg() else "MANQUANT -> pkg install ffmpeg"))
+    print("  Pour arreter : CTRL + C")
+    print("")
+    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

@@ -1,0 +1,1145 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Méta-Studio IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d12;--p:#16161c;--p2:#1e1e26;--b:#2a2a36;--t:#e8e8ec;--d:#8a8a96;--f:#4a4a55;--ok:#2d8a4e;--okt:#4ade80;--err:#c0392b;--warn:#d4a017;--acc:#6c4ae0;--acc2:#c4b8e8;--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;padding:0 .8rem 7rem;font-size:14px;line-height:1.5;max-width:900px;margin:0 auto}
+header{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:.8rem 0 .6rem;border-bottom:1px solid var(--b);margin-bottom:1rem}
+h1{font-size:1.1rem;font-weight:600}
+.spent{font-size:.7rem;color:var(--d);text-align:right;line-height:1.3}
+.spent b{color:var(--t);font-size:.85rem}
+.gear{background:var(--p2);border:1px solid var(--b);color:var(--t);border-radius:10px;width:38px;height:38px;font-size:1.1rem;margin-left:.6rem;cursor:pointer}
+h2{font-size:1rem;font-weight:600;margin-bottom:.2rem}
+.lead{font-size:.75rem;color:var(--d);margin-bottom:1rem}
+.card{background:var(--p);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-bottom:.9rem}
+.card.ok{border-color:var(--ok)}
+.banner{background:#2a2410;border-left:3px solid var(--warn);color:#f0d98a;padding:.65rem .8rem;border-radius:8px;font-size:.75rem;margin-bottom:.9rem}
+.banner code{background:#0006;padding:.05rem .3rem;border-radius:4px}
+input[type=password],input[type=text],input[type=number],textarea,select{width:100%;padding:.7rem .85rem;border-radius:8px;border:1px solid var(--b);background:var(--p2);color:var(--t);font-family:inherit;font-size:.88rem}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
+textarea{min-height:80px;resize:vertical;line-height:1.45}
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23e8e8ec' d='M0 0l5 6 5-6z'/></svg>");background-repeat:no-repeat;background-position:right .9rem center;background-size:10px;padding-right:2rem}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.lbl{display:block;font-size:.68rem;color:var(--d);margin:.7rem 0 .3rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.lbl:first-child{margin-top:0}
+.row{display:flex;gap:.5rem}.row>*{flex:1;min-width:0}
+.btn{width:100%;padding:.95rem;border-radius:var(--r);border:none;background:var(--acc);color:#fff;font-size:.95rem;font-weight:600;font-family:inherit;cursor:pointer;margin-top:.6rem}
+.btn:active:not(:disabled){transform:scale(.98)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.sec{background:var(--p2);color:var(--t);border:1px solid var(--b);font-size:.82rem;padding:.7rem}
+.btn.danger{background:transparent;color:#ff7b6b;border:1px solid #5a2a24}
+.btn.small{width:auto;padding:.45rem .7rem;font-size:.72rem;margin:0;border-radius:8px}
+.price{font-size:.75rem;color:var(--acc2);background:#1a1428;border-radius:8px;padding:.5rem .7rem;margin-top:.7rem}
+.price b{color:#fff}
+.hint{font-size:.7rem;color:var(--d);margin-top:.35rem}
+.hint a{color:var(--t)}
+.status{font-size:.72rem;padding:.5rem .7rem;border-radius:6px;margin-top:.5rem;display:flex;align-items:center;gap:.5rem;background:var(--p2);color:var(--d)}
+.status.ok{background:#12281a;color:var(--okt);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--f);flex-shrink:0}.status.ok .dot{background:var(--okt)}
+.up{border:2px dashed var(--b);border-radius:var(--r);padding:1.2rem 1rem;text-align:center;cursor:pointer;background:var(--p2)}
+.up input{display:none}
+.up .ico{font-size:1.6rem;opacity:.6}.up .t{font-size:.85rem}.up .h{font-size:.7rem;color:var(--d)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:.4rem;margin-top:.5rem}
+.grid:empty{display:none}
+.thumb{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--b);background:#000;aspect-ratio:9/16}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .x{position:absolute;top:3px;right:3px;background:#000b;color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.chip{padding:.35rem .7rem;border-radius:14px;border:1px solid var(--b);background:var(--p2);font-size:.72rem;cursor:pointer;color:var(--t)}
+.chip.sel{background:var(--acc);border-color:var(--acc);color:#fff}
+.univ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.35rem;max-height:340px;overflow-y:auto;margin-top:.5rem;padding-right:2px}
+.univ{padding:.55rem .6rem;border-radius:8px;border:1px solid var(--b);background:var(--p2);cursor:pointer;display:flex;align-items:center;gap:.45rem}
+.univ.sel{background:var(--acc);border-color:var(--acc);color:#fff}
+.univ .e{font-size:1rem}.univ .n{font-size:.74rem;font-weight:500;line-height:1.15}.univ .d{font-size:.6rem;opacity:.65}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.7rem;font-size:.82rem}
+.sw{position:relative;width:44px;height:24px;flex-shrink:0}.sw input{display:none}
+.sw span{position:absolute;inset:0;background:var(--f);border-radius:12px;transition:.2s;cursor:pointer}
+.sw span:after{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.sw input:checked+span{background:var(--acc)}.sw input:checked+span:after{left:23px}
+.scene{background:var(--p2);border:1px solid var(--b);border-radius:10px;padding:.7rem;margin-top:.6rem}
+.scene.done{border-color:var(--ok)}.scene.busy{border-color:var(--acc)}.scene.fail{border-color:var(--err)}
+.scene-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}
+.scene-h b{font-size:.8rem}.scene-h .st{font-size:.68rem;color:var(--d);max-width:60%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene textarea{min-height:52px;font-size:.8rem;padding:.5rem .6rem;margin-top:.25rem}
+.scene .mini{font-size:.62rem;color:var(--d);text-transform:uppercase;letter-spacing:.04em;margin-top:.35rem;display:block}
+.scene-media{display:flex;gap:.4rem;margin-top:.5rem}
+.scene-media img,.scene-media video{width:70px;aspect-ratio:9/16;object-fit:cover;border-radius:6px;background:#000;border:1px solid var(--b)}
+.scene-btns{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem}
+.out{margin-top:.8rem}
+.out video{width:100%;max-width:360px;display:block;margin:0 auto;border-radius:10px;background:#000}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin-top:.8rem}
+.res{border-radius:10px;overflow:hidden;border:1px solid var(--b);background:#000}
+.res video,.res img{width:100%;display:block;aspect-ratio:9/16;object-fit:cover}
+.res .cap{padding:.4rem .5rem;background:var(--p);font-size:.65rem;color:var(--d);display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;justify-content:space-between}
+.res .cap a,.res .cap button{background:var(--acc);color:#fff;border:none;padding:.25rem .45rem;border-radius:5px;font-size:.62rem;cursor:pointer;text-decoration:none;font-family:inherit}
+.res .cap .del{background:#3a1d1a}
+.prog{font-size:.75rem;color:var(--d);margin-top:.5rem;min-height:1em}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.stat{background:var(--p2);border-radius:10px;padding:.7rem}.stat .v{font-size:1.1rem;font-weight:600}.stat .k{font-size:.66rem;color:var(--d)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#121218f2;backdrop-filter:blur(8px);border-top:1px solid var(--b);display:flex;z-index:60;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:none;color:var(--d);padding:.55rem 0 .5rem;font-family:inherit;font-size:.6rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.1rem}
+nav button .i{font-size:1.15rem}
+nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
+.tab{display:none}.tab.on{display:block}
+.toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%) translateY(-120px);background:var(--t);color:var(--bg);padding:.7rem 1.1rem;border-radius:10px;font-size:.8rem;font-weight:500;box-shadow:0 4px 20px #0008;z-index:1000;opacity:0;transition:.3s;max-width:92vw;text-align:center}
+.toast.vis{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--ok);color:#fff}.toast.err{background:var(--err);color:#fff}.toast.warn{background:var(--warn);color:#111}
+.modal{position:fixed;inset:0;background:#000a;z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.sheet{background:var(--p);border-top-left-radius:16px;border-top-right-radius:16px;padding:1.2rem 1rem 2rem;width:100%;max-width:900px;max-height:90vh;overflow-y:auto}
+.hide{display:none!important}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style></head><body>
+
+<header>
+  <h1>🎬 Méta-Studio</h1>
+  <div style="display:flex;align-items:center">
+    <div class="spent">Dépensé ce mois<br><b id="spentMonth">0,00 $</b></div>
+    <button class="gear" id="openSettings" aria-label="Réglages">⚙️</button>
+  </div>
+</header>
+
+<div class="banner hide" id="noServer">⚠️ Le serveur Méta-Studio n'est pas lancé : le montage et l'enregistrement des vidéos ne marcheront pas. Dans Termux, arrête l'ancien serveur puis tape <code>python server.py</code></div>
+<div class="banner hide" id="noFfmpeg">⚠️ ffmpeg manque pour assembler les vidéos. Dans Termux tape <code>pkg install ffmpeg</code> puis relance <code>python server.py</code></div>
+<div class="banner hide" id="noKey">🔑 Ajoute ta clé fal.ai dans les réglages ⚙️ pour commencer.</div>
+
+<!-- ================= HISTOIRE ================= -->
+<section class="tab on" id="t-story">
+  <h2>🎬 Histoire d'une minute</h2>
+  <p class="lead">Ton personnage, une époque, une idée → l'IA écrit le script, crée les scènes (image + vidéo parlante) et monte une seule vidéo prête à poster.</p>
+
+  <div class="card">
+    <label class="lbl">1. Personnage (ta photo, conseillé)</label>
+    <div class="up" data-pick="stRef"><input type="file" id="stRef" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) du personnage</div><div class="h">1 à 3 photos du même visage. Sans photo, l'IA invente le personnage.</div></div>
+    <div class="grid" id="stRefThumbs"></div>
+    <label class="lbl">Description du personnage (optionnel)</label>
+    <input type="text" id="stChar" placeholder="ex : homme 30 ans, chemise en lin blanche, tatouages aux bras">
+  </div>
+
+  <div class="card">
+    <label class="lbl">2. Format</label>
+    <div class="chips" id="stFormat"></div>
+    <label class="lbl">3. Époque / univers</label>
+    <input type="text" id="stUnivSearch" placeholder="🔎 Chercher un univers (ex : préhistoire, viking, glace…)">
+    <div class="univ-grid" id="stUnivGrid"></div>
+    <label class="lbl">ou décris le lieu toi-même</label>
+    <input type="text" id="stPlace" placeholder="ex : l'âge de glace avec des mammouths">
+    <label class="lbl">4. Idée de l'histoire</label>
+    <textarea id="stIdea" placeholder="ex : je me réveille à l'âge de glace, je filme les mammouths, une tempête arrive, je me cache dans une grotte, à la fin je trouve un truc incroyable…"></textarea>
+    <div class="row">
+      <div><label class="lbl">Scènes</label><select id="stCount"></select></div>
+      <div><label class="lbl">Langue des répliques</label><select id="stLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option></select></div>
+    </div>
+  </div>
+
+  <div class="card" id="stModelCard"></div>
+
+  <div class="card">
+    <label class="lbl">Musique de fond (optionnel)</label>
+    <div class="up" data-pick="stMusic"><input type="file" id="stMusic" accept="audio/*"><div class="ico">🎵</div><div class="t" id="stMusicName">Ajouter ta musique</div><div class="h">Mixée sous les voix au montage</div></div>
+    <label class="lbl">Volume de la musique : <span id="stVolV">35</span>%</label>
+    <input type="range" id="stVol" min="5" max="100" value="35">
+  </div>
+
+  <button class="btn sec" id="stWrite">✍️ Écrire le script avec l'IA (~0,01 $)</button>
+  <button class="btn sec" id="stAddScene">＋ Ajouter une scène vide (écrire moi-même)</button>
+
+  <div id="stScenes"></div>
+  <div class="price hide" id="stPrice"></div>
+  <button class="btn hide" id="stGen">🎬 Générer toutes les scènes</button>
+  <button class="btn danger hide" id="stStop">⏹ Arrêter</button>
+  <button class="btn hide" id="stMontage" style="background:var(--ok)">🎞️ Assembler la vidéo finale</button>
+  <div class="prog" id="stProg"></div>
+  <div class="out" id="stOut"></div>
+</section>
+
+<!-- ================= ANIMER ================= -->
+<section class="tab" id="t-anim">
+  <h2>🖼️ Photo → Vidéo</h2>
+  <p class="lead">Anime une ou plusieurs photos avec un des 300 univers. Chaque photo devient une vidéo.</p>
+  <div class="card">
+    <div class="up" data-pick="anFiles"><input type="file" id="anFiles" accept="image/*" multiple><div class="ico">＋</div><div class="t">Ajoute tes images</div><div class="h">Une ou plusieurs — chacune devient une scène</div></div>
+    <div class="grid" id="anThumbs"></div>
+    <label class="lbl">Image de fin (optionnel, Kling 3.0)</label>
+    <div class="up" data-pick="anEnd"><input type="file" id="anEnd" accept="image/*"><div class="t" id="anEndName">La vidéo se termine sur cette image</div></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Ce qui se passe (optionnel)</label>
+    <textarea id="anStory" placeholder="ex : il se retourne et sourit, le vent fait voler sa chemise"></textarea>
+    <div class="chips" id="anPresets"></div>
+    <label class="lbl">Univers</label>
+    <input type="text" id="anUnivSearch" placeholder="🔎 Chercher un univers">
+    <div class="univ-grid" id="anUnivGrid"></div>
+    <div class="row">
+      <div><label class="lbl">Cadrage</label><select id="anFram"><option value="random">Aléatoire</option><option value="close">Gros plan</option><option value="medium">Moyen</option><option value="wide">Large</option></select></div>
+      <div><label class="lbl">Intensité</label><select id="anInt"><option value="moderate">Modérée</option><option value="subtle">Subtile</option><option value="strong">Forte</option></select></div>
+    </div>
+    <label class="lbl">Mode</label><select id="anMode"><option value="indep">🖼️ Chaque photo indépendante</option><option value="story">📖 Histoire enchaînée</option><option value="random">🎲 Univers aléatoire</option></select>
+  </div>
+  <div class="card" id="anModelCard"></div>
+  <button class="btn" id="anGo">Créer les vidéos</button>
+  <button class="btn danger hide" id="anStop">⏹ Arrêter</button>
+  <div class="prog" id="anProg"></div>
+  <div class="res-grid" id="anOut"></div>
+</section>
+
+<!-- ================= TEXTE ================= -->
+<section class="tab" id="t-text">
+  <h2>✍️ Texte → Vidéo</h2>
+  <p class="lead">Décris une scène, sans photo de départ.</p>
+  <div class="card">
+    <label class="lbl">Description de la scène</label>
+    <textarea id="txPrompt" placeholder="ex : un bébé en grenouillère téléphone avec un vieux portable, l'air très sérieux, dans une chambre d'hôpital. Il dit : « Allô patron ? J'arrive. »"></textarea>
+    <label class="lbl">Univers (optionnel)</label>
+    <input type="text" id="txUnivSearch" placeholder="🔎 Chercher un univers">
+    <div class="univ-grid" id="txUnivGrid"></div>
+    <label class="lbl">Nombre de vidéos</label><select id="txCount"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+  </div>
+  <div class="card" id="txModelCard"></div>
+  <button class="btn" id="txGo">Créer la vidéo</button>
+  <div class="prog" id="txProg"></div>
+  <div class="res-grid" id="txOut"></div>
+</section>
+
+<!-- ================= PARLANT ================= -->
+<section class="tab" id="t-talk">
+  <h2>🗣️ Vidéo parlante</h2>
+  <p class="lead">Une photo + une voix → le visage parle avec les lèvres synchronisées (Kling AI Avatar).</p>
+  <div class="card">
+    <div class="up" data-pick="tkFiles"><input type="file" id="tkFiles" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) qui vont parler</div><div class="h">Visage bien visible, de face</div></div>
+    <div class="grid" id="tkThumbs"></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Voix</label>
+    <div class="chips" id="tkSrc"></div>
+    <div id="tkTextBox">
+      <label class="lbl">Texte à dire</label>
+      <textarea id="tkText" placeholder="Une ligne par photo, ou un seul texte pour toutes"></textarea>
+      <div class="chips" id="tkSplit"></div>
+      <div class="row">
+        <div><label class="lbl">Voix IA</label><select id="tkVoice"></select></div>
+        <div><label class="lbl">Vitesse</label><select id="tkSpeed"><option value="0.9">Lente</option><option value="1" selected>Normale</option><option value="1.1">Rapide</option></select></div>
+      </div>
+      <button class="btn sec" id="tkPreview">▶️ Écouter la voix (première ligne)</button>
+      <audio id="tkAudioPrev" controls class="hide" style="width:100%;margin-top:.5rem"></audio>
+    </div>
+    <div id="tkMicBox" class="hide">
+      <button class="btn sec" id="tkRec">🎙️ Commencer l'enregistrement</button>
+      <audio id="tkRecPlay" controls class="hide" style="width:100%;margin-top:.5rem"></audio>
+      <div class="hint">Le même enregistrement sera utilisé pour toutes les photos.</div>
+    </div>
+    <div id="tkFileBox" class="hide">
+      <div class="up" data-pick="tkAudio"><input type="file" id="tkAudio" accept="audio/*"><div class="t" id="tkAudioName">Choisir un fichier audio</div></div>
+    </div>
+    <label class="lbl">Expression / attitude (optionnel)</label>
+    <input type="text" id="tkPrompt" placeholder="ex : souriant, regard caméra, petits mouvements de tête">
+    <label class="lbl">Qualité</label>
+    <select id="tkQual"><option value="standard">Standard (~0,06 $/s)</option><option value="pro">Pro, lèvres plus précises (~0,12 $/s)</option></select>
+    <div class="price" id="tkPrice"></div>
+  </div>
+  <button class="btn" id="tkGo">Créer la vidéo parlante</button>
+  <div class="prog" id="tkProg"></div>
+  <div class="res-grid" id="tkOut"></div>
+</section>
+
+<!-- ================= IMAGE ================= -->
+<section class="tab" id="t-img">
+  <h2>🎨 Image</h2>
+  <p class="lead">Crée une image, ou mets une personne de tes photos dans un nouveau décor (~0,04 $ l'image).</p>
+  <div class="card">
+    <label class="lbl">Photo(s) de référence (optionnel)</label>
+    <div class="up" data-pick="imRef"><input type="file" id="imRef" accept="image/*" multiple><div class="t">＋ Ajouter des photos à modifier</div></div>
+    <div class="grid" id="imThumbs"></div>
+    <label class="lbl">Ce que tu veux</label>
+    <textarea id="imPrompt" placeholder="ex : mets cette personne en selfie dans la neige, avec des mammouths derrière, tempête qui arrive"></textarea>
+    <div class="row">
+      <div><label class="lbl">Format</label><select id="imRatio"><option value="9:16">9:16 (TikTok)</option><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="4:5">4:5</option></select></div>
+      <div><label class="lbl">Nombre</label><select id="imNum"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+    </div>
+    <div class="price" id="imPrice"></div>
+  </div>
+  <button class="btn" id="imGo">Créer l'image</button>
+  <div class="prog" id="imProg"></div>
+  <div class="res-grid" id="imOut"></div>
+</section>
+
+<!-- ================= MES VIDEOS ================= -->
+<section class="tab" id="t-lib">
+  <h2>📁 Mes créations</h2>
+  <p class="lead">Tout ce que tu as généré. Les vidéos sont enregistrées dans le dossier <b>MetaStudio/videos</b> de ton téléphone.</p>
+  <div class="stats" id="libStats"></div>
+  <div class="chips" id="libFilter" style="margin-top:.8rem"></div>
+  <div class="res-grid" id="libOut"></div>
+  <button class="btn sec" id="libClear" style="margin-top:1.2rem">Vider l'historique (les fichiers restent sur le téléphone)</button>
+</section>
+
+<!-- ================= REGLAGES ================= -->
+<div class="modal" id="settings"><div class="sheet">
+  <h2>⚙️ Réglages</h2>
+  <div class="card" id="keyCard" style="margin-top:.8rem">
+    <label class="lbl">Clé API fal.ai</label>
+    <input type="password" id="apiKey" placeholder="Colle ta clé fal.ai ici" autocomplete="off">
+    <button class="btn sec" id="saveKey">Enregistrer la clé</button>
+    <div class="status" id="apiStatus"><span class="dot"></span><span id="apiText">Aucune clé</span></div>
+    <div class="hint">Clé sur <a href="https://fal.ai/dashboard/keys" target="_blank">fal.ai/dashboard/keys</a> · solde sur <a href="https://fal.ai/dashboard/billing" target="_blank">fal.ai/dashboard/billing</a></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Budget mensuel (alerte)</label>
+    <input type="number" id="budget" min="0" step="1" placeholder="ex : 30">
+    <div class="hint">Te prévient avant de lancer une génération qui dépasse ton budget du mois. Les montants sont des estimations : le vrai solde est sur fal.ai.</div>
+  </div>
+  <div class="card">
+    <label class="lbl">Serveur</label>
+    <div class="hint" id="srvInfo">…</div>
+  </div>
+  <button class="btn" id="closeSettings">Fermer</button>
+</div></div>
+
+<nav id="nav"></nav>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   Méta-Studio — studio vidéo IA personnel (fal.ai)
+   ===================================================================== */
+const UNIVERS=[
+{id:'thriller',e:'🔪',n:'Thriller',d:'Suspense, ombres',p:'Tense thriller atmosphere. Deep shadows, cold blue tones, danger lurking. Preserve identity.',acts:['turns head','looks over shoulder','freezes','backs away','crouches'],cams:['slow dolly-in','handheld shaky','rack focus','low angle'],lights:['cold blue moonlight','flickering fluorescent','harsh light','lightning flashes']},
+{id:'kungfu',e:'🥋',n:'Kung Fu',d:'Combat',p:'Epic kung fu action. Dynamic combat, slow motion, wire-fu. Preserve identity.',acts:['slow punch','spins and kicks','blocks','tai chi flow','leaps in slow motion'],cams:['orbits during combat','slow motion push-in','low angle heroic','sweeping 180'],lights:['golden temple','dramatic side light','misty bamboo','warm sunset']},
+{id:'hiphop',e:'🎤',n:'Hip-Hop',d:'Urbain',p:'Urban hip-hop aesthetic. Street style, graffiti, swagger, neon. Preserve identity.',acts:['dance move','bounces to beat','b-boy freeze','pops and locks','struts confidently'],cams:['low angle powerful','circles music video','handheld energetic','whip pan'],lights:['neon pink cyan','warm streetlight','dramatic spotlight','car headlights']},
+{id:'anime',e:'🌸',n:'Anime Ghibli',d:'Miyazaki',p:'Studio Ghibli anime style. Hand-painted watercolor, soft cel-shaded, magical. Transform image into anime style.',acts:['hair moves in breeze','looks up at sky','steps forward cape flowing','wind stirs leaves','smiles softly'],cams:['gentle drift','slow zoom on face','pans across scenic','subtle parallax'],lights:['warm golden anime','soft watercolor','dappled sunlight','blue twilight']},
+{id:'cyberpunk',e:'🌃',n:'Cyberpunk',d:'Néon',p:'Cyberpunk neon aesthetic. Pink and cyan, holograms, rain-slicked streets. Preserve identity.',acts:['looks up at holograms','reflection shimmers','rain falls neon','raises hand to hologram','walks neon alley'],cams:['low angle neon skyscrapers','drifts through rain','slow orbit','rack focus neon signs'],lights:['neon pink cyan','holographic purple','rain reflections','flickering signs']},
+{id:'western',e:'🤠',n:'Western',d:'Cowboy',p:'Classic western aesthetic. Dusty desert, cowboy hats, sunset showdown. Preserve identity.',acts:['tips hat','squints into distance','tumbleweed rolls past','poncho moves in wind','hand near holster'],cams:['wide shot push-in','low angle dramatic','pans across desert','slow zoom on eyes'],lights:['orange desert sunset','harsh midday sun','dusty golden haze','backlight at dusk']},
+{id:'horror',e:'👻',n:'Horreur',d:'Peur',p:'Horror atmosphere. Deep darkness, unsettling shadows, creeping dread. Preserve identity.',acts:['eyes widen','shadow moves behind','turns toward threat','breath fogs','backs away trembling'],cams:['creeping dolly-in','handheld shaky','reveals something behind','rack focus to figure'],lights:['flickering light','cold moonlight','deep darkness','emergency red']},
+{id:'fantasy',e:'🧙',n:'Fantasy',d:'Magie',p:'Epic fantasy aesthetic. Magical creatures, enchanted forests, glowing runes. Preserve identity.',acts:['magic particles float','raises hand runes appear','dragon silhouette','cloak billows','gazes at castle'],cams:['epic wide crane up','slow orbit','pushes in as magic awakens','sweeping aerial'],lights:['magical blue purple','enchanted forest','moonlight through fog','glowing runes']},
+{id:'gh',e:'🌅',n:'Golden Hour',d:'Dorée',p:'Golden hour warm sunlight. Soft amber glow, long shadows, hazy warmth. Preserve identity.',acts:['turns toward warm light','hair glows','soft breeze moves clothes','closes eyes basking','walks through field'],cams:['slow dolly-in warm','drifts around subject','static light shifts','slow pan'],lights:['warm golden backlight','soft amber glow','hazy sunset','sunlight through trees']},
+{id:'bw',e:'⚫',n:'Noir & Blanc',d:'Monochrome',p:'Elegant black and white. High contrast monochrome, classic photography. Preserve identity.',acts:['turns head dramatic','expression shifts','smoke drifts','hand moves elegantly','looks at camera'],cams:['slow zoom on eyes','drifts laterally noir','static dramatic','slow dolly-in classic'],lights:['hard light deep shadows','soft diffused bw','venetian shadows','rim lighting']},
+{id:'explosion',e:'💥',n:'Explosion',d:'Action, feu',p:'Explosive action scene. Fire, debris, shockwave, destruction. Preserve identity.',acts:['explosion erupts behind','debris flies past','walks away from fireball','shockwave ripples','shields face from blast'],cams:['camera shakes violently','slow motion explosion','low angle heroic walk','wide massive destruction'],lights:['orange yellow fire','red emergency','bright flash','dramatic fire backlight']},
+{id:'romance',e:'💕',n:'Romance',d:'Amour',p:'Romantic dreamy atmosphere. Soft warm light, gentle breeze, intimate. Preserve identity.',acts:['looks at camera smiling','soft breeze moves hair','reaches out hand','rose petals float','closes eyes peacefully'],cams:['slow dolly-in intimate','soft focus dreamy','drifts slowly around','static with bokeh'],lights:['warm golden glow','soft pink ambient','sunset backlight','candlelight flicker']},
+{id:'scifi',e:'🚀',n:'Science-Fiction',d:'Futur, espace',p:'Science fiction futuristic aesthetic. Space, technology, holograms. Preserve identity.',acts:['looks at distant planet','holographic displays float','raises hand toward portal','stars drift past','stands before spaceship'],cams:['slow push-in through space','orbits in zero gravity','epic wide cosmos','rack focus to stars'],lights:['cool blue star','holographic cyan','warm planet light','supernova flash']},
+{id:'underwater',e:'🌊',n:'Sous-marin',d:'Océan',p:'Underwater cinematic. Deep blue tones, floating particles, light rays. Preserve identity.',acts:['floats underwater','bubbles rise','hair drifts in current','light rays dance','school of fish passes'],cams:['drifts underwater','low angle to surface','orbit underwater','rack focus particles'],lights:['deep blue underwater','sun rays piercing','bioluminescent glow','caustic patterns']},
+{id:'snow',e:'❄️',n:'Neige',d:'Hiver, froid',p:'Snowy winter atmosphere. Falling snow, cold blue tones, peaceful silence. Preserve identity.',acts:['snowflakes fall','breath fogs','catches snowflake','wind blows snow','looks up at snow'],cams:['slow dolly-in through snow','drifts slowly winter','static snow falling','slow pan snowy'],lights:['cold blue winter','soft white diffused','warm window light','sunlight through snow']},
+{id:'fire',e:'🔥',n:'Feu',d:'Flamme',p:'Fire and flame atmosphere. Warm orange glow, dancing flames, embers. Preserve identity.',acts:['flames dance behind','embers float','face lit by firelight','walks through fire','sparks fly'],cams:['slow dolly-in fire backlight','orbits fire glow','low angle dramatic','rack focus through flames'],lights:['warm orange fire','dancing flame light','red hot ember','bright fire backlight']},
+{id:'rain',e:'🌧️',n:'Pluie',d:'Averse',p:'Rainy atmosphere. Falling rain, wet reflections, moody light. Preserve identity.',acts:['rain falls around','droplets run down face','looks up at rain','puddle ripples','walks through rain'],cams:['slow dolly-in through rain','drifts slowly rainy','static rain falling','rack focus raindrops'],lights:['cool blue rainy','neon reflections puddles','soft grey overcast','streetlight through rain']},
+{id:'desert',e:'🏜️',n:'Désert',d:'Sable',p:'Desert atmosphere. Endless sand dunes, harsh sunlight, heat haze. Preserve identity.',acts:['sand drifts across dunes','walks through desert','heat haze shimmers','scarf moves in wind','sun beats down'],cams:['epic wide desert','slow dolly-in across sand','cranes up revealing','low angle dramatic'],lights:['harsh midday sun','warm orange sunset','golden hour glow','cool blue dawn']},
+{id:'jungle',e:'🌴',n:'Jungle',d:'Tropique',p:'Lush jungle atmosphere. Dense green foliage, filtered sunlight, humid air. Preserve identity.',acts:['leaves sway','pushes through foliage','sunlight filters canopy','bird flies past','mist drifts'],cams:['slow dolly-in jungle','drifts through foliage','low angle to canopy','rack focus through leaves'],lights:['dappled sunlight','warm green filtered','misty morning','golden hour through canopy']},
+{id:'urban',e:'🏙️',n:'Urbain',d:'Ville',p:'Urban city atmosphere. Skyscrapers, traffic, street lights, modern metropolis. Preserve identity.',acts:['walks through street','traffic passes','looks up at buildings','people blur past','stands in crowd'],cams:['slow dolly-in city','orbits urban','low angle skyscrapers','rack focus traffic'],lights:['warm street light','cool blue city night','golden hour urban','neon reflections']},
+{id:'vintage',e:'📽️',n:'Vintage',d:'Rétro',p:'Vintage film aesthetic. Warm faded colors, film grain, nostalgic mood, Super 8. Preserve identity.',acts:['moves slowly vintage','light flickers projector','smiles nostalgically','dust particles float','turns toward camera'],cams:['slow dolly-in vintage','static with grain','drifts slowly nostalgic','rack focus old cinema'],lights:['warm faded vintage','soft golden nostalgic','flickering projector','sepia toned']},
+{id:'pastel',e:'🌸',n:'Pastel',d:'Doux',p:'Pastel dreamy aesthetic. Soft colors, gentle light, dreamlike atmosphere. Preserve identity.',acts:['moves slowly soft light','pastel particles float','smiles gently','breeze moves hair','looks peaceful'],cams:['slow dolly-in dreamy','static soft bokeh','drifts ethereal','rack focus pastel'],lights:['soft pastel pink','gentle diffused','pastel blue pink','ethereal glow']},
+{id:'manga',e:'📖',n:'Manga N&B',d:'Japon',p:'Black and white Japanese manga style. Stark ink outlines, dramatic screentones, comic panel. Transform image into manga style.',acts:['dramatic manga move','speed lines appear','expression shifts','ink splatters','poses heroically'],cams:['dramatic zoom on face','pans quickly across panel','low angle hero','rack focus speed lines'],lights:['high contrast bw','dramatic ink shadows','stark white black','halftone pattern']},
+{id:'pixar',e:'✨',n:'Pixar 3D',d:'Animation 3D',p:'High-quality 3D computer animation, Pixar-style rendering, cinematic lighting. Transform into 3D animated style.',acts:['smooth 3D animation','eyes blink naturally','smiles warmly','hair bounces','turns head smoothly'],cams:['slow dolly-in 3D','orbits subject','static cinematic 3D','rack focus depth'],lights:['warm 3D rendered','soft cinematic 3D','bright colorful 3D','dramatic 3D rim']},
+{id:'watercolor',e:'🎨',n:'Aquarelle',d:'Peinture',p:'Dreamy watercolor painting aesthetic. Soft bleeding edges, translucent washes, paper texture. Transform into watercolor.',acts:['washes spread slowly','colors bleed gently','moves softly painted','brush strokes appear','looks peaceful'],cams:['slow dolly-in watercolor','drifts through paint','static painted look','rack focus watercolor'],lights:['soft diffused watercolor','warm artistic glow','pastel watercolor','gentle natural']},
+{id:'steampunk',e:'⚙️',n:'Steampunk',d:'Vapeur',p:'Steampunk aesthetic. Brass gears, steam, copper tones, Victorian machinery. Preserve identity.',acts:['steam rises','gears turn behind','adjusts brass gadget','looks through goggles','steam drifts'],cams:['slow dolly-in steam','orbits steampunk','low angle brass','rack focus steam'],lights:['warm copper brass','orange steam','dim gaslight','flickering mechanical']},
+{id:'noir',e:'🕵️',n:'Film Noir',d:'Polar',p:'Classic film noir aesthetic. High contrast black and white, chiaroscuro, 1940s detective. Transform into noir.',acts:['smoke drifts','tilts hat down','looks over shoulder','rain outside window','lights cigarette'],cams:['slow dolly-in noir','drifts through blinds shadows','static dramatic','rack focus smoke'],lights:['venetian blind shadows','single lamp','dramatic hard light','smoky dim']},
+{id:'popart',e:'🎨',n:'Pop Art',d:'Vives',p:'Pop art aesthetic. Bold colors, halftone dots, comic book style, Warhol. Transform into pop art.',acts:['colors pop','halftone dots move','expression pops','bold shapes float','smiles pop energy'],cams:['dynamic zoom pop art','pans across colors','static graphic','quick cut comic'],lights:['bold primary colors','bright pop art','high contrast graphic','neon comic']},
+{id:'surreal',e:'🌀',n:'Surréaliste',d:'Rêve',p:'Surrealist aesthetic. Impossible juxtapositions, dreamlike distortions, Dali. Transform into surrealist.',acts:['objects float impossibly','melts and reforms','clocks bend','walks impossible landscape','sky shifts colors'],cams:['drifts through surreal','slow dolly-in dreamlike','orbits surreal','rack focus impossible'],lights:['dreamlike surreal','strange colored glow','impossible shadows','ethereal dream']},
+{id:'zombie',e:'🧟',n:'Zombie',d:'Apocalypse',p:'Zombie apocalypse atmosphere. Decay, danger, survival, abandoned world. Preserve identity.',acts:['looks around nervously','zombies approach','runs desperately','grips weapon','hides behind debris'],cams:['handheld shaky panic','slow dolly-in horror','reveals zombies behind','rack focus danger'],lights:['sickly green','emergency red','cold grey','flickering broken']},
+{id:'vampire',e:'🧛',n:'Vampire',d:'Nuit, sang',p:'Vampire gothic atmosphere. Dark castles, moonlight, blood red accents. Preserve identity.',acts:['bares fangs','candles flicker','cape billows','eyes glow red','bats fly past'],cams:['slow dolly-in gothic','orbits subject','low angle lord','rack focus candlelight'],lights:['moonlight gothic window','candlelight flicker','blood red glow','cold blue night']},
+{id:'angel',e:'😇',n:'Ange',d:'Céleste',p:'Celestial angelic atmosphere. Divine light, feathers, halo, ethereal. Preserve identity.',acts:['feathers float','halo glows','wings spread','divine light shines','looks up peacefully'],cams:['slow dolly-in divine','orbits celestial','low angle angelic','rack focus light rays'],lights:['divine white','heavenly golden','soft ethereal','bright halo']},
+{id:'demon',e:'😈',n:'Démon',d:'Enfer',p:'Demonic infernal atmosphere. Hellfire, dark power, red glow. Preserve identity.',acts:['flames rise','eyes glow red','dark smoke swirls','smiles menacingly','energy crackles'],cams:['slow dolly-in demonic','orbits hellish','low angle menacing','rack focus flames'],lights:['hellish red','fire orange','dark red ambient','crackling energy']},
+{id:'ocean',e:'🌊',n:'Océan',d:'Vagues',p:'Ocean atmosphere. Waves, sea spray, horizon, endless blue, salt air. Preserve identity.',acts:['waves crash behind','sea spray drifts','looks at horizon','wind moves hair','walks along shore'],cams:['wide ocean','slow dolly-in breeze','orbits coastal','rack focus horizon'],lights:['warm sunset ocean','cool blue sea','golden hour beach','bright midday']},
+{id:'mountain',e:'🏔️',n:'Montagne',d:'Sommet',p:'Mountain atmosphere. Peaks, snow, altitude, vast landscape. Preserve identity.',acts:['clouds drift past','looks at peaks','wind blows snow','breathes cold air','stands at summit'],cams:['epic wide mountains','slow dolly-in alpine','cranes up peaks','rack focus summit'],lights:['cool blue mountain','warm sunrise peaks','bright alpine','dramatic backlight']},
+{id:'night-city',e:'🌃',n:'Ville Nocturne',d:'Lumières',p:'Night city atmosphere. Neon signs, traffic lights, reflections, nightlife. Preserve identity.',acts:['neon signs flicker','walks night streets','car lights pass','looks at night sky','rain reflects lights'],cams:['slow dolly-in night city','drifts through neon','low angle urban','rack focus city lights'],lights:['neon pink blue','warm streetlight','car headlight streaks','colorful signs']},
+{id:'space',e:'🌌',n:'Espace',d:'Étoiles',p:'Space atmosphere. Stars, galaxies, nebulas, cosmic scale. Preserve identity.',acts:['stars drift around','floats zero gravity','nebula glows','looks at galaxies','cosmic dust floats'],cams:['slow dolly-in space','orbits cosmic','epic wide cosmos','rack focus stars'],lights:['cool blue star','warm nebula','bright cosmic flash','distant galaxy']},
+{id:'castle',e:'🏰',n:'Château Fantasy',d:'Royaume',p:'Fantasy castle atmosphere. Towers, banners, magic, medieval kingdom. Preserve identity.',acts:['banners flutter','looks at castle','magic sparkles','cape billows','dragon flies overhead'],cams:['epic wide castle','slow dolly-in fantasy','cranes up kingdom','rack focus castle'],lights:['warm sunset castle','magical blue glow','torchlight flicker','dramatic epic']},
+{id:'mirror',e:'🪞',n:'Miroir',d:'Reflet',p:'Mirror and reflection atmosphere. Doubles, symmetry, illusions. Preserve identity.',acts:['reflection moves differently','mirror ripples','touches mirror','cracks spread','double appears behind'],cams:['slow dolly-in through mirror','orbits reflective','static symmetrical','rack focus reflection'],lights:['cool reflective','dramatic split','soft mirror glow','candlelight reflection']},
+{id:'time',e:'⏳',n:'Temps',d:'Mémoire',p:'Time and memory atmosphere. Clocks, aging, nostalgia, temporal flow. Preserve identity.',acts:['clock hands spin','ages and de-ages','old photos float','moves slow motion','seasons change'],cams:['slow dolly-in time','orbits temporal','static time-lapse','rack focus memories'],lights:['warm nostalgic','sepia toned','cold blue time','flickering temporal']},
+{id:'candy',e:'🍬',n:'Bonbon',d:'Sucré',p:'Candy and sweets atmosphere. Bright colors, sugar, playful, joyful. Preserve identity.',acts:['candy floats','smiles playfully','sugar sparkles','colors shift','laughs joyfully'],cams:['slow dolly-in playful','orbits colorful','static candy','rack focus sparkles'],lights:['bright candy','warm playful','pastel candy','sparkling sugar']},
+{id:'gothic',e:'🦇',n:'Gothique',d:'Sombre',p:'Gothic atmosphere. Dark elegance, candles, stone, mysterious beauty. Preserve identity.',acts:['candles flicker','looks mysteriously','dark fabric billows','walks gothic hall','bats fly past'],cams:['slow dolly-in gothic','drifts through candlelight','low angle gothic','rack focus shadows'],lights:['candlelight flicker','moonlight stained glass','dim gothic','dramatic shadows']},
+{id:'samurai',e:'⚔️',n:'Samouraï',d:'Japon',p:'Samurai atmosphere. Katana, cherry blossoms, honor, feudal Japan. Preserve identity.',acts:['cherry blossoms fall','draws katana','duel stance','wind blows cloak','bows respectfully'],cams:['slow dolly-in samurai','orbits sword drawn','low angle heroic','rack focus petals'],lights:['warm sunset bamboo','moonlight petals','dramatic side','soft blossom']},
+{id:'pirate',e:'🏴‍☠️',n:'Pirate',d:'Mer',p:'Pirate adventure atmosphere. Ships, sea, treasure, adventure. Preserve identity.',acts:['looks through spyglass','stands at bow','waves crash','holds treasure map','wind blows coat'],cams:['wide pirate ship','slow dolly-in pirate','orbits adventure','rack focus horizon'],lights:['warm sunset sea','stormy light','golden treasure','torchlight night']},
+{id:'carnival',e:'🎪',n:'Carnaval',d:'Fête',p:'Carnival atmosphere. Colorful lights, music, celebration, joy. Preserve identity.',acts:['confetti falls','lights flash','dances joyfully','masks float','laughs with joy'],cams:['dynamic dolly-in carnival','orbits festive','low angle celebration','rack focus confetti'],lights:['bright carnival','warm festive','colorful flashing','golden celebration']},
+{id:'circus',e:'🎩',n:'Cirque',d:'Magie',p:'Circus atmosphere. Magicians, acrobats, mystery, wonder, spectacle. Preserve identity.',acts:['performs magic trick','cards float','bows to audience','sparks from hands','twirls elegantly'],cams:['slow dolly-in circus','orbits theatrical','low angle spectacle','rack focus spotlights'],lights:['dramatic spotlight','warm circus','colorful stage','golden theatrical']},
+{id:'halloween',e:'🎃',n:'Halloween',d:'Peur',p:'Halloween atmosphere. Pumpkins, ghosts, witches, spooky fun, autumn night. Preserve identity.',acts:['jack-o-lanterns flicker','looks spooky','bats across moon','cobwebs sway','smiles mysteriously'],cams:['slow dolly-in halloween','drifts through fog','static spooky','rack focus candles'],lights:['pumpkin orange','moonlight fog','candlelight flicker','eerie green']},
+{id:'christmas',e:'🎄',n:'Noël',d:'Fête',p:'Christmas atmosphere. Snow, lights, warmth, holiday cheer. Preserve identity.',acts:['snow falls','lights twinkle','smiles warmly','gifts appear','looks at star'],cams:['slow dolly-in christmas','drifts through snow','static warm','rack focus lights'],lights:['warm christmas lights','golden holiday','soft snow light','candlelight warmth']},
+{id:'newyear',e:'🎆',n:'Nouvel An',d:'Fête',p:'New Year celebration atmosphere. Fireworks, countdown, joy. Preserve identity.',acts:['fireworks explode','looks up in wonder','confetti falls','raises glass','smiles joyfully'],cams:['epic wide fireworks','slow dolly-in celebration','orbits festive','rack focus sky'],lights:['colorful firework','warm celebration','golden sparkle','bright flashes']},
+{id:'hacker',e:'💻',n:'Hacker',d:'Code',p:'Hacker atmosphere. Code on screens, green glow, digital world, tech. Preserve identity.',acts:['code scrolls','types intensely','green light flickers','screens glow','looks at camera'],cams:['slow dolly-in hacker','drifts through screens','low angle tech','rack focus code'],lights:['green code glow','cool blue screen','dark room monitor','flickering tech']},
+{id:'mecha',e:'🤖',n:'Mecha',d:'Robot géant',p:'Giant mecha robot atmosphere. Massive machine, cockpit, sci-fi battle. Preserve identity.',acts:['mecha moves slowly','cockpit lights flicker','robot arm raises','steam vents','walks forward'],cams:['low angle massive mecha','cranes up robot','orbits cockpit','rack focus controls'],lights:['cool tech blue','warning red lights','holographic displays','bright cockpit glow']},
+{id:'dragon',e:'🐉',n:'Dragon',d:'Créature',p:'Dragon atmosphere. Massive winged creature, fire breath, epic scale. Preserve identity.',acts:['dragon flies overhead','breathes fire','lands behind subject','wings spread wide','roars to the sky'],cams:['epic wide dragon','cranes up creature','low angle massive','rack focus dragon eye'],lights:['warm fire glow','dramatic dragon shadow','moonlight scale','epic backlight']},
+{id:'unicorn',e:'🦄',n:'Licorne',d:'Magie',p:'Unicorn magic atmosphere. Sparkles, rainbow, enchanted forest, purity. Preserve identity.',acts:['sparkles float around','unicorn appears behind','rainbow glow','magic dust falls','walks through enchanted forest'],cams:['slow dolly-in magical','orbits enchanted','low angle magical','rack focus sparkles'],lights:['soft rainbow glow','magical pastel','enchanted forest','sparkle light']},
+{id:'mermaid',e:'🧜',n:'Sirène',d:'Océan',p:'Mermaid underwater atmosphere. Ocean depths, tail, bubbles, aquatic beauty. Preserve identity.',acts:['tail moves underwater','bubbles rise','hair drifts in water','fish swim past','looks at surface light'],cams:['drifts underwater','orbits aquatic','low angle to surface','rack focus bubbles'],lights:['deep blue underwater','sun rays piercing','bioluminescent','aquatic glow']},
+{id:'phoenix',e:'🔥',n:'Phénix',d:'Renaissance',p:'Phoenix fire rebirth atmosphere. Flames, wings of fire, ashes, rebirth. Preserve identity.',acts:['flames rise around','wings of fire spread','rebirth from ashes','fire spirals up','eyes glow with fire'],cams:['epic wide fire','cranes up phoenix','low angle flames','rack focus fire'],lights:['orange fire glow','bright rebirth','dramatic flame','ember light']},
+{id:'wolf',e:'🐺',n:'Loup-garou',d:'Transformation',p:'Werewolf transformation atmosphere. Full moon, transformation, wild nature. Preserve identity.',acts:['eyes glow amber','transformation begins','howls at moon','claws extend','runs through forest'],cams:['low angle wild','slow dolly-in transformation','orbits wolf','rack focus eyes'],lights:['full moon','cold forest light','dramatic transformation','eerie glow']},
+{id:'alien',e:'👽',n:'Alien',d:'Extraterrestre',p:'Alien extraterrestrial atmosphere. UFO, strange lights, otherworldly. Preserve identity.',acts:['UFO hovers above','strange lights flicker','alien appears','beam of light shines','contact with unknown'],cams:['low angle UFO','slow dolly-in contact','orbits strange','rack focus beam'],lights:['eerie green glow','UFO light beam','strange cosmic','otherworldly glow']},
+{id:'time-travel',e:'⏰',n:'Voyage Temporel',d:'Époque',p:'Time travel atmosphere. Wormhole, era shifting, temporal energy. Preserve identity.',acts:['wormhole opens','era shifts around','temporal energy crackles','surroundings change','walks through time'],cams:['orbits through time','slow dolly-in temporal','static shifting eras','rack focus wormhole'],lights:['blue temporal glow','warm era shift','cold time light','flashing temporal']},
+{id:'apocalypse',e:'☢️',n:'Apocalypse',d:'Fin du monde',p:'Apocalypse atmosphere. Ruins, survival, wasteland, end of world. Preserve identity.',acts:['ruins crumble','dust storm approaches','walks wasteland','grips weapon','looks at horizon'],cams:['wide wasteland','slow dolly-in survival','low angle ruined','rack focus horizon'],lights:['sickly yellow','orange fire glow','grey overcast','emergency red']},
+{id:'steam',e:'♨️',n:'Vapeur',d:'Brume',p:'Steam and mist atmosphere. Fog, vapor, mysterious atmosphere. Preserve identity.',acts:['steam rises around','mist drifts through','vapor swirls','figure emerges','walks through fog'],cams:['slow dolly-in steam','drifts through mist','static foggy','rack focus vapor'],lights:['warm steam glow','cool misty','diffused fog','ethereal vapor']},
+{id:'glass',e:'🔮',n:'Verre',d:'Transparence',p:'Glass and crystal atmosphere. Reflections, transparency, fragile beauty. Preserve identity.',acts:['glass shatters in slow motion','crystal refracts light','glass fragments float','prism colors dance','transparent form shifts'],cams:['slow dolly-in glass','orbits crystalline','static transparent','rack focus refraction'],lights:['cool glass glow','prism rainbow','crystal light','transparent beam']},
+{id:'smoke',e:'💨',n:'Fumée',d:'Vapeur',p:'Smoke atmosphere. Swirling smoke, mystery, dramatic atmosphere. Preserve identity.',acts:['smoke swirls around','dramatic smoke rise','figure through smoke','smoke parts revealing','breathes out smoke'],cams:['slow dolly-in smoke','drifts through smoke','static dramatic','rack focus smoke'],lights:['warm smoke glow','dramatic backlight','diffused smoky','ember light']},
+{id:'neon',e:'💡',n:'Néon',d:'Lumière',p:'Neon light atmosphere. Bright neon signs, colorful glow, urban night. Preserve identity.',acts:['neon signs flicker','colorful glow surrounds','neon reflects on skin','lights change color','walks through neon'],cams:['slow dolly-in neon','drifts through colors','low angle neon signs','rack focus lights'],lights:['neon pink cyan','neon yellow green','rainbow neon','pulsing neon']},
+{id:'ink',e:'🖋️',n:'Encre',d:'Calligraphie',p:'Ink and calligraphy atmosphere. Flowing ink, brush strokes, artistic. Preserve identity.',acts:['ink flows around','brush strokes appear','ink splatters dramatically','calligraphy forms','ink swirls'],cams:['slow dolly-in ink','drifts through strokes','static artistic','rack focus brush'],lights:['soft ink light','dramatic brush','warm artistic','ethereal ink']},
+{id:'paper',e:'📄',n:'Papier',d:'Origami',p:'Paper and origami atmosphere. Folded paper, delicate, artistic. Preserve identity.',acts:['paper folds around','origami forms shift','paper unfolds','delicate paper floats','paper constructs appear'],cams:['slow dolly-in paper','orbits origami','static delicate','rack focus folds'],lights:['soft paper light','warm delicate','paper glow','natural light']},
+{id:'clock',e:'🕰️',n:'Horloge',d:'Temps',p:'Clock and time atmosphere. Ticking clocks, time passing, urgency. Preserve identity.',acts:['clock ticks loudly','hands spin rapidly','time passes around','clock gears turn','hours pass in seconds'],cams:['slow dolly-in clock','orbits time','static ticking','rack focus gears'],lights:['warm clock light','dim temporal','sepia toned','flickering time']},
+{id:'maze',e:'🌀',n:'Labyrinthe',d:'Piège',p:'Maze and labyrinth atmosphere. Endless corridors, twists, mystery. Preserve identity.',acts:['walls shift around','maze twists','paths open and close','walks through maze','finds a way out'],cams:['drifts through maze','orbits twisting','static endless','rack focus paths'],lights:['dim maze light','eerie glow','dramatic shadows','mysterious light']},
+{id:'portal',e:'🌌',n:'Portail',d:'Dimension',p:'Portal and dimension atmosphere. Glowing portal, other worlds, cosmic. Preserve identity.',acts:['portal opens before','cosmic energy swirls','walks through portal','dimensions shift','arrives in new world'],cams:['slow dolly-in portal','orbits cosmic','static portal','rack focus dimension'],lights:['blue portal glow','cosmic energy','bright portal light','dimensional flash']},
+{id:'storm',e:'⛈️',n:'Tempête',d:'Orage',p:'Storm atmosphere. Lightning, thunder, wind, dramatic weather. Preserve identity.',acts:['lightning flashes','thunder rumbles','wind blows hard','rain falls heavy','storm rages around'],cams:['wide storm','slow dolly-in dramatic','low angle lightning','rack focus storm'],lights:['lightning white','dark storm','dramatic flashes','eerie storm light']},
+{id:'aurora',e:'🌌',n:'Aurore Boréale',d:'Céleste',p:'Aurora borealis atmosphere. Northern lights, cosmic colors, magical sky. Preserve identity.',acts:['aurora dances overhead','colors shift in sky','green and purple glow','stars twinkle above','stands in awe'],cams:['epic wide aurora','low angle to sky','static cosmic','rack focus sky'],lights:['green aurora glow','purple aurora','cosmic colors','bright aurora']},
+{id:'crystal',e:'💎',n:'Cristal',d:'Pierre',p:'Crystal and gem atmosphere. Sparkling crystals, facets, refracting light. Preserve identity.',acts:['crystals grow around','light refracts through','sparkles float','crystal shifts','diamonds glitter'],cams:['slow dolly-in crystal','orbits crystalline','static sparkling','rack focus facets'],lights:['cool crystal glow','prism rainbow','bright crystal','refracting light']},
+{id:'shadow',e:'🌑',n:'Ombre',d:'Silhouette',p:'Shadow and silhouette atmosphere. Dark shapes, mystery, dramatic contrast. Preserve identity.',acts:['shadow extends','figure in darkness','silhouette moves','shadows dance','emerges from shadow'],cams:['slow dolly-in shadow','drifts through dark','static silhouette','rack focus shadow'],lights:['low key lighting','dramatic shadow','backlit silhouette','dark moody']},
+{id:'glitch',e:'📺',n:'Glitch',d:'Digital',p:'Glitch and digital atmosphere. VHS, distortion, cyber aesthetic. Preserve identity.',acts:['screen glitches','VHS distortion','digital artifacts','signal breaks','image reforms'],cams:['slow dolly-in glitch','shaky digital','static glitch','rack focus distortion'],lights:['VHS blue glow','glitch colors','digital scan lines','flickering screen']},
+{id:'vhs',e:'📼',n:'VHS',d:'Rétro',p:'VHS retro atmosphere. Old videotape, tracking lines, 80s nostalgia. Preserve identity.',acts:['VHS tracking lines','tape rewinds','color shifts retro','scanlines move','80s aesthetic'],cams:['slow dolly-in VHS','drifts retro','static tracking','rack focus tape'],lights:['VHS color glow','80s neon','warm retro','flickering tape']},
+{id:'thermal',e:'🔥',n:'Thermique',d:'Infrarouge',p:'Thermal imaging atmosphere. Infrared vision, heat signatures, scientific. Preserve identity.',acts:['heat signatures glow','thermal vision activates','body heat radiates','cold environment around','thermal scan'],cams:['slow dolly-in thermal','static thermal scan','orbits heat','rack focus thermal'],lights:['infrared red orange','heat signature glow','thermal blue cool','bright heat spots']},
+{id:'xray',e:'🦴',n:'X-Ray',d:'Transparence',p:'X-ray imaging atmosphere. Skeletal vision, transparency, medical. Preserve identity.',acts:['x-ray activates','bones visible','transparent body','scanning through','x-ray reveals'],cams:['slow dolly-in x-ray','static scan','orbits transparent','rack focus scan'],lights:['x-ray blue glow','bright scan light','cool medical','transparent beam']},
+{id:'sonar',e:'📡',n:'Sonar',d:'Détection',p:'Sonar and radar atmosphere. Waves, detection, scanning. Preserve identity.',acts:['sonar pings','radar sweeps','waves ripple outward','detection alert','scanning signal'],cams:['slow dolly-in sonar','static scanning','orbits waves','rack focus radar'],lights:['radar green glow','sonar blue','bright scan','pulsing detection']},
+{id:'morse',e:'📻',n:'Radio',d:'Signal',p:'Radio and signal atmosphere. Waves, communication, static, broadcast. Preserve identity.',acts:['radio waves emit','static flickers','signal transmits','tuning dial moves','message received'],cams:['slow dolly-in radio','static signal','orbits waves','rack focus dial'],lights:['radio warm glow','signal blue','static flicker','broadcast light']},
+{id:'magnet',e:'🧲',n:'Magnétisme',d:'Force',p:'Magnetic atmosphere. Attraction, metal particles, invisible force. Preserve identity.',acts:['metal particles float','magnetic force pulls','attraction visible','objects orbit','field lines form'],cams:['slow dolly-in magnetic','orbits field','static attraction','rack focus particles'],lights:['cool magnetic blue','attraction glow','field lines','particle light']},
+{id:'gravity',e:'🌍',n:'Gravité',d:'Force',p:'Gravity atmosphere. Floating objects, weightlessness, physics. Preserve identity.',acts:['objects float up','gravity shifts','weightless environment','debris floats','floats in air'],cams:['slow dolly-in zero gravity','orbits floating','static weightless','rack focus floating'],lights:['soft gravity light','cool floating','dim weightless','floating particles']},
+{id:'magnetic',e:'⚡',n:'Électrique',d:'Énergie',p:'Electric atmosphere. Lightning, sparks, energy, power. Preserve identity.',acts:['electricity crackles','sparks fly around','energy pulses','lightning strikes','power surges'],cams:['slow dolly-in electric','shaky energy','static sparks','rack focus power'],lights:['electric blue','bright sparks','energy pulses','lightning white']},
+{id:'wind',e:'🌬️',n:'Vent',d:'Brise',p:'Wind atmosphere. Flowing hair, moving fabric, natural breeze. Preserve identity.',acts:['wind blows hair','fabric moves','leaves swirl','breeze passes','dust rises'],cams:['slow dolly-in wind','drifts through breeze','static windy','rack focus leaves'],lights:['soft wind light','warm breeze','natural outdoor','sunlight through wind']},
+{id:'sunrise',e:'🌄',n:'Aube',d:'Matin',p:'Sunrise dawn atmosphere. First light, golden hour, new beginning. Preserve identity.',acts:['sun rises','first light shines','colors shift dawn','warm glow appears','new day begins'],cams:['epic wide sunrise','slow dolly-in dawn','static sunrise','rack focus horizon'],lights:['warm sunrise','golden dawn','pink orange sky','soft morning light']},
+{id:'sunset',e:'🌇',n:'Coucher',d:'Soir',p:'Sunset atmosphere. Last light, warm colors, end of day. Preserve identity.',acts:['sun sets','colors shift warm','long shadows stretch','sky turns orange','day ends'],cams:['epic wide sunset','slow dolly-in evening','static sunset','rack focus horizon'],lights:['warm sunset','orange sky','golden hour','dusk light']},
+{id:'midnight',e:'🌑',n:'Minuit',d:'Nuit',p:'Midnight atmosphere. Deepest night, stars, silence, mystery. Preserve identity.',acts:['stars twinkle','moonlight glows','silence deepens','night creatures stir','clock strikes midnight'],cams:['wide midnight sky','slow dolly-in night','static midnight','rack focus stars'],lights:['cold moonlight','deep blue night','starlight','silver night']},
+{id:'moon',e:'🌕',n:'Lune',d:'Astral',p:'Full moon atmosphere. Lunar light, silver glow, night magic. Preserve identity.',acts:['moon glows bright','lunar light shines','silver glow surrounds','moon phases shift','night illuminated'],cams:['epic wide moon','low angle to moon','static lunar','rack focus moonlight'],lights:['silver moonlight','cool lunar glow','bright moon','moonbeam light']},
+{id:'star',e:'⭐',n:'Étoiles',d:'Céleste',p:'Stars and starlight atmosphere. Twinkling, cosmic, romantic. Preserve identity.',acts:['stars twinkle','starlight shines','shooting star passes','constellation forms','cosmic glow'],cams:['epic wide stars','low angle to sky','static starfield','rack focus starlight'],lights:['warm starlight','cool cosmic glow','twinkling stars','bright star']},
+{id:'comet',e:'☄️',n:'Comète',d:'Céleste',p:'Comet atmosphere. Streaking light, cosmic wonder, celestial event. Preserve identity.',acts:['comet streaks across','trail of light','cosmic dust trails','sky illuminates','wonder in eyes'],cams:['epic wide comet','low angle to sky','static cosmic','rack focus trail'],lights:['bright comet glow','cosmic trail','blue white light','cosmic flash']},
+{id:'eclipse',e:'🌒',n:'Éclipse',d:'Céleste',p:'Eclipse atmosphere. Darkening sky, dramatic light, cosmic event. Preserve identity.',acts:['moon covers sun','sky darkens','corona glows','dramatic light shifts','eclipse completes'],cams:['epic wide eclipse','low angle to sky','static eclipse','rack focus corona'],lights:['dark eclipse','corona glow','dramatic darkness','cosmic light']},
+{id:'nebula',e:'🌌',n:'Nébuleuse',d:'Espace',p:'Nebula atmosphere. Cosmic clouds, colorful gas, space beauty. Preserve identity.',acts:['nebula swirls','cosmic clouds drift','colors shift cosmic','stars form within','space glows'],cams:['epic wide nebula','slow dolly-in cosmic','static nebula','rack focus cosmic'],lights:['colorful nebula','cosmic purple blue','bright nebula','glowing gas']},
+{id:'blackhole',e:'🕳️',n:'Trou Noir',d:'Espace',p:'Black hole atmosphere. Warped space, gravity, cosmic mystery. Preserve identity.',acts:['black hole warps space','light bends','objects spiral in','gravity intensifies','cosmic distortion'],cams:['epic wide black hole','low angle dramatic','static cosmic','rack focus distortion'],lights:['dark black hole','accretion disk glow','warped light','cosmic shadow']},
+{id:'galaxy',e:'🌌',n:'Galaxie',d:'Cosmos',p:'Galaxy atmosphere. Spiral arms, cosmic scale, endless stars. Preserve identity.',acts:['galaxy rotates','spiral arms glow','stars orbit','cosmic scale visible','deep space'],cams:['epic wide galaxy','slow dolly-in cosmic','static galaxy','rack focus stars'],lights:['warm galaxy glow','cosmic blue','bright core','starlight']},
+{id:'alienworld',e:'🪐',n:'Monde Alien',d:'Planète',p:'Alien world atmosphere. Strange planet, alien landscape, otherworldly. Preserve identity.',acts:['alien landscape','strange flora','unknown world','planet rises','cosmic horizon'],cams:['epic wide alien','slow dolly-in strange','static alien','rack focus landscape'],lights:['alien purple','strange green','otherworldly glow','cosmic light']},
+{id:'desert-planet',e:'🏜️',n:'Planète Désert',d:'Sable',p:'Desert planet atmosphere. Endless sand, twin suns, alien dunes. Preserve identity.',acts:['sand storms','twin suns set','dunes shift','winds blow sand','alien desert'],cams:['epic wide desert','slow dolly-in alien','static dunes','rack focus horizon'],lights:['twin sun','warm desert glow','alien sunset','harsh light']},
+{id:'ice-planet',e:'🧊',n:'Planète Glace',d:'Froid',p:'Ice planet atmosphere. Frozen wasteland, blue ice, extreme cold. Preserve identity.',acts:['ice cracks','snow storms','frozen landscape','ice shifts','cold wind blows'],cams:['epic wide ice','slow dolly-in frozen','static ice','rack focus cracks'],lights:['cool ice blue','bright white','frozen glow','cold light']},
+{id:'lava-planet',e:'🌋',n:'Planète Lave',d:'Feu',p:'Lava planet atmosphere. Volcanic, molten, extreme heat. Preserve identity.',acts:['lava flows','volcano erupts','ash rises','fire spreads','molten landscape'],cams:['epic wide volcanic','slow dolly-in lava','static volcanic','rack focus fire'],lights:['orange lava glow','red volcano','bright fire','dark ash']},
+{id:'forest-planet',e:'🌲',n:'Planète Forêt',d:'Nature',p:'Forest planet atmosphere. Endless trees, green world, alien jungle. Preserve identity.',acts:['giant trees','forest canopy','green life','strange flora','alien forest'],cams:['epic wide forest','slow dolly-in jungle','static forest','rack focus canopy'],lights:['green forest light','warm sunlight','filtered canopy','alien glow']},
+{id:'ocean-planet',e:'🌊',n:'Planète Océan',d:'Eau',p:'Ocean planet atmosphere. Endless water, waves, aquatic world. Preserve identity.',acts:['waves crash','ocean extends','storm at sea','creatures surface','endless water'],cams:['epic wide ocean','slow dolly-in sea','static ocean','rack focus horizon'],lights:['blue ocean glow','sun on water','storm light','deep sea']},
+{id:'cyber-city',e:'🏙️',n:'Cité Cyber',d:'Futur',p:'Cyberpunk city atmosphere. Neon skyscrapers, holograms, flying cars. Preserve identity.',acts:['holograms glow','flying cars pass','neon signs flicker','crowds move','cyber city life'],cams:['low angle skyscrapers','slow dolly-in cyber','static neon','rack focus city'],lights:['neon pink cyan','holographic blue','bright signs','cyber glow']},
+{id:'steam-city',e:'🏭',n:'Cité Vapeur',d:'Industriel',p:'Steampunk city atmosphere. Steam, gears, Victorian industry. Preserve identity.',acts:['steam rises','gears turn','industry hums','machines work','steampunk city'],cams:['low angle steam','slow dolly-in industrial','static city','rack focus gears'],lights:['warm steam glow','orange industry','dim gaslight','mechanical light']},
+{id:'medieval',e:'🏰',n:'Médiéval',d:'Château',p:'Medieval atmosphere. Castles, knights, feudal life. Preserve identity.',acts:['banners flutter','knights pass','castle looms','torches flicker','medieval life'],cams:['epic wide castle','slow dolly-in medieval','static castle','rack focus banners'],lights:['warm torchlight','sunset castle','dim medieval','firelight']},
+{id:'renaissance',e:'🎨',n:'Renaissance',d:'Art',p:'Renaissance atmosphere. Art, elegance, Italian palaces. Preserve identity.',acts:['art comes alive','palace glows','elegant surroundings','paintings move','renaissance life'],cams:['slow dolly-in palace','orbits art','static elegant','rack focus paintings'],lights:['warm palace light','soft renaissance','golden glow','candlelight']},
+{id:'victorian',e:'🎩',n:'Victorien',d:'XIXe',p:'Victorian atmosphere. Elegance, fog, gaslight, 19th century. Preserve identity.',acts:['gaslight flickers','fog rolls in','carriage passes','elegant surroundings','victorian life'],cams:['slow dolly-in victorian','drifts through fog','static elegant','rack focus gaslight'],lights:['warm gaslight','dim fog','soft victorian','candlelight']},
+{id:'roaring20s',e:'🎷',n:'Années 20',d:'Jazz',p:'Roaring twenties atmosphere. Jazz, Art Deco, flappers, glamour. Preserve identity.',acts:['jazz plays','art deco glows','dancers move','glamour shines','roaring twenties'],cams:['slow dolly-in art deco','orbits glamour','static elegant','rack focus jazz'],lights:['warm art deco','golden glamour','bright jazz','elegant glow']},
+{id:'50s',e:'🚗',n:'Années 50',d:'Rétro',p:'1950s atmosphere. Drive-ins, rock n roll, retro cars. Preserve identity.',acts:['retro cars pass','rock n roll plays','drive-in glows','50s fashion','retro life'],cams:['slow dolly-in retro','orbits 50s','static retro','rack focus cars'],lights:['warm retro','50s neon','bright chrome','classic glow']},
+{id:'80s',e:'📼',n:'Années 80',d:'Synthwave',p:'1980s atmosphere. Synthwave, neon, VHS, retro future. Preserve identity.',acts:['synthwave plays','neon grid glows','VHS tracks','retro future','80s vibes'],cams:['slow dolly-in synthwave','orbits neon','static retro','rack focus grid'],lights:['neon synthwave','80s pink cyan','bright grid','retro glow']},
+{id:'90s',e:'📺',n:'Années 90',d:'Rétro',p:'1990s atmosphere. Grunge, early internet, retro tech. Preserve identity.',acts:['90s nostalgia','early internet','grunge aesthetic','retro tech','90s life'],cams:['slow dolly-in 90s','orbits retro','static 90s','rack focus tech'],lights:['warm 90s','retro glow','dim tech','nostalgic light']},
+{id:'2000s',e:'💿',n:'Années 2000',d:'Y2K',p:'2000s atmosphere. Y2K, early digital, pop culture. Preserve identity.',acts:['Y2K aesthetic','early digital','pop culture','2000s vibes','retro tech'],cams:['slow dolly-in Y2K','orbits digital','static 2000s','rack focus tech'],lights:['Y2K blue','bright digital','pop glow','retro light']},
+{id:'futur2050',e:'🚀',n:'Futur 2050',d:'Anticip',p:'Future 2050 atmosphere. Advanced tech, AI, flying cars. Preserve identity.',acts:['flying cars pass','AI holograms','advanced tech','future city','2050 life'],cams:['low angle future','slow dolly-in 2050','static future','rack focus tech'],lights:['cool future blue','holographic glow','bright tech','future light']},
+{id:'futur2100',e:'🌌',n:'Futur 2100',d:'Lointain',p:'Future 2100 atmosphere. Far future, space colonies, advanced civilization. Preserve identity.',acts:['space colonies','advanced tech','cosmic future','2100 life','distant future'],cams:['epic wide future','slow dolly-in 2100','static cosmic','rack focus tech'],lights:['cosmic future','bright tech','distant glow','advanced light']},
+{id:'prehistoric',e:'🦕',n:'Préhistoire',d:'Dinosaures',p:'Prehistoric atmosphere. Dinosaurs, ancient world, primitive. Preserve identity.',acts:['dinosaurs roam','ancient world','primitive life','prehistoric','giant creatures'],cams:['epic wide prehistoric','slow dolly-in ancient','static prehistoric','rack focus dinosaurs'],lights:['warm prehistoric','ancient sunlight','dramatic natural','primitive glow']},
+{id:'egypt',e:'🏛️',n:'Égypte Antique',d:'Pyramides',p:'Ancient Egypt atmosphere. Pyramids, hieroglyphs, pharaohs. Preserve identity.',acts:['pyramids loom','hieroglyphs glow','pharaoh appears','sand blows','egyptian life'],cams:['epic wide pyramids','slow dolly-in egypt','static ancient','rack focus hieroglyphs'],lights:['warm egyptian','golden desert','torchlight','ancient glow']},
+{id:'greece',e:'🏛️',n:'Grèce Antique',d:'Mythologie',p:'Ancient Greece atmosphere. Temples, philosophers, mythology. Preserve identity.',acts:['temples rise','philosophers walk','gods appear','greek life','mythical'],cams:['epic wide temples','slow dolly-in greece','static ancient','rack focus columns'],lights:['warm greek','golden temple','bright mediterranean','ancient glow']},
+{id:'rome',e:'🏛️',n:'Rome Antique',d:'Empire',p:'Ancient Rome atmosphere. Colosseum, legions, empire. Preserve identity.',acts:['legions march','colosseum looms','emperor appears','roman life','empire glory'],cams:['epic wide rome','slow dolly-in empire','static roman','rack focus colosseum'],lights:['warm roman','golden empire','bright sun','ancient glory']},
+{id:'medieval-japan',e:'🏯',n:'Japon Médiéval',d:'Samouraï',p:'Medieval Japan atmosphere. Samurai, castles, cherry blossoms. Preserve identity.',acts:['samurai walk','castles loom','cherry blossoms fall','medieval japan','honor'],cams:['epic wide japan','slow dolly-in samurai','static medieval','rack focus blossoms'],lights:['warm japan','golden sunset','soft blossoms','ancient glow']},
+{id:'viking',e:'⛵',n:'Viking',d:'Nordique',p:'Viking atmosphere. Longships, Norse, cold seas. Preserve identity.',acts:['longships sail','viking warriors','northern lights','cold seas','norse life'],cams:['epic wide viking','slow dolly-in norse','static viking','rack focus ships'],lights:['cold norse','aurora glow','dramatic viking','northern light']},
+{id:'aztec',e:'🏛️',n:'Aztèque',d:'Méso',p:'Aztec atmosphere. Pyramids, jungle, ancient civilization. Preserve identity.',acts:['aztec pyramids','jungle surrounds','ancient rituals','aztec life','mystical'],cams:['epic wide aztec','slow dolly-in jungle','static ancient','rack focus pyramids'],lights:['warm aztec','jungle glow','golden sun','ancient light']},
+{id:'maya',e:'🏛️',n:'Maya',d:'Méso',p:'Maya atmosphere. Temples, jungle, ancient wisdom. Preserve identity.',acts:['maya temples','jungle life','ancient wisdom','maya rituals','mystical'],cams:['epic wide maya','slow dolly-in jungle','static ancient','rack focus temples'],lights:['warm maya','jungle glow','golden sun','ancient light']},
+{id:'inca',e:'🏔️',n:'Inca',d:'Andes',p:'Inca atmosphere. Mountain temples, Andes, ancient civilization. Preserve identity.',acts:['inca temples','andes mountains','ancient life','inca rituals','mystical'],cams:['epic wide inca','slow dolly-in andes','static ancient','rack focus temples'],lights:['warm inca','andes glow','golden sun','ancient light']},
+{id:'chinese',e:'🏯',n:'Chine Antique',d:'Empire',p:'Ancient China atmosphere. Temples, dragons, emperors. Preserve identity.',acts:['temples rise','dragons fly','emperor appears','chinese life','imperial'],cams:['epic wide china','slow dolly-in imperial','static ancient','rack focus temples'],lights:['warm china','golden imperial','red lanterns','ancient glow']},
+{id:'indian',e:'🕌',n:'Inde Antique',d:'Temples',p:'Ancient India atmosphere. Temples, elephants, spices, colors. Preserve identity.',acts:['temples rise','elephants walk','colors burst','indian life','mystical'],cams:['epic wide india','slow dolly-in temples','static ancient','rack focus elephants'],lights:['warm india','colorful glow','golden sun','ancient light']},
+{id:'persian',e:'🕌',n:'Perse Antique',d:'Empire',p:'Ancient Persia atmosphere. Palaces, carpets, empire. Preserve identity.',acts:['palaces rise','carpets fly','persian life','imperial glory','mystical'],cams:['epic wide persia','slow dolly-in imperial','static ancient','rack focus palaces'],lights:['warm persia','golden palace','colorful glow','ancient light']},
+{id:'african',e:'🥁',n:'Afrique',d:'Tribal',p:'African atmosphere. Drums, savanna, tribal beauty. Preserve identity.',acts:['drums play','savanna stretches','tribal life','wildlife passes','african beauty'],cams:['epic wide africa','slow dolly-in savanna','static african','rack focus wildlife'],lights:['warm africa','golden savanna','bright sun','tribal glow']},
+{id:'native',e:'🪶',n:'Amérindien',d:'Tribal',p:'Native American atmosphere. Feathers, plains, spiritual. Preserve identity.',acts:['feathers float','plains stretch','spiritual life','native traditions','mystical'],cams:['epic wide plains','slow dolly-in native','static spiritual','rack focus feathers'],lights:['warm native','golden plains','soft spiritual','natural glow']},
+{id:'tropical',e:'🌴',n:'Tropical',d:'Plage',p:'Tropical atmosphere. Palm trees, beaches, sunshine. Preserve identity.',acts:['palms sway','waves crash','sun shines','tropical life','paradise'],cams:['epic wide tropical','slow dolly-in beach','static tropical','rack focus palms'],lights:['warm tropical','bright sun','golden beach','tropical glow']},
+{id:'safari',e:'🦁',n:'Safari',d:'Savane',p:'Safari atmosphere. Wildlife, savanna, adventure. Preserve identity.',acts:['wildlife passes','savanna stretches','animals roam','safari adventure','wild beauty'],cams:['epic wide safari','slow dolly-in savanna','static safari','rack focus wildlife'],lights:['warm safari','golden savanna','bright sun','wild glow']},
+{id:'arctic',e:'🐧',n:'Arctique',d:'Glace',p:'Arctic atmosphere. Ice, snow, polar wildlife. Preserve identity.',acts:['ice cracks','snow falls','polar wildlife','arctic winds','frozen beauty'],cams:['epic wide arctic','slow dolly-in ice','static arctic','rack focus snow'],lights:['cool arctic','bright ice','soft snow','polar glow']},
+{id:'amazon',e:'🌳',n:'Amazonie',d:'Jungle',p:'Amazon atmosphere. Dense jungle, river, wildlife. Preserve identity.',acts:['jungle life','river flows','wildlife moves','amazon breathes','wild beauty'],cams:['epic wide amazon','slow dolly-in jungle','static amazon','rack focus river'],lights:['green amazon','filtered sunlight','warm jungle','natural glow']},
+{id:'sahara',e:'🏜️',n:'Sahara',d:'Désert',p:'Sahara atmosphere. Endless dunes, heat, vast emptiness. Preserve identity.',acts:['dunes stretch','heat shimmers','sand blows','sahara vast','desert beauty'],cams:['epic wide sahara','slow dolly-in dunes','static sahara','rack focus horizon'],lights:['warm sahara','golden dunes','harsh sun','desert glow']},
+{id:'himalaya',e:'🏔️',n:'Himalaya',d:'Montagne',p:'Himalaya atmosphere. Snow peaks, altitude, majesty. Preserve identity.',acts:['peaks rise','snow falls','clouds drift','himalaya majestic','mountain beauty'],cams:['epic wide himalaya','slow dolly-in peaks','static himalaya','rack focus snow'],lights:['cool himalaya','bright snow','golden peaks','mountain glow']},
+{id:'alps',e:'🏔️',n:'Alpes',d:'Montagne',p:'Alps atmosphere. Green valleys, peaks, alpine beauty. Preserve identity.',acts:['valleys stretch','peaks rise','alpine life','alps beautiful','mountain beauty'],cams:['epic wide alps','slow dolly-in alpine','static alps','rack focus valleys'],lights:['warm alps','green valleys','bright alpine','mountain glow']},
+{id:'andes',e:'🏔️',n:'Andes',d:'Montagne',p:'Andes atmosphere. Long mountain range, altitude, beauty. Preserve identity.',acts:['range stretches','peaks rise','andes majestic','mountain life','andes beauty'],cams:['epic wide andes','slow dolly-in range','static andes','rack focus peaks'],lights:['warm andes','bright sun','golden peaks','mountain glow']},
+{id:'savanna',e:'🦒',n:'Savane',d:'Afrique',p:'Savanna atmosphere. Grasslands, wildlife, golden light. Preserve identity.',acts:['grass sways','wildlife passes','savanna stretches','golden light','wild beauty'],cams:['epic wide savanna','slow dolly-in grassland','static savanna','rack focus wildlife'],lights:['warm savanna','golden sun','grass glow','wild light']},
+{id:'prairie',e:'🌾',n:'Prairie',d:'Plaine',p:'Prairie atmosphere. Endless grass, wind, freedom. Preserve identity.',acts:['grass sways','wind blows','prairie stretches','freedom','open plains'],cams:['epic wide prairie','slow dolly-in plains','static prairie','rack focus grass'],lights:['warm prairie','golden sun','soft wind','natural glow']},
+{id:'meadow',e:'🌻',n:'Prairie Fleurie',d:'Fleurs',p:'Meadow atmosphere. Flowers, butterflies, gentle beauty. Preserve identity.',acts:['flowers sway','butterflies pass','meadow blooms','gentle beauty','natural peace'],cams:['epic wide meadow','slow dolly-in flowers','static meadow','rack focus butterflies'],lights:['warm meadow','soft sun','colorful flowers','natural glow']},
+{id:'garden',e:'🌷',n:'Jardin',d:'Fleurs',p:'Garden atmosphere. Cultivated beauty, flowers, peace. Preserve identity.',acts:['flowers bloom','garden glows','beauty cultivated','peaceful garden','natural art'],cams:['slow dolly-in garden','orbits flowers','static garden','rack focus blooms'],lights:['warm garden','soft light','colorful blooms','natural glow']},
+{id:'forest',e:'🌲',n:'Forêt',d:'Arbres',p:'Forest atmosphere. Trees, filtered light, natural beauty. Preserve identity.',acts:['trees sway','light filters','forest breathes','natural beauty','deep forest'],cams:['epic wide forest','slow dolly-in trees','static forest','rack focus light'],lights:['green forest','filtered light','warm sun','natural glow']},
+{id:'waterfall',e:'💦',n:'Cascade',d:'Eau',p:'Waterfall atmosphere. Falling water, mist, natural power. Preserve identity.',acts:['water falls','mist rises','rainbow forms','waterfall roars','natural power'],cams:['epic wide waterfall','slow dolly-in water','static waterfall','rack focus mist'],lights:['cool water','bright sun','rainbow glow','natural light']},
+{id:'lake',e:'🏞️',n:'Lac',d:'Eau',p:'Lake atmosphere. Calm water, reflections, peaceful. Preserve identity.',acts:['water ripples','reflections shift','lake calm','peaceful water','natural beauty'],cams:['epic wide lake','slow dolly-in water','static lake','rack focus reflections'],lights:['cool lake','bright sun','soft water','natural glow']},
+{id:'river',e:'🌊',n:'Rivière',d:'Eau',p:'River atmosphere. Flowing water, journey, life. Preserve identity.',acts:['water flows','river journeys','life along','natural beauty','flowing water'],cams:['epic wide river','slow dolly-in water','static river','rack focus flow'],lights:['cool river','bright sun','flowing light','natural glow']},
+{id:'beach',e:'🏖️',n:'Plage',d:'Mer',p:'Beach atmosphere. Sand, waves, sun, relaxation. Preserve identity.',acts:['waves crash','sand shifts','sun shines','beach relaxes','natural beauty'],cams:['epic wide beach','slow dolly-in waves','static beach','rack focus sand'],lights:['warm beach','bright sun','golden sand','natural glow']},
+{id:'cliff',e:'🪨',n:'Falaise',d:'Mer',p:'Cliff atmosphere. Dramatic rocks, sea below, height. Preserve identity.',acts:['cliff looms','sea below','wind blows','dramatic height','natural power'],cams:['epic wide cliff','slow dolly-in rocks','static cliff','rack focus sea'],lights:['warm cliff','bright sun','sea glow','natural light']},
+{id:'cave',e:'🕳️',n:'Grotte',d:'Souterrain',p:'Cave atmosphere. Darkness, stalactites, mystery. Preserve identity.',acts:['cave echoes','stalactites drip','darkness deepens','mystery','underground beauty'],cams:['slow dolly-in cave','drifts underground','static dark','rack focus stalactites'],lights:['dim cave','warm torchlight','mysterious glow','underground light']},
+{id:'volcano',e:'🌋',n:'Volcan',d:'Feu',p:'Volcano atmosphere. Lava, ash, eruption, power. Preserve identity.',acts:['volcano erupts','lava flows','ash rises','power unleashed','natural fury'],cams:['epic wide volcano','slow dolly-in eruption','static volcano','rack focus lava'],lights:['orange lava','red eruption','dark ash','fire glow']},
+{id:'geyser',e:'💨',n:'Geyser',d:'Eau',p:'Geyser atmosphere. Hot water, steam, natural power. Preserve identity.',acts:['geyser erupts','steam rises','water shoots','natural power','thermal beauty'],cams:['epic wide geyser','slow dolly-in eruption','static geyser','rack focus steam'],lights:['warm steam','bright eruption','soft water','natural glow']},
+{id:'glacier',e:'🧊',n:'Glacier',d:'Glace',p:'Glacier atmosphere. Blue ice, ancient, frozen beauty. Preserve identity.',acts:['ice shifts','glacier moves','blue ice glows','ancient frozen','natural beauty'],cams:['epic wide glacier','slow dolly-in ice','static glacier','rack focus blue'],lights:['blue ice','bright glacier','cool glow','natural light']},
+{id:'canyon',e:'🏜️',n:'Canyon',d:'Roche',p:'Canyon atmosphere. Deep gorge, rock walls, natural wonder. Preserve identity.',acts:['canyon echoes','rock walls rise','river below','natural wonder','dramatic depth'],cams:['epic wide canyon','slow dolly-in gorge','static canyon','rack focus walls'],lights:['warm canyon','bright sun','rock glow','natural light']},
+{id:'plateau',e:'🏞️',n:'Plateau',d:'Altitude',p:'Plateau atmosphere. Flat highlands, vast, open. Preserve identity.',acts:['plateau stretches','wind blows','open space','high altitude','natural beauty'],cams:['epic wide plateau','slow dolly-in highland','static plateau','rack focus space'],lights:['warm plateau','bright sun','open light','natural glow']},
+{id:'valley',e:'🏞️',n:'Vallée',d:'Nature',p:'Valley atmosphere. Green valleys, rivers, natural beauty. Preserve identity.',acts:['valley stretches','river flows','green beauty','natural peace','valley life'],cams:['epic wide valley','slow dolly-in nature','static valley','rack focus river'],lights:['warm valley','golden sun','green glow','natural light']},
+{id:'hill',e:'⛰️',n:'Colline',d:'Nature',p:'Hill atmosphere. Rolling hills, green, peaceful. Preserve identity.',acts:['hills roll','grass sways','peaceful nature','green beauty','rolling landscape'],cams:['epic wide hills','slow dolly-in rolling','static hills','rack focus grass'],lights:['warm hills','golden sun','soft green','natural glow']},
+{id:'island',e:'🏝️',n:'Île',d:'Mer',p:'Island atmosphere. Isolated land, sea around, paradise. Preserve identity.',acts:['island paradise','sea around','waves crash','isolated beauty','natural wonder'],cams:['epic wide island','slow dolly-in paradise','static island','rack focus sea'],lights:['warm island','bright sun','sea glow','natural light']},
+{id:'peninsula',e:'🏝️',n:'Péninsule',d:'Mer',p:'Peninsula atmosphere. Land jutting into sea, dramatic. Preserve identity.',acts:['peninsula juts','sea surrounds','waves crash','dramatic land','natural beauty'],cams:['epic wide peninsula','slow dolly-in land','static peninsula','rack focus sea'],lights:['warm peninsula','bright sun','sea glow','natural light']},
+{id:'archipelago',e:'🏝️',n:'Archipel',d:'Îles',p:'Archipelago atmosphere. Many islands, sea, scattered land. Preserve identity.',acts:['islands scatter','sea between','archipelago beauty','scattered land','natural wonder'],cams:['epic wide archipelago','slow dolly-in islands','static archipelago','rack focus sea'],lights:['warm archipelago','bright sun','sea glow','natural light']},
+{id:'fjord',e:'🏔️',n:'Fjord',d:'Norvège',p:'Fjord atmosphere. Deep water, cliffs, Nordic beauty. Preserve identity.',acts:['fjord stretches','cliffs rise','water deep','nordic beauty','dramatic landscape'],cams:['epic wide fjord','slow dolly-in cliffs','static fjord','rack focus water'],lights:['cool fjord','bright nordic','water glow','natural light']},
+{id:'lagoon',e:'🏝️',n:'Lagon',d:'Eau',p:'Lagoon atmosphere. Calm water, reef, tropical beauty. Preserve identity.',acts:['lagoon calm','reef below','water clear','tropical beauty','natural paradise'],cams:['epic wide lagoon','slow dolly-in water','static lagoon','rack focus reef'],lights:['warm lagoon','bright sun','turquoise water','natural glow']},
+{id:'reef',e:'🐠',n:'Récif',d:'Corail',p:'Reef atmosphere. Coral, fish, underwater beauty. Preserve identity.',acts:['coral glows','fish swim','reef alive','underwater beauty','natural wonder'],cams:['drifts underwater','slow dolly-in reef','static underwater','rack focus coral'],lights:['blue underwater','bright reef','colorful coral','natural light']},
+{id:'abyss',e:'🌊',n:'Abysses',d:'Profond',p:'Abyss atmosphere. Deep ocean, darkness, mystery. Preserve identity.',acts:['abyss deepens','darkness surrounds','creatures pass','mystery deep','unknown depths'],cams:['drifts deep','slow dolly-in abyss','static dark','rack focus depth'],lights:['dark abyss','bioluminescent','mysterious glow','deep light']},
+{id:'cavern',e:'🕳️',n:'Caverne',d:'Souterrain',p:'Cavern atmosphere. Underground, crystals, mystery. Preserve identity.',acts:['cavern echoes','crystals glow','underground beauty','mystery','deep cavern'],cams:['drifts through cavern','slow dolly-in underground','static cavern','rack focus crystals'],lights:['dim cavern','crystal glow','mysterious light','underground glow']},
+{id:'tunnel',e:'🚇',n:'Tunnel',d:'Souterrain',p:'Tunnel atmosphere. Long passage, light at end, journey. Preserve identity.',acts:['tunnel stretches','light at end','journey through','passage long','dark to light'],cams:['drifts through tunnel','slow dolly-in passage','static tunnel','rack focus light'],lights:['dim tunnel','light at end','passage glow','contrast light']},
+{id:'bridge',e:'🌉',n:'Pont',d:'Structure',p:'Bridge atmosphere. Spanning, connection, engineering. Preserve identity.',acts:['bridge spans','structure looms','connection made','engineering beauty','spanning'],cams:['epic wide bridge','slow dolly-in structure','static bridge','rack focus span'],lights:['warm bridge','bright sun','structure glow','natural light']},
+{id:'tower',e:'🗼',n:'Tour',d:'Structure',p:'Tower atmosphere. Rising high, view, engineering. Preserve identity.',acts:['tower rises','view expansive','height dizzying','engineering marvel','rising high'],cams:['epic wide tower','low angle rising','static tower','rack focus height'],lights:['warm tower','bright sun','structure glow','natural light']},
+{id:'pyramid',e:'🔺',n:'Pyramide',d:'Structure',p:'Pyramid atmosphere. Ancient, monumental, mystery. Preserve identity.',acts:['pyramid looms','ancient mystery','monumental','desert surrounds','ancient wonder'],cams:['epic wide pyramid','slow dolly-in ancient','static pyramid','rack focus monument'],lights:['warm pyramid','golden sun','ancient glow','desert light']},
+{id:'temple',e:'🛕',n:'Temple',d:'Sacré',p:'Temple atmosphere. Sacred, ancient, spiritual. Preserve identity.',acts:['temple looms','sacred space','spiritual atmosphere','ancient beauty','divine presence'],cams:['epic wide temple','slow dolly-in sacred','static temple','rack focus divine'],lights:['warm temple','sacred glow','divine light','ancient glow']},
+{id:'church',e:'⛪',n:'Église',d:'Sacré',p:'Church atmosphere. Gothic, stained glass, spiritual. Preserve identity.',acts:['church looms','stained glass glows','spiritual atmosphere','gothic beauty','divine presence'],cams:['epic wide church','slow dolly-in gothic','static church','rack focus stained glass'],lights:['warm church','stained glass glow','divine light','gothic shadows']},
+{id:'mosque',e:'🕌',n:'Mosquée',d:'Sacré',p:'Mosque atmosphere. Domes, minarets, spiritual. Preserve identity.',acts:['mosque looms','domes glow','spiritual atmosphere','islamic beauty','divine presence'],cams:['epic wide mosque','slow dolly-in domes','static mosque','rack focus minarets'],lights:['warm mosque','golden domes','divine light','natural glow']},
+{id:'synagogue',e:'🕍',n:'Synagogue',d:'Sacré',p:'Synagogue atmosphere. Ancient, spiritual, sacred. Preserve identity.',acts:['synagogue looms','sacred space','spiritual atmosphere','ancient beauty','divine presence'],cams:['epic wide synagogue','slow dolly-in sacred','static synagogue','rack focus divine'],lights:['warm synagogue','sacred glow','divine light','ancient glow']},
+{id:'shrine',e:'⛩️',n:'Sanctuaire',d:'Japon',p:'Shrine atmosphere. Japanese, torii gates, spiritual. Preserve identity.',acts:['torii gates','shrine looms','spiritual atmosphere','japanese beauty','divine presence'],cams:['epic wide shrine','slow dolly-in torii','static shrine','rack focus gates'],lights:['warm shrine','red torii glow','divine light','natural glow']},
+{id:'monastery',e:'🏯',n:'Monastère',d:'Sacré',p:'Monastery atmosphere. Monks, ancient, spiritual. Preserve identity.',acts:['monastery looms','monks walk','spiritual atmosphere','ancient beauty','divine presence'],cams:['epic wide monastery','slow dolly-in monks','static monastery','rack focus ancient'],lights:['warm monastery','sacred glow','divine light','ancient glow']},
+{id:'pagoda',e:'🏯',n:'Pagode',d:'Asie',p:'Pagoda atmosphere. Multi-tiered, Asian, spiritual. Preserve identity.',acts:['pagoda rises','tiers stack','spiritual atmosphere','asian beauty','divine presence'],cams:['epic wide pagoda','slow dolly-in tiers','static pagoda','rack focus rise'],lights:['warm pagoda','golden tiers','divine light','natural glow']},
+{id:'colosseum',e:'🏛️',n:'Colisée',d:'Rome',p:'Colosseum atmosphere. Ancient arena, gladiators, empire. Preserve identity.',acts:['colosseum looms','gladiators fight','ancient arena','roman empire','dramatic history'],cams:['epic wide colosseum','slow dolly-in arena','static colosseum','rack focus gladiators'],lights:['warm colosseum','golden sun','ancient glow','dramatic light']},
+{id:'acropolis',e:'🏛️',n:'Acropole',d:'Grèce',p:'Acropolis atmosphere. Ancient Greek, columns, glory. Preserve identity.',acts:['acropolis looms','columns rise','greek glory','ancient beauty','historic'],cams:['epic wide acropolis','slow dolly-in columns','static acropolis','rack focus glory'],lights:['warm acropolis','golden sun','ancient glow','natural light']},
+{id:'stonehenge',e:'🗿',n:'Stonehenge',d:'Mystère',p:'Stonehenge atmosphere. Ancient stones, mystery, druids. Preserve identity.',acts:['stones loom','mystery surrounds','ancient rituals','druids appear','mystical'],cams:['epic wide stonehenge','slow dolly-in stones','static stonehenge','rack focus mystery'],lights:['warm stonehenge','mysterious glow','ancient light','dramatic']},
+{id:'easter-island',e:'🗿',n:'Île de Pâques',d:'Mystère',p:'Easter Island atmosphere. Moai statues, mystery, isolation. Preserve identity.',acts:['moai loom','mystery surrounds','isolated island','ancient statues','mystical'],cams:['epic wide easter island','slow dolly-in moai','static moai','rack focus mystery'],lights:['warm easter','mysterious glow','ancient light','dramatic']},
+{id:'machu-picchu',e:'🏔️',n:'Machu Picchu',d:'Inca',p:'Machu Picchu atmosphere. Mountain ruins, Inca, mystery. Preserve identity.',acts:['ruins loom','mountains surround','inca glory','ancient beauty','mystical'],cams:['epic wide machu picchu','slow dolly-in ruins','static inca','rack focus mountains'],lights:['warm machu','golden sun','ancient glow','dramatic']},
+{id:'petra',e:'🏛️',n:'Pétra',d:'Jordanie',p:'Petra atmosphere. Rock city, ancient, carved. Preserve identity.',acts:['petra looms','rock carved','ancient city','carved beauty','mystical'],cams:['epic wide petra','slow dolly-in carved','static petra','rack focus city'],lights:['warm petra','golden rock','ancient glow','dramatic']},
+{id:'angkor',e:'🏯',n:'Angkor',d:'Cambodge',p:'Angkor atmosphere. Ancient temples, jungle, mystery. Preserve identity.',acts:['angkor looms','jungle surrounds','ancient temples','mystery','spiritual'],cams:['epic wide angkor','slow dolly-in temples','static angkor','rack focus jungle'],lights:['warm angkor','golden temples','ancient glow','jungle light']},
+{id:'babel',e:'🏗️',n:'Babel',d:'Mythique',p:'Tower of Babel atmosphere. Ancient tower, languages, myth. Preserve identity.',acts:['tower rises','languages mix','ancient myth','tower looms','mystical'],cams:['epic wide babel','low angle tower','static babel','rack focus rise'],lights:['warm babel','golden tower','ancient glow','dramatic']},
+{id:'atlantis',e:'🌊',n:'Atlantide',d:'Légende',p:'Atlantis atmosphere. Sunken city, underwater, legend. Preserve identity.',acts:['city underwater','ruins sink','legend lives','atlantis looms','mystical'],cams:['drifts underwater','slow dolly-in city','static atlantis','rack focus ruins'],lights:['blue underwater','sunken glow','legend light','mysterious']},
+{id:'el-dorado',e:'💰',n:'El Dorado',d:'Légende',p:'El Dorado atmosphere. Golden city, legend, treasure. Preserve identity.',acts:['golden city','treasure glows','legend lives','el dorado looms','mystical'],cams:['epic wide dorado','slow dolly-in golden','static dorado','rack focus treasure'],lights:['golden dorado','treasure glow','legend light','dramatic']},
+{id:'shambhala',e:'🏔️',n:'Shambhala',d:'Légende',p:'Shambhala atmosphere. Hidden kingdom, spiritual, myth. Preserve identity.',acts:['kingdom hidden','spiritual atmosphere','shambhala glows','mystical','hidden beauty'],cams:['epic wide shambhala','slow dolly-in hidden','static shambhala','rack focus kingdom'],lights:['warm shambhala','spiritual glow','hidden light','mystical']},
+{id:'avalon',e:'🏰',n:'Avalon',d:'Légende',p:'Avalon atmosphere. Mystical island, Arthurian, magic. Preserve identity.',acts:['avalon glows','magic surrounds','arthurian legend','mystical island','hidden beauty'],cams:['epic wide avalon','slow dolly-in mystical','static avalon','rack focus magic'],lights:['warm avalon','magical glow','legend light','mystical']},
+{id:'camelot',e:'🏰',n:'Camelot',d:'Légende',p:'Camelot atmosphere. Arthurian court, knights, honor. Preserve identity.',acts:['camelot looms','knights gather','arthurian court','honor','medieval beauty'],cams:['epic wide camelot','slow dolly-in court','static camelot','rack focus knights'],lights:['warm camelot','golden court','legend light','dramatic']},
+{id:'narnia',e:'🦁',n:'Narnia',d:'Fantasy',p:'Narnia atmosphere. Magical world, talking animals, fantasy. Preserve identity.',acts:['narnia glows','magical world','talking animals','fantasy','hidden beauty'],cams:['epic wide narnia','slow dolly-in magical','static narnia','rack focus world'],lights:['warm narnia','magical glow','fantasy light','mystical']},
+{id:'oz',e:'🌈',n:'Oz',d:'Fantasy',p:'Oz atmosphere. Emerald city, magic, fantasy. Preserve identity.',acts:['emerald city','magic surrounds','oz glows','fantasy','colorful beauty'],cams:['epic wide oz','slow dolly-in emerald','static oz','rack focus city'],lights:['emerald oz','magical glow','colorful light','fantasy']},
+{id:'wonderland',e:'🐇',n:'Pays des Merveilles',d:'Fantasy',p:'Wonderland atmosphere. Surreal, whimsical, fantasy. Preserve identity.',acts:['wonderland surreal','whimsical world','fantasy','magical','colorful beauty'],cams:['epic wide wonderland','slow dolly-in surreal','static wonderland','rack focus magic'],lights:['whimsical glow','magical light','colorful','surreal']},
+{id:'neverland',e:'🧚',n:'Pays Imaginaire',d:'Fantasy',p:'Neverland atmosphere. Eternal youth, pirates, fairies, fantasy. Preserve identity.',acts:['neverland glows','fairies fly','pirates sail','eternal youth','fantasy'],cams:['epic wide neverland','slow dolly-in fantasy','static neverland','rack focus fairies'],lights:['warm neverland','magical glow','fantasy light','mystical']},
+{id:'middle-earth',e:'💍',n:'Terre du Milieu',d:'Fantasy',p:'Middle-earth atmosphere. Epic fantasy, quests, magic. Preserve identity.',acts:['middle earth','epic quest','magic','fantasy','epic beauty'],cams:['epic wide middle earth','slow dolly-in epic','static middle earth','rack focus quest'],lights:['warm middle earth','epic glow','fantasy light','dramatic']},
+{id:'westeros',e:'🐉',n:'Westeros',d:'Fantasy',p:'Westeros atmosphere. Dragons, thrones, epic fantasy. Preserve identity.',acts:['westeros looms','dragons fly','thrones stand','epic fantasy','dramatic'],cams:['epic wide westeros','slow dolly-in epic','static westeros','rack focus dragons'],lights:['warm westeros','dramatic glow','fantasy light','epic']},
+{id:'hogwarts',e:'⚡',n:'Hogwarts',d:'Magie',p:'Hogwarts atmosphere. Magic school, wizards, spells. Preserve identity.',acts:['hogwarts looms','magic swirls','spells cast','wizards appear','magical'],cams:['epic wide hogwarts','slow dolly-in magic','static hogwarts','rack focus spells'],lights:['warm hogwarts','magical glow','spell light','mystical']},
+{id:'xanadu',e:'🏛️',n:'Xanadu',d:'Légende',p:'Xanadu atmosphere. Opulent palace, pleasure dome, legend. Preserve identity.',acts:['xanadu glows','pleasure dome','opulent palace','legend','mystical'],cams:['epic wide xanadu','slow dolly-in opulent','static xanadu','rack focus palace'],lights:['warm xanadu','opulent glow','legend light','dramatic']},
+{id:'eldorado',e:'🌟',n:'Eldorado',d:'Légende',p:'Eldorado atmosphere. Golden legend, city of gold, treasure. Preserve identity.',acts:['eldorado glows','golden city','treasure','legend','mystical'],cams:['epic wide eldorado','slow dolly-in golden','static eldorado','rack focus treasure'],lights:['golden eldorado','treasure glow','legend light','dramatic']},
+{id:'zion',e:'🏔️',n:'Zion',d:'Légende',p:'Zion atmosphere. Promised land, spiritual, hope. Preserve identity.',acts:['zion glows','promised land','spiritual hope','legend','mystical'],cams:['epic wide zion','slow dolly-in promised','static zion','rack focus land'],lights:['warm zion','spiritual glow','hope light','dramatic']},
+{id:'utopia',e:'🌅',n:'Utopie',d:'Idéal',p:'Utopia atmosphere. Perfect world, harmony, ideal. Preserve identity.',acts:['utopia glows','perfect world','harmony','ideal','beautiful'],cams:['epic wide utopia','slow dolly-in perfect','static utopia','rack focus harmony'],lights:['warm utopia','perfect glow','ideal light','bright']},
+{id:'dystopia',e:'🏚️',n:'Dystopie',d:'Sombre',p:'Dystopia atmosphere. Dark future, oppression, decay. Preserve identity.',acts:['dystopia looms','dark future','oppression','decay','dramatic'],cams:['epic wide dystopia','slow dolly-in dark','static dystopia','rack focus decay'],lights:['dark dystopia','harsh glow','oppressive light','dramatic']},
+{id:'cyber-dystopia',e:'🌃',n:'Cyber-Dystopie',d:'Sombre',p:'Cyber-dystopia atmosphere. Neon decay, oppression, tech. Preserve identity.',acts:['neon decay','tech oppression','cyber dystopia','dark future','dramatic'],cams:['low angle neon','slow dolly-in decay','static cyber','rack focus tech'],lights:['neon decay','harsh tech','dark glow','dramatic']},
+{id:'post-apocalyptic',e:'☢️',n:'Post-Apocalyptique',d:'Ruines',p:'Post-apocalyptic atmosphere. Ruins, survival, wasteland. Preserve identity.',acts:['ruins crumble','survival','wasteland','post apocalyptic','dramatic'],cams:['epic wide ruins','slow dolly-in survival','static wasteland','rack focus ruins'],lights:['sickly glow','orange fire','grey overcast','dramatic']},
+{id:'zombie-apocalypse',e:'🧟',n:'Apocalypse Zombie',d:'Zombies',p:'Zombie apocalypse atmosphere. Zombies, survival, horror. Preserve identity.',acts:['zombies shamble','survival','horror','apocalypse','dramatic'],cams:['handheld shaky','slow dolly-in horror','static zombies','rack focus survival'],lights:['sickly green','red emergency','grey overcast','dramatic']},
+{id:'alien-invasion',e:'👽',n:'Invasion Alien',d:'Aliens',p:'Alien invasion atmosphere. UFOs, invasion, chaos. Preserve identity.',acts:['UFOs hover','invasion begins','chaos','alien invasion','dramatic'],cams:['low angle UFO','slow dolly-in invasion','static chaos','rack focus UFOs'],lights:['eerie green','UFO light','chaos glow','dramatic']},
+{id:'robot-uprising',e:'🤖',n:'Révolte Robots',d:'Robots',p:'Robot uprising atmosphere. Machines rebel, chaos, sci-fi. Preserve identity.',acts:['robots rebel','machines rise','chaos','robot uprising','dramatic'],cams:['low angle robots','slow dolly-in rebellion','static chaos','rack focus machines'],lights:['cool robot','red alert','chaos glow','dramatic']},
+{id:'ai-takeover',e:'🧠',n:'IA Dominante',d:'IA',p:'AI takeover atmosphere. Artificial intelligence, control, sci-fi. Preserve identity.',acts:['AI controls','data streams','artificial intelligence','takeover','dramatic'],cams:['slow dolly-in AI','static data','orbits control','rack focus streams'],lights:['blue AI','data glow','control light','dramatic']},
+{id:'matrix',e:'💊',n:'Matrice',d:'Réalité',p:'Matrix atmosphere. Digital reality, green code, simulation. Preserve identity.',acts:['code rains','reality glitches','matrix reveals','simulation','digital'],cams:['slow dolly-in code','static digital','orbits reality','rack focus glitch'],lights:['green code','digital glow','matrix light','dramatic']},
+{id:'simulation',e:'🖥️',n:'Simulation',d:'Réalité',p:'Simulation atmosphere. Artificial reality, digital, illusion. Preserve identity.',acts:['simulation glitches','reality breaks','artificial world','illusion','digital'],cams:['slow dolly-in digital','static simulation','orbits reality','rack focus glitch'],lights:['digital glow','simulation light','blue code','dramatic']},
+{id:'dream',e:'💭',n:'Rêve',d:'Onirique',p:'Dream atmosphere. Surreal, soft, dreamlike. Preserve identity.',acts:['dream shifts','soft reality','surreal world','dreamlike','beautiful'],cams:['slow dolly-in dream','drifts surreal','static dreamlike','rack focus soft'],lights:['soft dream','warm surreal','dreamlike glow','ethereal']},
+{id:'nightmare',e:'😱',n:'Cauchemar',d:'Peur',p:'Nightmare atmosphere. Dark, twisted, terrifying. Preserve identity.',acts:['nightmare twists','dark reality','terror','twisted','dramatic'],cams:['handheld shaky','slow dolly-in terror','static dark','rack focus twisted'],lights:['dark nightmare','red glow','terror light','dramatic']},
+{id:'heaven',e:'☁️',n:'Paradis',d:'Céleste',p:'Heaven atmosphere. Clouds, divine light, peace. Preserve identity.',acts:['clouds drift','divine light','peaceful heaven','celestial','beautiful'],cams:['slow dolly-in heaven','drifts clouds','static celestial','rack focus divine'],lights:['divine white','heavenly glow','peaceful light','bright']},
+{id:'hell',e:'🔥',n:'Enfer',d:'Infernal',p:'Hell atmosphere. Fire, torment, infernal. Preserve identity.',acts:['hellfire burns','torment','infernal','dark','dramatic'],cams:['slow dolly-in hell','drifts fire','static infernal','rack focus flames'],lights:['hellfire red','orange glow','infernal light','dramatic']},
+{id:'purgatory',e:'⚖️',n:'Purgatoire',d:'Entre-deux',p:'Purgatory atmosphere. Between worlds, judgment, waiting. Preserve identity.',acts:['purgatory glows','between worlds','judgment','waiting','mystical'],cams:['slow dolly-in purgatory','drifts between','static judgment','rack focus worlds'],lights:['dim purgatory','mysterious glow','judgment light','dramatic']},
+{id:'limbo',e:'🌀',n:'Limbo',d:'Entre-deux',p:'Limbo atmosphere. Between states, timeless, suspended. Preserve identity.',acts:['limbo suspends','timeless','between states','suspended','mystical'],cams:['slow dolly-in limbo','drifts suspended','static timeless','rack focus states'],lights:['dim limbo','mysterious glow','timeless light','dramatic']},
+{id:'void',e:'⚫',n:'Vide',d:'Néant',p:'Void atmosphere. Empty, dark, nothingness. Preserve identity.',acts:['void stretches','emptiness','dark nothing','void','dramatic'],cams:['slow dolly-in void','drifts empty','static void','rack focus nothing'],lights:['dark void','faint glow','emptiness light','dramatic']},
+{id:'infinity',e:'♾️',n:'Infini',d:'Cosmique',p:'Infinity atmosphere. Endless, cosmic, eternal. Preserve identity.',acts:['infinity stretches','endless','cosmic','eternal','dramatic'],cams:['slow dolly-in infinity','drifts endless','static cosmic','rack focus eternal'],lights:['cosmic infinity','bright glow','eternal light','dramatic']},
+{id:'eternity',e:'⏳',n:'Éternité',d:'Temporel',p:'Eternity atmosphere. Timeless, forever, eternal. Preserve identity.',acts:['eternity stretches','timeless','forever','eternal','dramatic'],cams:['slow dolly-in eternity','drifts timeless','static eternal','rack focus forever'],lights:['warm eternity','bright glow','eternal light','dramatic']},
+{id:'rebirth',e:'🌱',n:'Renaissance',d:'Vie',p:'Rebirth atmosphere. New life, renewal, hope. Preserve identity.',acts:['life renews','rebirth','new beginning','hope','beautiful'],cams:['slow dolly-in rebirth','drifts renewal','static new life','rack focus hope'],lights:['warm rebirth','bright renewal','hope light','beautiful']},
+{id:'genesis',e:'✨',n:'Genèse',d:'Création',p:'Genesis atmosphere. Creation, beginning, cosmic. Preserve identity.',acts:['creation begins','cosmic birth','genesis','beginning','dramatic'],cams:['slow dolly-in genesis','drifts creation','static cosmic','rack focus birth'],lights:['cosmic genesis','bright creation','genesis light','dramatic']},
+{id:'apocalypse-now',e:'☢️',n:'Apocalypse Finale',d:'Fin',p:'Final apocalypse atmosphere. End of all, dramatic, final. Preserve identity.',acts:['end begins','final apocalypse','dramatic end','final','epic'],cams:['epic wide end','slow dolly-in final','static apocalypse','rack focus end'],lights:['dark end','bright final','apocalypse light','dramatic']},
+{id:'resurrection',e:'✨',n:'Résurrection',d:'Renaissance',p:'Resurrection atmosphere. Return, rebirth, miracle. Preserve identity.',acts:['resurrection','return to life','miracle','rebirth','beautiful'],cams:['slow dolly-in resurrection','drifts return','static miracle','rack focus rebirth'],lights:['divine resurrection','bright miracle','return light','dramatic']},
+{id:'ascension',e:'⬆️',n:'Ascension',d:'Élévation',p:'Ascension atmosphere. Rising, elevation, transcendence. Preserve identity.',acts:['ascension begins','rising up','transcendence','elevation','beautiful'],cams:['low angle ascension','slow dolly-in rising','static elevation','rack focus transcendence'],lights:['divine ascension','bright rising','elevation light','dramatic']},
+{id:'transcendence',e:'🌟',n:'Transcendance',d:'Éveil',p:'Transcendence atmosphere. Beyond physical, spiritual, awakening. Preserve identity.',acts:['transcendence','beyond physical','spiritual awakening','enlightened','beautiful'],cams:['slow dolly-in transcendence','drifts spiritual','static awakening','rack focus beyond'],lights:['divine transcendence','bright awakening','spiritual light','dramatic']},
+{id:'enlightenment',e:'☀️',n:'Éveil',d:'Spirituel',p:'Enlightenment atmosphere. Awakening, wisdom, light. Preserve identity.',acts:['enlightenment','wisdom dawns','awakening','light','beautiful'],cams:['slow dolly-in enlightenment','drifts wisdom','static awakening','rack focus light'],lights:['divine enlightenment','bright wisdom','awakening light','dramatic']},
+{id:'nirvana',e:'🕉️',n:'Nirvana',d:'Spirituel',p:'Nirvana atmosphere. Peace, enlightenment, liberation. Preserve identity.',acts:['nirvana','peace','liberation','enlightened','beautiful'],cams:['slow dolly-in nirvana','drifts peace','static liberation','rack focus enlightened'],lights:['divine nirvana','bright peace','liberation light','dramatic']},
+{id:'cosmos',e:'🌌',n:'Cosmos',d:'Univers',p:'Cosmos atmosphere. Universe, cosmic, infinite. Preserve identity.',acts:['cosmos stretches','universe','infinite','cosmic','dramatic'],cams:['slow dolly-in cosmos','drifts cosmic','static universe','rack focus infinite'],lights:['cosmic cosmos','bright stars','infinite light','dramatic']},
+{id:'multiverse',e:'🌌',n:'Multivers',d:'Dimensions',p:'Multiverse atmosphere. Parallel worlds, dimensions, infinite. Preserve identity.',acts:['multiverse opens','parallel worlds','dimensions','infinite','dramatic'],cams:['slow dolly-in multiverse','drifts dimensions','static parallel','rack focus infinite'],lights:['cosmic multiverse','bright dimensions','parallel light','dramatic']},
+{id:'quantum',e:'⚛️',n:'Quantique',d:'Réalité',p:'Quantum atmosphere. Particles, uncertainty, science. Preserve identity.',acts:['quantum particles','uncertainty','science','quantum','dramatic'],cams:['slow dolly-in quantum','drifts particles','static uncertainty','rack focus science'],lights:['blue quantum','bright particles','quantum light','dramatic']},
+{id:'atom',e:'⚛️',n:'Atome',d:'Micro',p:'Atom atmosphere. Micro, particles, science. Preserve identity.',acts:['atom spins','particles orbit','micro world','science','dramatic'],cams:['slow dolly-in atom','drifts particles','static micro','rack focus orbit'],lights:['blue atom','bright particles','atom light','dramatic']},
+{id:'molecule',e:'🧬',n:'Molécule',d:'Micro',p:'Molecule atmosphere. Micro, structure, science. Preserve identity.',acts:['molecule forms','structure','micro world','science','dramatic'],cams:['slow dolly-in molecule','drifts structure','static micro','rack focus forms'],lights:['blue molecule','bright structure','molecule light','dramatic']},
+{id:'dna',e:'🧬',n:'ADN',d:'Vie',p:'DNA atmosphere. Life code, helix, biology. Preserve identity.',acts:['DNA spirals','life code','helix','biology','dramatic'],cams:['slow dolly-in DNA','drifts helix','static life','rack focus code'],lights:['blue DNA','bright helix','life light','dramatic']},
+{id:'cell',e:'🔬',n:'Cellule',d:'Vie',p:'Cell atmosphere. Microscopic, life, biology. Preserve identity.',acts:['cell divides','microscopic','life','biology','dramatic'],cams:['slow dolly-in cell','drifts microscopic','static life','rack focus divides'],lights:['blue cell','bright life','cell light','dramatic']},
+{id:'neuron',e:'🧠',n:'Neurone',d:'Cerveau',p:'Neuron atmosphere. Brain, synapses, thought. Preserve identity.',acts:['neurons fire','synapses','thought','brain','dramatic'],cams:['slow dolly-in neuron','drifts synapses','static brain','rack focus fires'],lights:['blue neuron','bright synapses','thought light','dramatic']},
+{id:'heart',e:'❤️',n:'Cœur',d:'Vie',p:'Heart atmosphere. Beating, life, emotion. Preserve identity.',acts:['heart beats','life','emotion','beating','dramatic'],cams:['slow dolly-in heart','drifts beats','static life','rack focus emotion'],lights:['red heart','bright beats','life light','dramatic']},
+{id:'blood',e:'🩸',n:'Sang',d:'Vie',p:'Blood atmosphere. Cells, life, circulation. Preserve identity.',acts:['blood flows','cells','life','circulation','dramatic'],cams:['slow dolly-in blood','drifts cells','static flow','rack focus life'],lights:['red blood','bright cells','life light','dramatic']},
+{id:'bone',e:'🦴',n:'Os',d:'Squelette',p:'Bone atmosphere. Skeleton, structure, anatomy. Preserve identity.',acts:['bones','skeleton','structure','anatomy','dramatic'],cams:['slow dolly-in bone','drifts skeleton','static structure','rack focus anatomy'],lights:['white bone','bright structure','bone light','dramatic']},
+{id:'muscle',e:'💪',n:'Muscle',d:'Corps',p:'Muscle atmosphere. Strength, body, anatomy. Preserve identity.',acts:['muscles flex','strength','body','anatomy','dramatic'],cams:['slow dolly-in muscle','drifts strength','static body','rack focus flex'],lights:['warm muscle','bright strength','muscle light','dramatic']},
+{id:'skin',e:'🖐️',n:'Peau',d:'Corps',p:'Skin atmosphere. Texture, body, touch. Preserve identity.',acts:['skin texture','body','touch','close up','dramatic'],cams:['slow dolly-in skin','drifts texture','static body','rack focus touch'],lights:['warm skin','bright texture','skin light','dramatic']},
+{id:'eye',e:'👁️',n:'Œil',d:'Vision',p:'Eye atmosphere. Vision, iris, close up. Preserve identity.',acts:['eye opens','iris','vision','close up','dramatic'],cams:['extreme close-up eye','slow dolly-in vision','static iris','rack focus opens'],lights:['bright eye','warm iris','vision light','dramatic']},
+{id:'hand',e:'✋',n:'Main',d:'Toucher',p:'Hand atmosphere. Touch, gesture, expression. Preserve identity.',acts:['hand moves','touch','gesture','expression','dramatic'],cams:['slow dolly-in hand','drifts touch','static gesture','rack focus moves'],lights:['warm hand','bright touch','hand light','dramatic']},
+{id:'face',e:'😊',n:'Visage',d:'Portrait',p:'Face atmosphere. Portrait, expression, emotion. Preserve identity.',acts:['face expression','portrait','emotion','close up','dramatic'],cams:['slow dolly-in face','drifts portrait','static emotion','rack focus expression'],lights:['warm face','bright portrait','face light','dramatic']},
+{id:'silhouette',e:'👤',n:'Silhouette',d:'Ombre',p:'Silhouette atmosphere. Dark shape, mystery, contrast. Preserve identity.',acts:['silhouette moves','dark shape','mystery','contrast','dramatic'],cams:['slow dolly-in silhouette','drifts mystery','static dark','rack focus shape'],lights:['backlit silhouette','dramatic contrast','shadow light','dramatic']},
+{id:'shadow-play',e:'🎭',n:'Ombres Chinoises',d:'Théâtre',p:'Shadow play atmosphere. Theater, shadows, storytelling. Preserve identity.',acts:['shadows play','theater','storytelling','shadows','dramatic'],cams:['slow dolly-in shadows','drifts theater','static storytelling','rack focus play'],lights:['warm shadow','theater glow','shadow light','dramatic']},
+{id:'puppet',e:'🎭',n:'Marionnette',d:'Théâtre',p:'Puppet atmosphere. Strings, theater, control. Preserve identity.',acts:['puppet moves','strings','theater','control','dramatic'],cams:['slow dolly-in puppet','drifts strings','static theater','rack focus control'],lights:['warm puppet','theater glow','puppet light','dramatic']},
+{id:'masquerade',e:'🎭',n:'Mascarade',d:'Masques',p:'Masquerade atmosphere. Masks, mystery, ball. Preserve identity.',acts:['masks','mystery','ball','masquerade','dramatic'],cams:['slow dolly-in masks','drifts mystery','static ball','rack focus masquerade'],lights:['warm masquerade','mask glow','ball light','dramatic']},
+{id:'ballroom',e:'💃',n:'Salle de Bal',d:'Danse',p:'Ballroom atmosphere. Dance, elegance, chandeliers. Preserve identity.',acts:['dance','elegance','chandeliers','ballroom','dramatic'],cams:['slow dolly-in ballroom','drifts dance','static elegance','rack focus chandeliers'],lights:['warm ballroom','chandelier glow','elegant light','dramatic']},
+{id:'opera',e:'🎭',n:'Opéra',d:'Musique',p:'Opera atmosphere. Music, drama, stage. Preserve identity.',acts:['opera','music','drama','stage','dramatic'],cams:['slow dolly-in opera','drifts music','static stage','rack focus drama'],lights:['warm opera','stage glow','drama light','dramatic']},
+{id:'theater',e:'🎭',n:'Théâtre',d:'Scène',p:'Theater atmosphere. Stage, performance, drama. Preserve identity.',acts:['theater','stage','performance','drama','dramatic'],cams:['slow dolly-in theater','drifts stage','static performance','rack focus drama'],lights:['warm theater','stage glow','performance light','dramatic']},
+{id:'cinema',e:'🎬',n:'Cinéma',d:'Film',p:'Cinema atmosphere. Film, screen, projection. Preserve identity.',acts:['cinema','film','screen','projection','dramatic'],cams:['slow dolly-in cinema','drifts film','static screen','rack focus projection'],lights:['warm cinema','screen glow','film light','dramatic']},
+{id:'studio',e:'🎙️',n:'Studio',d:'Enregistrement',p:'Studio atmosphere. Recording, music, production. Preserve identity.',acts:['studio','recording','music','production','dramatic'],cams:['slow dolly-in studio','drifts recording','static production','rack focus music'],lights:['warm studio','recording glow','studio light','dramatic']},
+{id:'concert',e:'🎸',n:'Concert',d:'Live',p:'Concert atmosphere. Live music, crowd, energy. Preserve identity.',acts:['concert','live music','crowd','energy','dramatic'],cams:['low angle concert','slow dolly-in live','static crowd','rack focus energy'],lights:['stage concert','bright lights','live glow','dramatic']},
+{id:'festival',e:'🎉',n:'Festival',d:'Fête',p:'Festival atmosphere. Celebration, music, crowd. Preserve identity.',acts:['festival','celebration','music','crowd','dramatic'],cams:['low angle festival','slow dolly-in celebration','static crowd','rack focus music'],lights:['bright festival','celebration glow','festival light','dramatic']},
+{id:'parade',e:'🎺',n:'Parade',d:'Défilé',p:'Parade atmosphere. March, celebration, colors. Preserve identity.',acts:['parade','march','celebration','colors','dramatic'],cams:['low angle parade','slow dolly-in march','static celebration','rack focus colors'],lights:['bright parade','celebration glow','parade light','dramatic']},
+{id:'fireworks',e:'🎆',n:'Feux d\'Artifice',d:'Fête',p:'Fireworks atmosphere. Explosions, colors, celebration. Preserve identity.',acts:['fireworks','explosions','colors','celebration','dramatic'],cams:['low angle fireworks','slow dolly-in explosions','static colors','rack focus celebration'],lights:['colorful fireworks','bright explosions','firework light','dramatic']},
+{id:'lantern',e:'🏮',n:'Lanternes',d:'Lumière',p:'Lantern atmosphere. Floating lights, wishes, beauty. Preserve identity.',acts:['lanterns float','wishes','beauty','lights','dramatic'],cams:['slow dolly-in lanterns','drifts floating','static beauty','rack focus lights'],lights:['warm lanterns','floating glow','lantern light','dramatic']},
+{id:'candle',e:'🕯️',n:'Bougie',d:'Lumière',p:'Candle atmosphere. Flickering, warm, intimate. Preserve identity.',acts:['candle flickers','warm light','intimate','flickering','dramatic'],cams:['slow dolly-in candle','drifts flicker','static warm','rack focus intimate'],lights:['warm candle','flickering glow','candle light','dramatic']},
+{id:'torch',e:'🔥',n:'Torche',d:'Lumière',p:'Torch atmosphere. Fire, light, ancient. Preserve identity.',acts:['torch burns','fire light','ancient','burning','dramatic'],cams:['slow dolly-in torch','drifts fire','static ancient','rack focus burns'],lights:['warm torch','fire glow','torch light','dramatic']},
+{id:'lamp',e:'💡',n:'Lampe',d:'Lumière',p:'Lamp atmosphere. Light, glow, warmth. Preserve identity.',acts:['lamp glows','light','warmth','glowing','dramatic'],cams:['slow dolly-in lamp','drifts glow','static warm','rack focus light'],lights:['warm lamp','bright glow','lamp light','dramatic']},
+{id:'neon-light',e:'💡',n:'Néon',d:'Lumière',p:'Neon light atmosphere. Bright, colorful, urban. Preserve identity.',acts:['neon glows','colorful','urban','bright','dramatic'],cams:['slow dolly-in neon','drifts colorful','static urban','rack focus bright'],lights:['neon pink cyan','bright neon','neon glow','dramatic']},
+{id:'led',e:'💡',n:'LED',d:'Lumière',p:'LED atmosphere. Modern, bright, colorful. Preserve identity.',acts:['LED glows','modern','colorful','bright','dramatic'],cams:['slow dolly-in LED','drifts modern','static bright','rack focus colorful'],lights:['LED blue','bright modern','LED glow','dramatic']},
+{id:'laser',e:'🔦',n:'Laser',d:'Lumière',p:'Laser atmosphere. Beam, precision, sci-fi. Preserve identity.',acts:['laser beams','precision','sci fi','beam','dramatic'],cams:['slow dolly-in laser','drifts beam','static precision','rack focus sci fi'],lights:['laser red','bright beam','laser glow','dramatic']},
+{id:'hologram',e:'💠',n:'Hologramme',d:'Lumière',p:'Hologram atmosphere. 3D light, futuristic, digital. Preserve identity.',acts:['hologram','3D light','futuristic','digital','dramatic'],cams:['slow dolly-in hologram','drifts 3D','static digital','rack focus light'],lights:['hologram blue','bright 3D','hologram glow','dramatic']},
+{id:'glow',e:'✨',n:'Lueur',d:'Lumière',p:'Glow atmosphere. Soft light, ethereal, beautiful. Preserve identity.',acts:['glow','soft light','ethereal','beautiful','dramatic'],cams:['slow dolly-in glow','drifts soft','static ethereal','rack focus light'],lights:['soft glow','warm ethereal','glow light','dramatic']},
+{id:'sparkle',e:'✨',n:'Étincelle',d:'Lumière',p:'Sparkle atmosphere. Twinkling, magic, beauty. Preserve identity.',acts:['sparkle','twinkling','magic','beauty','dramatic'],cams:['slow dolly-in sparkle','drifts twinkling','static magic','rack focus beauty'],lights:['bright sparkle','twinkling glow','sparkle light','dramatic']},
+{id:'shimmer',e:'✨',n:'Chatoiement',d:'Lumière',p:'Shimmer atmosphere. Shifting light, beauty, magic. Preserve identity.',acts:['shimmer','shifting light','beauty','magic','dramatic'],cams:['slow dolly-in shimmer','drifts shifting','static beauty','rack focus magic'],lights:['bright shimmer','shifting glow','shimmer light','dramatic']},
+{id:'aurora-light',e:'🌌',n:'Aurore',d:'Lumière',p:'Aurora light atmosphere. Northern lights, colors, magic. Preserve identity.',acts:['aurora','northern lights','colors','magic','dramatic'],cams:['slow dolly-in aurora','drifts colors','static magic','rack focus lights'],lights:['green aurora','purple aurora','aurora glow','dramatic']},
+{id:'rainbow',e:'🌈',n:'Arc-en-Ciel',d:'Lumière',p:'Rainbow atmosphere. Colors, beauty, hope. Preserve identity.',acts:['rainbow','colors','beauty','hope','dramatic'],cams:['slow dolly-in rainbow','drifts colors','static beauty','rack focus hope'],lights:['rainbow colors','bright rainbow','rainbow glow','dramatic']},
+{id:'prism',e:'🔮',n:'Prisme',d:'Lumière',p:'Prism atmosphere. Light refraction, colors, science. Preserve identity.',acts:['prism','light refraction','colors','science','dramatic'],cams:['slow dolly-in prism','drifts refraction','static science','rack focus colors'],lights:['prism rainbow','bright refraction','prism glow','dramatic']},
+{id:'mirror-light',e:'🪞',n:'Reflet',d:'Lumière',p:'Mirror light atmosphere. Reflection, symmetry, beauty. Preserve identity.',acts:['mirror reflects','symmetry','beauty','reflection','dramatic'],cams:['slow dolly-in mirror','drifts symmetry','static beauty','rack focus reflection'],lights:['bright mirror','reflection glow','mirror light','dramatic']},
+{id:'crystal-light',e:'💎',n:'Cristal',d:'Lumière',p:'Crystal light atmosphere. Sparkle, refraction, beauty. Preserve identity.',acts:['crystal sparkles','refraction','beauty','sparkle','dramatic'],cams:['slow dolly-in crystal','drifts sparkle','static beauty','rack focus refraction'],lights:['crystal rainbow','bright sparkle','crystal glow','dramatic']},
+{id:'fire-glow',e:'🔥',n:'Lueur de Feu',d:'Lumière',p:'Fire glow atmosphere. Warm, flickering, intimate. Preserve identity.',acts:['fire glows','warm flickering','intimate','glowing','dramatic'],cams:['slow dolly-in fire','drifts flicker','static warm','rack focus glow'],lights:['warm fire','flickering glow','fire light','dramatic']},
+{id:'ice-glow',e:'❄️',n:'Lueur de Glace',d:'Lumière',p:'Ice glow atmosphere. Cool, blue, crystalline. Preserve identity.',acts:['ice glows','cool blue','crystalline','glowing','dramatic'],cams:['slow dolly-in ice','drifts cool','static crystalline','rack focus glow'],lights:['cool ice','blue glow','ice light','dramatic']},
+{id:'moon-glow',e:'🌕',n:'Lueur de Lune',d:'Lumière',p:'Moon glow atmosphere. Silver, soft, night magic. Preserve identity.',acts:['moon glows','silver light','night magic','soft','dramatic'],cams:['slow dolly-in moon','drifts silver','static magic','rack focus light'],lights:['silver moon','soft glow','moon light','dramatic']},
+{id:'sun-glow',e:'☀️',n:'Lueur de Soleil',d:'Lumière',p:'Sun glow atmosphere. Warm, bright, radiant. Preserve identity.',acts:['sun glows','warm bright','radiant','glowing','dramatic'],cams:['slow dolly-in sun','drifts warm','static radiant','rack focus glow'],lights:['warm sun','bright glow','sun light','dramatic']},
+{id:'star-glow',e:'⭐',n:'Lueur d\'Étoile',d:'Lumière',p:'Star glow atmosphere. Twinkling, cosmic, beautiful. Preserve identity.',acts:['star glows','twinkling','cosmic','beautiful','dramatic'],cams:['slow dolly-in star','drifts twinkling','static cosmic','rack focus glow'],lights:['bright star','twinkling glow','star light','dramatic']},
+{id:'heart-glow',e:'❤️',n:'Lueur de Cœur',d:'Lumière',p:'Heart glow atmosphere. Warm, loving, intimate. Preserve identity.',acts:['heart glows','warm loving','intimate','glowing','dramatic'],cams:['slow dolly-in heart','drifts loving','static warm','rack focus glow'],lights:['warm heart','loving glow','heart light','dramatic']},
+{id:'soul-glow',e:'✨',n:'Lueur d\'Âme',d:'Lumière',p:'Soul glow atmosphere. Spiritual, ethereal, beautiful. Preserve identity.',acts:['soul glows','spiritual','ethereal','beautiful','dramatic'],cams:['slow dolly-in soul','drifts spiritual','static ethereal','rack focus glow'],lights:['divine soul','spiritual glow','soul light','dramatic']},
+{id:'spirit-glow',e:'👻',n:'Lueur d\'Esprit',d:'Lumière',p:'Spirit glow atmosphere. Ethereal, ghostly, beautiful. Preserve identity.',acts:['spirit glows','ethereal','ghostly','beautiful','dramatic'],cams:['slow dolly-in spirit','drifts ethereal','static ghostly','rack focus glow'],lights:['ethereal spirit','ghostly glow','spirit light','dramatic']},
+{id:'angel-glow',e:'😇',n:'Lueur d\'Ange',d:'Lumière',p:'Angel glow atmosphere. Divine, heavenly, beautiful. Preserve identity.',acts:['angel glows','divine','heavenly','beautiful','dramatic'],cams:['slow dolly-in angel','drifts divine','static heavenly','rack focus glow'],lights:['divine angel','heavenly glow','angel light','dramatic']},
+{id:'divine-glow',e:'✨',n:'Lueur Divine',d:'Lumière',p:'Divine glow atmosphere. Sacred, holy, beautiful. Preserve identity.',acts:['divine glows','sacred','holy','beautiful','dramatic'],cams:['slow dolly-in divine','drifts sacred','static holy','rack focus glow'],lights:['divine light','sacred glow','holy light','dramatic']},
+{id:'sacred-glow',e:'🕯️',n:'Lueur Sacrée',d:'Lumière',p:'Sacred glow atmosphere. Holy, spiritual, beautiful. Preserve identity.',acts:['sacred glows','holy','spiritual','beautiful','dramatic'],cams:['slow dolly-in sacred','drifts holy','static spiritual','rack focus glow'],lights:['sacred light','holy glow','spiritual light','dramatic']},
+{id:'magic-glow',e:'🔮',n:'Lueur Magique',d:'Lumière',p:'Magic glow atmosphere. Magical, enchanted, beautiful. Preserve identity.',acts:['magic glows','magical','enchanted','beautiful','dramatic'],cams:['slow dolly-in magic','drifts enchanted','static magical','rack focus glow'],lights:['magical light','enchanted glow','magic light','dramatic']},
+{id:'fairy-glow',e:'🧚',n:'Lueur de Fée',d:'Lumière',p:'Fairy glow atmosphere. Whimsical, magical, delicate. Preserve identity.',acts:['fairy glows','whimsical','magical','delicate','dramatic'],cams:['slow dolly-in fairy','drifts whimsical','static delicate','rack focus glow'],lights:['fairy light','whimsical glow','delicate light','dramatic']}
+];
+
+/* ---------- Modèles fal.ai (prix en $ par seconde de vidéo) ---------- */
+const VIDEO_MODELS={
+  k3:{label:'Kling 3.0 · avec son et voix',short:'Kling 3.0',i2v:'fal-ai/kling-video/o3/standard/image-to-video',t2v:'fal-ai/kling-video/o3/standard/text-to-video',price:0.084,priceAudio:0.112,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true},
+  eco:{label:'Kling 2.5 Turbo · éco, muet',short:'Kling 2.5',i2v:'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',t2v:'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',price:0.07,priceAudio:0.07,durations:[5,10],def:5,audio:false,endFrame:true}
+};
+const IMG_EDIT='fal-ai/nano-banana/edit',IMG_GEN='fal-ai/nano-banana',IMG_PRICE=0.039;
+const AVATAR={standard:{id:'fal-ai/kling-video/ai-avatar/v2/standard',price:0.0562},pro:{id:'fal-ai/kling-video/ai-avatar/v2/pro',price:0.115}};
+const TTS='fal-ai/elevenlabs/tts/multilingual-v2',TTS_PRICE=0.1/1000;
+const LLM='openrouter/router',LLM_MODEL='google/gemini-2.5-flash',LLM_PRICE=0.01;
+const VOICES=[['George','Homme · posé'],['Brian','Homme · grave'],['Liam','Homme · jeune'],['Charlie','Homme · décontracté'],['Daniel','Homme · narrateur'],['Chris','Homme · naturel'],['Roger','Homme · assuré'],['Will','Homme · amical'],['Bill','Homme · âgé'],['Rachel','Femme · calme'],['Sarah','Femme · douce'],['Charlotte','Femme · séduisante'],['Laura','Femme · enjouée'],['Alice','Femme · claire'],['Matilda','Femme · chaleureuse'],['Jessica','Femme · expressive'],['Lily','Femme · jeune'],['Aria','Femme · dynamique']];
+const FORMATS={
+  vlog:{l:'🤳 Vlog selfie',img:'Selfie photo: the person holds the phone at arm\'s length, looking into the camera, other arm partly visible, natural handheld smartphone framing.',vid:'Handheld selfie vlog shot. The person holds the phone at arm\'s length and talks directly to the camera with expressive face and hand gestures. Slight natural camera shake.',llm:'A first-person selfie vlog: the character films himself/herself with a phone and talks to the viewers, reacting to what happens around. Every scene is a selfie shot where the character speaks to the camera.'},
+  film:{l:'🎥 Mini-film',img:'Cinematic film still, dramatic composition, the person is the main character.',vid:'Cinematic shot with smooth camera movement. The character acts naturally in the scene.',llm:'A short cinematic story with varied shots (wide, medium, close-up). The character may talk to someone or think out loud.'},
+  comedy:{l:'😂 Comédie',img:'Funny, expressive photo, exaggerated facial expression, bright natural light.',vid:'Comedic timing, expressive reactions, natural movement.',llm:'A short comedy sketch with a clear setup and a funny punchline at the end. Short punchy lines.'}
+};
+const PRESETS=[
+  {l:'🔪 Poursuite',t:'La caméra suit le sujet qui marche vite, puis court. Des pas résonnent derrière lui.'},
+  {l:'🌬️ Vent léger',t:'Un vent léger fait bouger les cheveux et les vêtements. Mouvement doux.'},
+  {l:'💭 Rêve',t:'Mouvements très lents, lumière douce, ambiance de rêve.'},
+  {l:'🎬 Cinéma',t:'Esthétique cinéma, mouvement lent, lumière dramatique.'},
+  {l:'🌙 Nuit calme',t:'Ambiance nocturne paisible, lumière bleutée, mouvement très lent.'}
+];
+const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
+const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
+const NEG='blur, distort, low quality, deformed face, extra limbs, extra fingers, text, watermark, subtitles';
+
+/* ---------- utilitaires ---------- */
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rand=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>(Math.round(v*100)/100).toFixed(2).replace('.',',')+' $';
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function toast(msg,type='ok',dur=2600){const t=$('toast');t.className='toast '+type;t.textContent=msg;requestAnimationFrame(()=>t.classList.add('vis'));clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('vis'),dur)}
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+
+const S={server:false,ffmpeg:false,stop:{}};
+function getKey(){return (LS.get('ms_fal_key_v2','')||LS.get('ms_fal_key_raw','')||'').trim()}
+
+/* ---------- dépenses ---------- */
+function monthKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)}
+function spentMonth(){const sp=LS.get('ms_spend',{});return sp[monthKey()]||0}
+function addSpend(v){const sp=LS.get('ms_spend',{});sp[monthKey()]=(sp[monthKey()]||0)+v;LS.set('ms_spend',sp);updSpent()}
+function updSpent(){$('spentMonth').textContent=money(spentMonth())}
+function budgetOk(cost){const b=parseFloat(LS.get('ms_budget',''));if(!b)return true;if(spentMonth()+cost>b)return confirm('Attention : avec cette génération (~'+money(cost)+'), tu dépasses ton budget du mois ('+money(b)+'). Continuer quand même ?');return true}
+
+/* ---------- historique ---------- */
+function hist(){return LS.get('ms_hist',[])}
+function addHist(item){const h=hist();h.unshift(Object.assign({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),date:Date.now()},item));LS.set('ms_hist',h.slice(0,400))}
+
+/* ---------- images locales ---------- */
+function fileToUri(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('lecture'));r.readAsDataURL(f)})}
+function shrink(uri,max,q){return new Promise(res=>{const i=new Image();i.onload=()=>{try{const sc=Math.min(1,max/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*sc);c.height=Math.round(i.height*sc);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q||.88))}catch(e){res(uri)}};i.onerror=()=>res(uri);i.src=uri})}
+async function loadImages(files){const out=[];for(const f of Array.from(files)){if(!f.type.startsWith('image/'))continue;try{const raw=await fileToUri(f);const uri=await shrink(raw,1280);const th=await shrink(uri,240,.7);out.push({uri,thumb:th,id:Date.now()+Math.random()})}catch(e){}}return out}
+function renderThumbs(el,list,onChange){el.innerHTML=list.map(i=>'<div class="thumb"><img src="'+i.thumb+'"><button class="x" data-x="'+i.id+'">✕</button></div>').join('');el.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=parseFloat(b.dataset.x);const k=list.findIndex(i=>i.id===id);if(k>=0)list.splice(k,1);renderThumbs(el,list,onChange);onChange&&onChange()})}
+
+/* =====================================================================
+   Appels fal.ai (via le serveur local si présent)
+   ===================================================================== */
+function falHeaders(){return{'Authorization':'Key '+getKey(),'Content-Type':'application/json'}}
+async function http(method,url,body){
+  let target=url;
+  if(S.server){target=method==='POST'?'/api/fal/'+url.replace('https://queue.fal.run/',''):'/api/get?url='+encodeURIComponent(url)}
+  for(let a=0;a<6;a++){
+    try{
+      const r=await fetch(target,{method,headers:falHeaders(),body:body?JSON.stringify(body):undefined});
+      if(r.status===429||r.status===502||r.status===503){await sleep([3,6,10,15,20,30][a]*1000);continue}
+      return r;
+    }catch(e){if(a===5)throw new Error('Pas de connexion internet');await sleep(3000)}
+  }
+  return fetch(target,{method,headers:falHeaders(),body:body?JSON.stringify(body):undefined});
+}
+async function readErr(r){let t='';try{t=await r.text()}catch(e){}
+  if(r.status===401||r.status===403)return 'Clé fal.ai refusée — vérifie-la dans ⚙️';
+  if(r.status===402||/balance|credit|locked|exhausted/i.test(t))return 'Crédit fal.ai épuisé — recharge sur fal.ai';
+  try{const j=JSON.parse(t);const d=j.detail;if(Array.isArray(d))return 'Paramètre refusé : '+d.map(x=>(x.loc||[]).slice(-1)[0]+' '+(x.msg||'')).join(', ');if(d)return String(d).slice(0,180)}catch(e){}
+  if(/content|nsfw|safety|policy/i.test(t))return 'Refusé par le filtre de contenu';
+  return 'Erreur '+r.status+' '+t.slice(0,140)}
+/* Lance un modèle et attend le résultat. onProg(texte) pour l'avancement. */
+async function falRun(model,input,onProg,stopKey){
+  if(!getKey())throw new Error('Ajoute ta clé fal.ai dans ⚙️');
+  const base='https://queue.fal.run/'+model;
+  const r=await http('POST',base,input);
+  if(!r.ok)throw new Error(await readErr(r));
+  const d=await r.json();
+  if(!d.request_id)throw new Error('Réponse inattendue de fal.ai');
+  const statusUrl=d.status_url||base+'/requests/'+d.request_id+'/status';
+  const resultUrl=d.response_url||base+'/requests/'+d.request_id;
+  const t0=Date.now();
+  for(let i=0;i<400;i++){
+    if(stopKey&&S.stop[stopKey])throw new Error('stop');
+    const sr=await http('GET',statusUrl);
+    if(!sr.ok)throw new Error(await readErr(sr));
+    const s=await sr.json();const el=Math.round((Date.now()-t0)/1000);
+    if(s.status==='IN_QUEUE')onProg&&onProg('File d\'attente'+(s.queue_position!=null?' #'+(s.queue_position+1):'')+' · '+el+'s');
+    else if(s.status==='IN_PROGRESS')onProg&&onProg('Création… '+el+'s');
+    if(s.status==='COMPLETED'){
+      const rr=await http('GET',resultUrl);
+      if(!rr.ok)throw new Error(await readErr(rr));
+      return await rr.json();
+    }
+    await sleep(i<3?2500:4000);
+  }
+  throw new Error('Trop long, réessaie');
+}
+/* Enregistre un fichier distant sur le téléphone (via serveur) */
+async function saveLocal(url,name){if(!S.server)return null;try{const r=await fetch('/api/save',{method:'POST',body:JSON.stringify({url,name})});const d=await r.json();return d.path||null}catch(e){return null}}
+
+/* ---------- briques ---------- */
+async function genImage(prompt,refs,ratio,onProg,stopKey){
+  const input={prompt,aspect_ratio:ratio||'9:16',output_format:'jpeg',num_images:1};
+  let res;
+  if(refs&&refs.length){res=await falRun(IMG_EDIT,Object.assign(input,{image_urls:refs}),onProg,stopKey)}
+  else res=await falRun(IMG_GEN,input,onProg,stopKey);
+  addSpend(IMG_PRICE);
+  const u=res.images&&res.images[0]&&res.images[0].url;if(!u)throw new Error('Pas d\'image reçue');return u;
+}
+function videoInput(mk,kind,o){
+  const m=VIDEO_MODELS[mk];const dur=String(o.duration);
+  if(mk==='eco'){const b={prompt:o.prompt.slice(0,2400),duration:dur==='10'?'10':'5',negative_prompt:NEG,cfg_scale:0.5};if(kind==='i2v'){b.image_url=o.image;if(o.end)b.tail_image_url=o.end}else b.aspect_ratio='9:16';return b}
+  const b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
+  if(kind==='i2v'){b.image_url=o.image;if(o.end)b.end_image_url=o.end}else b.aspect_ratio='9:16';
+  return b;
+}
+function videoCost(mk,dur,audio){const m=VIDEO_MODELS[mk];if(mk==='eco')dur=dur>5?10:5;return dur*(audio&&m.audio?m.priceAudio:m.price)}
+async function genVideo(mk,kind,o,onProg,stopKey){
+  const m=VIDEO_MODELS[mk];
+  const res=await falRun(kind==='i2v'?m.i2v:m.t2v,videoInput(mk,kind,o),onProg,stopKey);
+  addSpend(videoCost(mk,o.duration,o.audio));
+  const u=res.video&&res.video.url;if(!u)throw new Error('Pas de vidéo reçue');return u;
+}
+async function llm(system,prompt){
+  const res=await falRun(LLM,{model:LLM_MODEL,system_prompt:system,prompt,temperature:0.9,max_tokens:3000});
+  addSpend(LLM_PRICE);
+  if(res.error)throw new Error(String(res.error).slice(0,150));
+  return res.output||'';
+}
+
+/* ---------- sélecteur de modèle réutilisable ---------- */
+function modelPicker(el,key,onChange,opts){
+  opts=opts||{};
+  const st=LS.get('ms_mp_'+key,{m:opts.def||'k3',d:null,a:true});
+  const draw=()=>{
+    const m=VIDEO_MODELS[st.m];if(!m.durations.includes(st.d))st.d=m.def;
+    el.innerHTML='<label class="lbl">Modèle vidéo</label><div class="chips">'+Object.keys(VIDEO_MODELS).map(k=>'<button class="chip '+(st.m===k?'sel':'')+'" data-m="'+k+'">'+esc(VIDEO_MODELS[k].label)+'</button>').join('')+'</div>'+
+      '<label class="lbl">Durée '+(opts.perScene?'par scène':'')+'</label><select data-d>'+m.durations.map(d=>'<option value="'+d+'" '+(d===st.d?'selected':'')+'>'+d+' s</option>').join('')+'</select>'+
+      (m.audio?'<div class="toggle"><span>🔊 Son et voix générés avec la vidéo</span><label class="sw"><input type="checkbox" data-a '+(st.a?'checked':'')+'><span></span></label></div>':'<div class="hint">Ce modèle ne génère pas de son.</div>')+
+      '<div class="hint">'+(st.m==='k3'?'≈ '+money(st.a?m.priceAudio:m.price)+' par seconde':'≈ '+money(m.price)+' par seconde · le moins cher')+'</div>';
+    el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{st.m=b.dataset.m;save()});
+    el.querySelector('[data-d]').onchange=e=>{st.d=+e.target.value;save()};
+    const a=el.querySelector('[data-a]');if(a)a.onchange=e=>{st.a=e.target.checked;save()};
+  };
+  const save=()=>{LS.set('ms_mp_'+key,st);draw();onChange&&onChange()};
+  draw();
+  return{get:()=>({model:st.m,duration:st.d||VIDEO_MODELS[st.m].def,audio:VIDEO_MODELS[st.m].audio&&st.a})};
+}
+
+/* ---------- grille d'univers réutilisable ---------- */
+function univPicker(gridEl,searchEl,key,allowNone){
+  let sel=LS.get('ms_univ_'+key,null);
+  const draw=()=>{
+    const q=norm(searchEl.value);
+    const list=UNIVERS.filter(u=>!q||norm(u.n+' '+u.d+' '+u.id).includes(q));
+    let h=allowNone?'<div class="univ '+(sel===null?'sel':'')+'" data-u=""><div class="e">∅</div><div><div class="n">Aucun</div><div class="d">Juste mon texte</div></div></div>':'';
+    h+=list.map(u=>'<div class="univ '+(sel===u.id?'sel':'')+'" data-u="'+u.id+'"><div class="e">'+u.e+'</div><div><div class="n">'+esc(u.n)+'</div><div class="d">'+esc(u.d)+'</div></div></div>').join('');
+    gridEl.innerHTML=h||'<div class="hint">Aucun univers trouvé</div>';
+    gridEl.querySelectorAll('[data-u]').forEach(el=>el.onclick=()=>{sel=el.dataset.u||null;LS.set('ms_univ_'+key,sel);draw()});
+  };
+  searchEl.oninput=draw;draw();
+  return{get:()=>sel?UNIVERS.find(u=>u.id===sel):null,set:v=>{sel=v;draw()}};
+}
+
+/* ---------- cartes de résultat ---------- */
+function resCard(o){
+  const d=document.createElement('div');d.className='res';
+  const src=o.local||o.url;
+  d.innerHTML=(o.kind==='image'?'<img src="'+esc(src)+'">':'<video controls playsinline preload="metadata" src="'+esc(src)+'"></video>')+
+    '<div class="cap"><span>'+esc(o.title||'')+'</span><a href="'+esc(src)+'" download="'+esc((o.title||'video').replace(/[^a-z0-9]/gi,'_'))+(o.kind==='image'?'.jpg':'.mp4')+'" target="_blank">Télécharger</a>'+(o.extra||'')+'</div>';
+  return d;
+}
+
+/* =====================================================================
+   ONGLET HISTOIRE
+   ===================================================================== */
+const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
+let stModel,stUniv;
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
+function stInit(){
+  $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
+  $('stFormat').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ST.format=b.dataset.f;LS.set('ms_story_fmt',ST.format);stInit()});
+}
+function stRender(){
+  const box=$('stScenes');
+  box.innerHTML=ST.scenes.map((s,i)=>'<div class="scene '+(s.status||'')+'" data-i="'+i+'">'+
+    '<div class="scene-h"><b>Scène '+(i+1)+'</b><span class="st">'+esc(s.msg||(s.local||s.vid?'✓ Prête':s.img?'Image prête':'À générer'))+'</span></div>'+
+    '<span class="mini">Décor (image)</span><textarea data-k="decor" placeholder="Où il est, ce qu\'on voit">'+esc(s.decor)+'</textarea>'+
+    '<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Ce qui se passe, mouvement">'+esc(s.action)+'</textarea>'+
+    '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
+    ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
+    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+  '</div>').join('');
+  box.querySelectorAll('.scene').forEach(el=>{
+    const i=+el.dataset.i;
+    el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave();stPrice()});
+    el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>stAction(i,b.dataset.a));
+  });
+  const has=ST.scenes.length>0;
+  $('stGen').classList.toggle('hide',!has||ST.busy);
+  $('stStop').classList.toggle('hide',!ST.busy);
+  const ready=has&&ST.scenes.every(s=>s.local||s.vid);
+  $('stMontage').classList.toggle('hide',!ready||ST.busy);
+  stPrice();
+}
+function stPrice(){
+  const p=$('stPrice');if(!ST.scenes.length){p.classList.add('hide');return}
+  const o=stModel.get();let total=0,todo=0;
+  ST.scenes.forEach(s=>{if(!(s.local||s.vid)){todo++;total+=(s.img?0:IMG_PRICE)+videoCost(o.model,o.duration,o.audio)}});
+  const len=ST.scenes.length*o.duration;
+  p.classList.remove('hide');
+  p.innerHTML=todo?'Coût estimé : <b>'+money(total)+'</b> pour '+todo+' scène'+(todo>1?'s':'')+' · vidéo finale ≈ <b>'+len+' s</b>'+(len<60?' <br>💡 Pour être payé par TikTok il faut au moins 60 s : ajoute des scènes ou allonge la durée.':''):'Toutes les scènes sont prêtes · vidéo finale ≈ <b>'+len+' s</b>';
+  $('stGen').textContent=todo===ST.scenes.length?'🎬 Générer les '+todo+' scènes':'🎬 Générer les '+todo+' scène'+(todo>1?'s':'')+' restante'+(todo>1?'s':'');
+  $('stGen').disabled=!todo;$('stGen').classList.toggle('hide',!todo||ST.busy);
+}
+function stAction(i,a){
+  const s=ST.scenes[i];if(ST.busy&&a!=='up'&&a!=='down')return toast('Attends la fin de la génération','warn');
+  if(a==='del'){if(!confirm('Supprimer la scène '+(i+1)+' ?'))return;ST.scenes.splice(i,1)}
+  if(a==='up'&&i>0)[ST.scenes[i-1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i-1]];
+  if(a==='down'&&i<ST.scenes.length-1)[ST.scenes[i+1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i+1]];
+  if(a==='regen'){s.img=null;s.vid=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
+  if(a==='revid'){s.vid=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
+  stSave();stRender();
+}
+async function stWrite(){
+  const idea=$('stIdea').value.trim();const place=stPlace();
+  if(!idea&&!place)return toast('Écris une idée ou choisis un univers','warn');
+  const n=+$('stCount').value;const o=stModel.get();const lang=$('stLang').value;
+  const words=Math.max(4,Math.round(o.duration*2.3));
+  const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
+  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+($('stChar').value.trim()||'the person in the reference photo')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
+    '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n'+
+    'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
+  const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
+  try{
+    const out=await llm(sys,prompt);
+    const j=JSON.parse(out.slice(out.indexOf('{'),out.lastIndexOf('}')+1));
+    if(!j.scenes||!j.scenes.length)throw new Error('script vide');
+    if(ST.scenes.some(s=>s.vid)&&!confirm('Remplacer les scènes actuelles par ce nouveau script ?')){return}
+    ST.scenes=j.scenes.map(s=>({decor:s.decor||'',action:s.action||'',line:s.line||''}));
+    ST.title=j.title||'histoire';LS.set('ms_story_title',ST.title);
+    stSave();stRender();toast('Script prêt : « '+ST.title+' » — tu peux modifier chaque scène','ok',3500);
+    $('stScenes').scrollIntoView({behavior:'smooth'});
+  }catch(e){toast(e.message==='stop'?'Arrêté':'Script : '+e.message,'err',4500)}
+  finally{b.disabled=false;b.textContent='✍️ Écrire le script avec l\'IA (~0,01 $)'}
+}
+function stImgPrompt(s,hasRef){
+  const f=FORMATS[ST.format];const place=stPlace();const ch=$('stChar').value.trim();
+  return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
+    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
+}
+function stVidPrompt(s,o){
+  const f=FORMATS[ST.format];const u=stUniv.get();
+  let p=f.vid+' '+(s.action||'')+' ';
+  if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
+  if(o.audio){p+=s.line&&s.line.trim()?'The person speaks to the camera with accurate lip-sync, saying in '+$('stLang').value+': "'+s.line.trim()+'". ':'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
+  else if(s.line&&s.line.trim())p+='The person is talking expressively.';
+  return p+' Keep the same face and outfit as the first frame. No subtitles, no text.';
+}
+async function stGenerate(only){
+  if(ST.busy)return;
+  const o=stModel.get();
+  const idx=only||ST.scenes.map((s,i)=>i).filter(i=>!(ST.scenes[i].local||ST.scenes[i].vid));
+  if(!idx.length)return;
+  let cost=0;idx.forEach(i=>{cost+=(ST.scenes[i].img?0:IMG_PRICE)+videoCost(o.model,o.duration,o.audio)});
+  if(!budgetOk(cost))return;
+  ST.busy=true;S.stop.story=false;stRender();
+  let refs=ST.refs.map(r=>r.uri);
+  const anchor=()=>{if(refs.length)return refs;const first=ST.scenes.find(s=>s.img);return first?[first.img]:[]};
+  // sans photo : la 1re image sert de référence aux suivantes (même personnage)
+  const runOne=async i=>{
+    const s=ST.scenes[i];const upd=(m,st)=>{s.msg=m;if(st)s.status=st;const el=document.querySelector('.scene[data-i="'+i+'"]');if(el){el.className='scene '+(s.status||'');el.querySelector('.st').textContent=m}};
+    try{
+      s.status='busy';stRender();
+      if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(stImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
+      upd('Vidéo…');
+      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio},m=>upd('Vidéo · '+m),'story');
+      s.local=await saveLocal(s.vid,'scene'+(i+1));
+      s.status='done';s.msg='✓ Prête';
+    }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêtée':'✕ '+e.message}
+    stSave();stRender();
+  };
+  try{
+    // la toute première image d'abord si pas de photo (pour fixer le personnage)
+    let rest=idx.slice();
+    if(!refs.length&&!ST.scenes.some(s=>s.img)){await runOne(rest.shift())}
+    const pool=2;let k=0;
+    await Promise.all(Array.from({length:pool},async()=>{while(k<rest.length&&!S.stop.story){const i=rest[k++];$('stProg').textContent='Scènes en cours… ('+(idx.length-rest.length+k)+'/'+idx.length+')';await runOne(i)}}));
+  }finally{
+    ST.busy=false;stRender();
+    const fails=ST.scenes.filter(s=>s.status==='fail').length;
+    $('stProg').textContent=fails?fails+' scène(s) en échec : appuie sur « ↻ Refaire la scène ».':S.stop.story?'Arrêté.':'Scènes prêtes ! Vérifie-les puis assemble la vidéo finale.';
+    if(!fails&&!S.stop.story)toast('Scènes prêtes ✓','ok');
+  }
+}
+async function stMontage(){
+  if(!S.server)return toast('Lance python server.py dans Termux pour le montage','err',4500);
+  if(!S.ffmpeg)return toast('Installe ffmpeg : pkg install ffmpeg','err',4500);
+  const b=$('stMontage');b.disabled=true;b.innerHTML='<span class="spin"></span> Montage en cours…';
+  try{
+    for(let i=0;i<ST.scenes.length;i++){const s=ST.scenes[i];if(!s.local){s.local=await saveLocal(s.vid,'scene'+(i+1));if(!s.local)throw new Error('impossible de récupérer la scène '+(i+1)+' (lien expiré ? refais-la)')}}
+    stSave();
+    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire')})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
+    ST.final=d.path;
+    addHist({kind:'video',type:'Histoire',title:LS.get('ms_story_title','Histoire'),local:d.path,cost:0});
+    $('stOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Vidéo finale · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('stOut').appendChild(c);
+    $('stProg').textContent='🎉 Vidéo finale enregistrée dans MetaStudio/videos ('+Math.round(d.duration)+' s).';
+    toast('Vidéo finale prête !','ok');$('stOut').scrollIntoView({behavior:'smooth'});
+  }catch(e){toast('Montage : '+e.message,'err',5000)}
+  finally{b.disabled=false;b.textContent='🎞️ Assembler la vidéo finale'}
+}
+
+/* =====================================================================
+   ONGLET ANIMER (ancien Méta-Studio)
+   ===================================================================== */
+const AN={images:[],end:null,busy:false};let anModel,anUniv;
+function anPrompt(u,story,idx,total,mode){
+  const p=['Animate this exact image as the starting frame. The subject must remain identical to the input image: same face, expression, clothing. Continuation, not re-imagination.'];
+  if(mode==='story'&&total>1){p.push('This is scene '+(idx+1)+' of '+total+' in a story.');if(story)p.push('Story: "'+story.slice(0,400)+'".')}
+  else if(story)p.push('Direction: '+story);
+  if(u){p.push(u.p,rand(u.acts),rand(u.cams),rand(u.lights))}
+  else if(!story){p.push(rand(['the subject slowly moves, breathing visible','the subject turns their head gently','hair moves in a soft breeze']),rand(['slow dolly-in','static frame','handheld follow']))}
+  const fr=$('anFram').value;if(FRAMING[fr])p.push(FRAMING[fr]);
+  p.push(INTENS[$('anInt').value]);
+  p.push('Vertical 9:16, no text, no watermark');
+  return p.join('. ');
+}
+async function anGo(){
+  if(!AN.images.length)return toast('Ajoute au moins une image','warn');
+  const o=anModel.get();const mode=$('anMode').value;const story=$('anStory').value.trim();
+  const cost=AN.images.length*videoCost(o.model,o.duration,o.audio);
+  if(!budgetOk(cost))return;
+  AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');
+  let done=0,fail=0;const total=AN.images.length;
+  const tasks=AN.images.map((img,i)=>async()=>{
+    const u=mode==='random'?rand(UNIVERS):anUniv.get();
+    const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;padding:.5rem;text-align:center" data-p>Scène '+(i+1)+'<br>en attente</div>';$('anOut').prepend(ph);
+    const pe=ph.querySelector('[data-p]');
+    try{
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const local=await saveLocal(url,'anim'+(i+1));
+      const t=(u?u.n:'Animation')+' · '+(i+1);
+      addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
+      ph.replaceWith(resCard({kind:'video',url,local,title:t}));done++;
+    }catch(e){fail++;pe.innerHTML='Scène '+(i+1)+'<br>✕ '+esc(e.message==='stop'?'Arrêtée':e.message)}
+    $('anProg').textContent=done+'/'+total+' terminée(s)'+(fail?' · '+fail+' en échec':'');
+  });
+  let k=0;await Promise.all(Array.from({length:Math.min(2,tasks.length)},async()=>{while(k<tasks.length&&!S.stop.anim)await tasks[k++]()}));
+  AN.busy=false;$('anGo').disabled=false;$('anStop').classList.add('hide');
+  toast(done+' vidéo'+(done>1?'s':'')+' créée'+(done>1?'s':''),done?'ok':'err');
+}
+function anPrice(){const o=anModel.get();const n=Math.max(1,AN.images.length);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio))}
+
+/* =====================================================================
+   ONGLET TEXTE
+   ===================================================================== */
+let txModel,txUniv;
+function txPrice(){const o=txModel.get();const n=+$('txCount').value;$('txGo').textContent='Créer '+(n>1?n+' vidéos':'la vidéo')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio))}
+async function txGo(){
+  const t=$('txPrompt').value.trim();if(!t)return toast('Décris ta scène','warn');
+  const o=txModel.get();const n=+$('txCount').value;const u=txUniv.get();
+  if(!budgetOk(n*videoCost(o.model,o.duration,o.audio)))return;
+  $('txGo').disabled=true;let done=0;
+  const prompt=t.replace(/[.!?\s]+$/,'')+(u?'. '+u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights):'')+(o.audio?'. Natural sound effects; characters speak with accurate lip-sync if they talk':'')+'. Vertical 9:16, no text.';
+  await Promise.all(Array.from({length:n},async(_,i)=>{
+    const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('txOut').prepend(ph);
+    const pe=ph.querySelector('[data-p]');
+    try{const url=await genVideo(o.model,'t2v',{prompt,duration:o.duration,audio:o.audio},m=>pe.textContent=m);const local=await saveLocal(url,'texte');addHist({kind:'video',type:'Texte→vidéo',title:t.slice(0,40),url,local,cost:videoCost(o.model,o.duration,o.audio)});ph.replaceWith(resCard({kind:'video',url,local,title:t.slice(0,30)}));done++}
+    catch(e){pe.textContent='✕ '+e.message}
+  }));
+  $('txGo').disabled=false;txPrice();if(done)toast('Vidéo prête ✓','ok');
+}
+
+/* =====================================================================
+   ONGLET PARLANT
+   ===================================================================== */
+const TK={images:[],src:'text',split:'same',rec:null,recUri:null,fileUri:null,ttsCache:{}};
+function tkLines(){const t=$('tkText').value.trim();if(!t)return[];if(TK.split==='lines'){const l=t.split(/\n+/).map(x=>x.trim()).filter(Boolean);return TK.images.map((_,i)=>l[i]||l[l.length-1])}return TK.images.map(()=>t)}
+function tkPrice(){
+  const q=AVATAR[$('tkQual').value];const n=Math.max(1,TK.images.length);let secs=0,chars=0;
+  if(TK.src==='text'){const lines=tkLines();const uniq=[...new Set(lines)];uniq.forEach(l=>chars+=l.length);lines.forEach(l=>secs+=Math.max(2,l.length/14));if(!lines.length)secs=n*5}
+  else secs=n*(TK.dur||8);
+  const cost=secs*q.price+chars*TTS_PRICE;
+  $('tkPrice').innerHTML='Estimation : <b>'+money(cost)+'</b> pour '+n+' vidéo'+(n>1?'s':'')+' (~'+Math.round(secs/n)+' s chacune)';
+  return cost;
+}
+async function tts(text){
+  const key=text+'|'+$('tkVoice').value+'|'+$('tkSpeed').value;if(TK.ttsCache[key])return TK.ttsCache[key];
+  const res=await falRun(TTS,{text,voice:$('tkVoice').value,speed:+$('tkSpeed').value,language_code:'fr',stability:0.5,similarity_boost:0.75});
+  addSpend(text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');TK.ttsCache[key]=u;return u;
+}
+async function tkRecToggle(){
+  const b=$('tkRec');
+  if(TK.rec&&TK.rec.state==='recording'){TK.rec.stop();return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const chunks=[];const mr=new MediaRecorder(stream);TK.rec=mr;
+    mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    mr.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());b.textContent='🎙️ Recommencer l\'enregistrement';
+      const blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'});$('tkRecPlay').src=URL.createObjectURL(blob);$('tkRecPlay').classList.remove('hide');
+      const a=new Audio(URL.createObjectURL(blob));a.onloadedmetadata=()=>{if(isFinite(a.duration)){TK.dur=a.duration;tkPrice()}};
+      const ext=(mr.mimeType||'audio/webm').split('/')[1].split(';')[0];
+      if(S.server){try{const r=await fetch('/api/upload?mp3=1&ext='+ext,{method:'POST',body:blob});const d=await r.json();TK.recUri=d.datauri}catch(e){TK.recUri=null}}
+      if(!TK.recUri)TK.recUri=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob)});
+      toast('Enregistrement prêt ✓','ok')};
+    mr.start();b.textContent='⏹ Arrêter l\'enregistrement';
+  }catch(e){toast('Micro inaccessible : autorise le micro pour localhost','err',4500)}
+}
+async function tkGo(){
+  if(!TK.images.length)return toast('Ajoute une photo','warn');
+  const q=AVATAR[$('tkQual').value];
+  let audios;
+  if(TK.src==='text'){const lines=tkLines();if(!lines.length)return toast('Écris le texte à dire','warn');audios=lines}
+  else if(TK.src==='mic'){if(!TK.recUri)return toast('Enregistre ta voix d\'abord','warn');audios=TK.images.map(()=>null)}
+  else{if(!TK.fileUri)return toast('Choisis un fichier audio','warn');audios=TK.images.map(()=>null)}
+  if(!budgetOk(tkPrice()))return;
+  $('tkGo').disabled=true;let done=0;
+  for(let i=0;i<TK.images.length;i++){
+    const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('tkOut').prepend(ph);const pe=ph.querySelector('[data-p]');
+    try{
+      let audio=TK.src==='mic'?TK.recUri:TK.src==='file'?TK.fileUri:null;
+      if(TK.src==='text'){pe.textContent='Voix…';audio=await tts(audios[i])}
+      const res=await falRun(q.id,{image_url:TK.images[i].uri,audio_url:audio,prompt:$('tkPrompt').value.trim()||'.'},m=>pe.textContent=m);
+      const url=res.video&&res.video.url;if(!url)throw new Error('pas de vidéo');
+      const c=(res.duration||8)*q.price;addSpend(c);
+      const local=await saveLocal(url,'parlant');addHist({kind:'video',type:'Parlant',title:(audios[i]||'Voix').slice(0,40),url,local,cost:c});
+      ph.replaceWith(resCard({kind:'video',url,local,title:'Parlant '+(i+1)}));done++;
+    }catch(e){pe.textContent='✕ '+e.message}
+  }
+  $('tkGo').disabled=false;if(done)toast('Vidéo parlante prête ✓','ok');
+}
+
+/* =====================================================================
+   ONGLET IMAGE
+   ===================================================================== */
+const IM={refs:[]};
+function imPrice(){const n=+$('imNum').value;$('imPrice').innerHTML='Coût : <b>'+money(n*IMG_PRICE)+'</b>'}
+async function imGo(){
+  const p=$('imPrompt').value.trim();if(!p)return toast('Décris l\'image','warn');
+  const n=+$('imNum').value;if(!budgetOk(n*IMG_PRICE))return;
+  $('imGo').disabled=true;$('imProg').textContent='Création…';
+  try{
+    const input={prompt:p+(IM.refs.length?' Keep the exact same person (face, body, tattoos) as in the reference photo.':'')+' Photorealistic.',aspect_ratio:$('imRatio').value,output_format:'jpeg',num_images:n};
+    const res=IM.refs.length?await falRun(IMG_EDIT,Object.assign(input,{image_urls:IM.refs.map(r=>r.uri)}),m=>$('imProg').textContent=m):await falRun(IMG_GEN,input,m=>$('imProg').textContent=m);
+    addSpend(n*IMG_PRICE);
+    for(const im of res.images||[]){
+      const local=await saveLocal(im.url,'image');addHist({kind:'image',type:'Image',title:p.slice(0,40),url:im.url,local,cost:IMG_PRICE});
+      const c=resCard({kind:'image',url:im.url,local,title:'Image',extra:'<button data-use>Animer →</button>'});
+      c.querySelector('[data-use]').onclick=async()=>{const th=await shrink(im.url,240,.7).catch(()=>im.url);AN.images.push({uri:im.url,thumb:th,id:Date.now()+Math.random()});renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();go('anim');toast('Image ajoutée à Photo → Vidéo','ok')};
+      $('imOut').prepend(c);
+    }
+    $('imProg').textContent='';toast('Image prête ✓','ok');
+  }catch(e){$('imProg').textContent='✕ '+e.message}
+  $('imGo').disabled=false;
+}
+
+/* =====================================================================
+   ONGLET MES CRÉATIONS
+   ===================================================================== */
+let libFilter='all';
+function libRender(){
+  const h=hist();const sp=LS.get('ms_spend',{});
+  const total=Object.values(sp).reduce((a,b)=>a+b,0);
+  $('libStats').innerHTML='<div class="stat"><div class="v">'+money(spentMonth())+'</div><div class="k">Dépensé ce mois (estim.)</div></div><div class="stat"><div class="v">'+money(total)+'</div><div class="k">Depuis le début</div></div><div class="stat"><div class="v">'+h.filter(x=>x.kind==='video').length+'</div><div class="k">Vidéos</div></div><div class="stat"><div class="v">'+h.filter(x=>x.kind==='image').length+'</div><div class="k">Images</div></div>';
+  const types=['all','Histoire','Photo→vidéo','Texte→vidéo','Parlant','Image'];
+  $('libFilter').innerHTML=types.map(t=>'<button class="chip '+(libFilter===t?'sel':'')+'" data-t="'+t+'">'+(t==='all'?'Tout':t)+'</button>').join('');
+  $('libFilter').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{libFilter=b.dataset.t;libRender()});
+  const out=$('libOut');out.innerHTML='';
+  const list=h.filter(x=>libFilter==='all'||x.type===libFilter);
+  if(!list.length){out.innerHTML='<div class="hint">Rien pour l\'instant.</div>';return}
+  list.slice(0,120).forEach(x=>{
+    const c=resCard(Object.assign({},x,{title:x.type+' · '+new Date(x.date).toLocaleDateString('fr-FR'),extra:'<button class="del" data-del>✕</button>'}));
+    c.querySelector('[data-del]').onclick=()=>{if(!confirm('Retirer de l\'historique ?'))return;LS.set('ms_hist',hist().filter(y=>y.id!==x.id));libRender()};
+    out.appendChild(c);
+  });
+}
+
+/* =====================================================================
+   NAVIGATION + INIT
+   ===================================================================== */
+const TABS=[['story','🎬','Histoire'],['anim','🖼️','Animer'],['text','✍️','Texte'],['talk','🗣️','Parlant'],['img','🎨','Image'],['lib','📁','Créations']];
+function go(t){LS.set('ms_tab',t);document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='lib')libRender();window.scrollTo(0,0)}
+function updKey(){const k=getKey();$('keyCard').classList.toggle('ok',!!k);$('apiStatus').classList.toggle('ok',!!k);$('apiText').textContent=k?'Clé active · '+k.slice(0,6)+'…'+k.slice(-4):'Aucune clé';$('apiKey').value=k;$('noKey').classList.toggle('hide',!!k)}
+function chips(el,opts,cur,onPick){el.innerHTML=opts.map(([v,l])=>'<button class="chip '+(cur===v?'sel':'')+'" data-v="'+v+'">'+l+'</button>').join('');el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{onPick(b.dataset.v);chips(el,opts,b.dataset.v,onPick)})}
+async function checkServer(){
+  try{const r=await fetch('/api/health',{cache:'no-store'});const d=await r.json();S.server=!!d.ok;S.ffmpeg=!!d.ffmpeg;$('srvInfo').textContent='Serveur OK · montage '+(S.ffmpeg?'OK':'indisponible (pkg install ffmpeg)')+' · dossier : '+d.dossier}
+  catch(e){S.server=false;$('srvInfo').textContent='Serveur non lancé (python server.py)'}
+  $('noServer').classList.toggle('hide',S.server);$('noFfmpeg').classList.toggle('hide',!S.server||S.ffmpeg);
+}
+(function init(){
+  // migration de l'ancienne clé
+  try{const old=localStorage.getItem('ms_fal_key');if(old&&!LS.get('ms_fal_key_v2',''))LS.set('ms_fal_key_v2',old.trim())}catch(e){}
+  $('nav').innerHTML=TABS.map(([t,i,l])=>'<button data-t="'+t+'"><span class="i">'+i+'</span>'+l+'</button>').join('');
+  document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+  document.querySelectorAll('[data-pick]').forEach(z=>z.onclick=()=>$(z.dataset.pick).click());
+  $('openSettings').onclick=()=>$('settings').classList.add('on');
+  $('closeSettings').onclick=()=>$('settings').classList.remove('on');
+  $('settings').onclick=e=>{if(e.target.id==='settings')$('settings').classList.remove('on')};
+  $('saveKey').onclick=()=>{LS.set('ms_fal_key_v2',$('apiKey').value.trim());updKey();toast(getKey()?'Clé enregistrée ✓':'Clé supprimée',getKey()?'ok':'warn')};
+  $('budget').value=LS.get('ms_budget','');$('budget').oninput=e=>LS.set('ms_budget',e.target.value);
+
+  // Histoire
+  $('stCount').innerHTML=[3,4,5,6,7,8,10,12].map(n=>'<option '+(n===6?'selected':'')+'>'+n+'</option>').join('');
+  stInit();stUniv=univPicker($('stUnivGrid'),$('stUnivSearch'),'story',true);
+  stModel=modelPicker($('stModelCard'),'story',stPrice,{def:'k3',perScene:true});
+  ['stChar','stPlace','stIdea'].forEach(id=>{$(id).value=LS.get('ms_'+id,'');$(id).oninput=e=>LS.set('ms_'+id,e.target.value)});
+  $('stRef').onchange=async e=>{ST.refs.push(...await loadImages(e.target.files));ST.refs.splice(3);renderThumbs($('stRefThumbs'),ST.refs);e.target.value=''};
+  $('stMusic').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!S.server)return toast('Lance python server.py pour ajouter une musique','err');$('stMusicName').textContent='Envoi…';try{const ext=(f.name.split('.').pop()||'mp3').toLowerCase();const r=await fetch('/api/upload?name=musique&ext='+ext,{method:'POST',body:f});const d=await r.json();ST.music=d.path;$('stMusicName').textContent='🎵 '+f.name}catch(err){$('stMusicName').textContent='Erreur, réessaie'}};
+  $('stVol').oninput=e=>$('stVolV').textContent=e.target.value;
+  $('stWrite').onclick=stWrite;
+  $('stAddScene').onclick=()=>{ST.scenes.push({decor:'',action:'',line:''});stSave();stRender()};
+  $('stGen').onclick=()=>stGenerate();
+  $('stStop').onclick=()=>{S.stop.story=true;toast('Arrêt après les scènes en cours…','warn')};
+  $('stMontage').onclick=stMontage;
+  stRender();
+
+  // Animer
+  anUniv=univPicker($('anUnivGrid'),$('anUnivSearch'),'anim',true);
+  anModel=modelPicker($('anModelCard'),'anim',anPrice,{def:'eco'});
+  $('anFiles').onchange=async e=>{AN.images.push(...await loadImages(e.target.files));renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();e.target.value=''};
+  $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';e.target.value=''};
+  chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
+  $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
+
+  // Texte
+  txUniv=univPicker($('txUnivGrid'),$('txUnivSearch'),'text',true);
+  txModel=modelPicker($('txModelCard'),'text',txPrice,{def:'k3'});
+  $('txCount').onchange=txPrice;$('txGo').onclick=txGo;txPrice();
+
+  // Parlant
+  $('tkVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');
+  chips($('tkSrc'),[['text','⌨️ Texte → voix IA'],['mic','🎙️ Ma voix'],['file','📂 Fichier audio']],TK.src,v=>{TK.src=v;$('tkTextBox').classList.toggle('hide',v!=='text');$('tkMicBox').classList.toggle('hide',v!=='mic');$('tkFileBox').classList.toggle('hide',v!=='file');tkPrice()});
+  chips($('tkSplit'),[['same','Même texte pour toutes les photos'],['lines','Une ligne par photo']],TK.split,v=>{TK.split=v;tkPrice()});
+  $('tkFiles').onchange=async e=>{TK.images.push(...await loadImages(e.target.files));renderThumbs($('tkThumbs'),TK.images,tkPrice);tkPrice();e.target.value=''};
+  $('tkText').oninput=tkPrice;$('tkQual').onchange=tkPrice;
+  $('tkRec').onclick=tkRecToggle;
+  $('tkAudio').onchange=async e=>{const f=e.target.files[0];if(!f)return;TK.fileUri=await fileToUri(f);$('tkAudioName').textContent='🎵 '+f.name;const a=new Audio(TK.fileUri);a.onloadedmetadata=()=>{TK.dur=a.duration;tkPrice()}};
+  $('tkPreview').onclick=async()=>{const l=tkLines()[0]||$('tkText').value.trim().split('\n')[0];if(!l)return toast('Écris un texte','warn');$('tkPreview').disabled=true;try{const u=await tts(l);$('tkAudioPrev').src=u;$('tkAudioPrev').classList.remove('hide');$('tkAudioPrev').play().catch(()=>{})}catch(e){toast(e.message,'err')}$('tkPreview').disabled=false};
+  $('tkGo').onclick=tkGo;tkPrice();
+
+  // Image
+  $('imRef').onchange=async e=>{IM.refs.push(...await loadImages(e.target.files));renderThumbs($('imThumbs'),IM.refs);e.target.value=''};
+  $('imNum').onchange=imPrice;$('imGo').onclick=imGo;imPrice();
+
+  $('libClear').onclick=()=>{if(confirm('Vider l\'historique ? Les fichiers restent dans MetaStudio/videos.')){LS.set('ms_hist',[]);libRender()}};
+
+  updKey();updSpent();checkServer();go(LS.get('ms_tab','story'));
+})();
+</script></body></html>
