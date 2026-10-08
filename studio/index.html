@@ -220,7 +220,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="chips" id="anPresets"></div>
     <label class="lbl">🥊 Chorégraphie en plusieurs plans (Kling 3.0, optionnel)</label>
     <textarea id="anBeats" placeholder="Une étape par ligne, ex :&#10;le soldat attaque, il esquive&#10;il contre avec un coup de pied retourné&#10;il court vers la rampe et saute dans le vide"></textarea>
-    <div class="hint">Chaque ligne devient un plan, avec des coupes de montage, dans la même vidéo. Idéal pour les combats. Laisse vide pour un plan unique.</div>
+    <div class="hint">Chaque ligne devient un plan (avec coupes de montage) dans la même vidéo. Plusieurs images ? Sépare la chorégraphie de chaque image par une ligne <b>---</b>, dans l'ordre des images.</div>
     <label class="lbl">Univers</label>
     <input type="text" id="anUnivSearch" placeholder="🔎 Chercher un univers">
     <div class="univ-grid" id="anUnivGrid"></div>
@@ -1179,15 +1179,19 @@ async function anGo(){
   if(!budgetOk(cost))return;
   AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');
   let done=0,fail=0;const total=AN.images.length;AN.results=new Array(total).fill(null);
-  const beats=splitBeats($('anBeats').value);const useBeats=beats.length>1&&VIDEO_MODELS[o.model].multi;
-  if(beats.length>1&&!useBeats)toast('La chorégraphie en plusieurs plans marche avec Kling 3.0 / 3.0 Pro','warn',4000);
+  // une chorégraphie par image : blocs séparés par une ligne ---
+  const blocks=$('anBeats').value.split(/\n\s*-{3,}\s*\n?/).map(splitBeats).filter(b=>b.length);
+  const beatsFor=i=>blocks.length?blocks[Math.min(i,blocks.length-1)]:[];
+  const beats=beatsFor(0);const multiOk=VIDEO_MODELS[o.model].multi;
+  if(blocks.some(b=>b.length>1)&&!multiOk)toast('La chorégraphie en plusieurs plans marche avec Kling 3.0 / 3.0 Pro','warn',4000);
   const tasks=AN.images.map((img,i)=>async()=>{
     const u=mode==='random'?rand(UNIVERS):anUniv.get();
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;padding:.5rem;text-align:center" data-p>Scène '+(i+1)+'<br>en attente</div>';$('anOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
     try{
       const sfx='. Same character, mask and outfit as the starting frame. '+INTENS[$('anInt').value]+', cinematic action, no blood, no gore'+(o.audio?', natural sound effects (impacts, wind, ambience), no music':'')+'. No text.';
-      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+(beats.length>1?' Action: '+beats.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:useBeats?beats:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const bi=beatsFor(i);
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
       addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
