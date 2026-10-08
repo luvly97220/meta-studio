@@ -720,6 +720,21 @@ const PRESETS=[
 ];
 const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
 const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
+// Kling multi-plans : 512 caractères max par plan. On garde l'action d'abord,
+// puis les répliques, l'apparence et l'ambiance, coupées proprement si besoin.
+const MULTI_MAX=500;
+function fitPrompt(main,extras,max){
+  const clean=x=>String(x||'').replace(/\s+/g,' ').replace(/^[\s.,;]+/,'').trim();
+  let out=clean(main).slice(0,max);
+  for(const e of extras){
+    const x=clean(e);if(!x)continue;
+    const room=max-out.length-2;if(room<25)break;
+    let piece=x.length<=room?x:x.slice(0,room);
+    if(x.length>room){const cut=piece.lastIndexOf(' ');if(cut>room*0.6)piece=piece.slice(0,cut);piece=piece.replace(/[,;:]+$/,'')}
+    out+=(/[.!?"]$/.test(out)?' ':'. ')+piece;
+  }
+  return out.slice(0,max);
+}
 function splitBeats(t){return String(t||'').split(/\s*(?:\||\n)\s*/).map(x=>x.trim()).filter(Boolean)}
 const NEG='blur, distort, low quality, deformed face, extra limbs, extra fingers, text, watermark, subtitles';
 
@@ -821,7 +836,7 @@ function videoInput(mk,kind,o){
   if(m.multi&&o.beats&&o.beats.length>1){
     // plusieurs plans enchaînés dans une seule génération (esquive / contre / saut…)
     const n=Math.min(o.beats.length,Math.max(1,o.duration));const base=Math.floor(o.duration/n);let extra=o.duration-base*n;
-    b={multi_prompt:o.beats.slice(0,n).map((t,i)=>({prompt:((o.beatPrefix||'')+t+(o.beatSuffix||'')+(i===n-1&&o.lastSuffix?' '+o.lastSuffix:'')).slice(0,2400),duration:String(base+(i<extra?1:0))})),shot_type:'customize',generate_audio:!!o.audio};
+    b={multi_prompt:o.beats.slice(0,n).map((t,i)=>({prompt:fitPrompt(t,[i===n-1?o.lastSuffix:'',o.beatSuffix,o.beatPrefix,o.beatTail],MULTI_MAX),duration:String(base+(i<extra?1:0))})),shot_type:'customize',generate_audio:!!o.audio};
   }else b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
   if(kind==='i2v'){b.image_url=o.image;if(o.end)b.end_image_url=o.end}else b.aspect_ratio='9:16';
   return b;
@@ -1371,9 +1386,10 @@ async function anGo(){
     const pe=ph.querySelector('[data-p]');
     try{
       const look=$('anChar').value.trim();
-      const sfx='. Same character, mask and outfit as the starting frame'+(look?' — always: '+look:'')+'. '+INTENS[$('anInt').value]+', cinematic action, no blood, no gore'+(o.audio?', natural sound effects (impacts, wind, ambience), no music':'')+'. No text.';
+      const sfx=look?'Same character as the first frame: '+look+'.':'Same character, mask and outfit as the first frame.';
+      const tail=INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?', realistic sound, no music':'')+', no text.';
       const bi=beatsFor(i);
-      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:story,beatSuffix:sfx,beatTail:tail},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
       addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
