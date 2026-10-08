@@ -218,6 +218,9 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <label class="lbl">Ce qui se passe (optionnel)</label>
     <textarea id="anStory" placeholder="ex : il se retourne et sourit, le vent fait voler sa chemise"></textarea>
     <div class="chips" id="anPresets"></div>
+    <label class="lbl">🥊 Chorégraphie en plusieurs plans (Kling 3.0, optionnel)</label>
+    <textarea id="anBeats" placeholder="Une étape par ligne, ex :&#10;le soldat attaque, il esquive&#10;il contre avec un coup de pied retourné&#10;il court vers la rampe et saute dans le vide"></textarea>
+    <div class="hint">Chaque ligne devient un plan, avec des coupes de montage, dans la même vidéo. Idéal pour les combats. Laisse vide pour un plan unique.</div>
     <label class="lbl">Univers</label>
     <input type="text" id="anUnivSearch" placeholder="🔎 Chercher un univers">
     <div class="univ-grid" id="anUnivGrid"></div>
@@ -231,6 +234,8 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <button class="btn" id="anGo">Créer les vidéos</button>
   <button class="btn danger hide" id="anStop">⏹ Arrêter</button>
   <div class="prog" id="anProg"></div>
+  <button class="btn hide" id="anMontage" style="background:var(--ok)">🎞️ Assembler les vidéos dans l'ordre</button>
+  <div class="out" id="anFinal"></div>
   <div class="res-grid" id="anOut"></div>
 </section>
 
@@ -635,7 +640,8 @@ const UNIVERS=[
 
 /* ---------- Modèles fal.ai (prix en $ par seconde de vidéo) ---------- */
 const VIDEO_MODELS={
-  k3:{label:'Kling 3.0 · avec son et voix',short:'Kling 3.0',i2v:'fal-ai/kling-video/o3/standard/image-to-video',t2v:'fal-ai/kling-video/o3/standard/text-to-video',price:0.084,priceAudio:0.112,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true},
+  k3:{label:'Kling 3.0 · avec son et voix',short:'Kling 3.0',i2v:'fal-ai/kling-video/o3/standard/image-to-video',t2v:'fal-ai/kling-video/o3/standard/text-to-video',price:0.084,priceAudio:0.112,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
+  k3pro:{label:'Kling 3.0 Pro · action, plus fluide',short:'Kling 3.0 Pro',i2v:'fal-ai/kling-video/o3/pro/image-to-video',t2v:'fal-ai/kling-video/o3/pro/text-to-video',price:0.112,priceAudio:0.14,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
   eco:{label:'Kling 2.5 Turbo · éco, muet',short:'Kling 2.5',i2v:'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',t2v:'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',price:0.07,priceAudio:0.07,durations:[5,10],def:5,audio:false,endFrame:true}
 };
 const IMG_EDIT='fal-ai/nano-banana/edit',IMG_GEN='fal-ai/nano-banana',IMG_PRICE=0.039;
@@ -646,6 +652,7 @@ const VOICES=[['George','Homme · posé'],['Brian','Homme · grave'],['Liam','Ho
 const FORMATS={
   vlog:{l:'🤳 Vlog selfie',img:'Selfie photo: the person holds the phone at arm\'s length, looking into the camera, other arm partly visible, natural handheld smartphone framing.',vid:'Handheld selfie vlog shot. The person holds the phone at arm\'s length and talks directly to the camera with expressive face and hand gestures. Slight natural camera shake.',llm:'A first-person selfie vlog: the character films himself/herself with a phone and talks to the viewers, reacting to what happens around. Every scene is a selfie shot where the character speaks to the camera.'},
   film:{l:'🎥 Mini-film',img:'Cinematic film still, dramatic composition, the person is the main character.',vid:'Cinematic shot with smooth camera movement. The character acts naturally in the scene.',llm:'A short cinematic story with varied shots (wide, medium, close-up). The character may talk to someone or think out loud.'},
+  action:{l:'🥊 Action / Combat',beats:true,img:'Cinematic action movie still, dynamic heroic pose, dramatic lighting, the person is the hero.',vid:'Cinematic action movie shot, fast, precise and readable fight choreography, dynamic camera with quick cuts, impactful hits but no blood, no gore.',llm:'A short action movie with intense, readable fight choreography and a clear story (motivation, confrontation, climax). Lines are short and punchy, or empty. The hero may wear a mask: then lines are said off-screen or shouted, without visible lips.'},
   comedy:{l:'😂 Comédie',img:'Funny, expressive photo, exaggerated facial expression, bright natural light.',vid:'Comedic timing, expressive reactions, natural movement.',llm:'A short comedy sketch with a clear setup and a funny punchline at the end. Short punchy lines.'}
 };
 const PRESETS=[
@@ -657,6 +664,7 @@ const PRESETS=[
 ];
 const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
 const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
+function splitBeats(t){return String(t||'').split(/\s*(?:\||\n)\s*/).map(x=>x.trim()).filter(Boolean)}
 const NEG='blur, distort, low quality, deformed face, extra limbs, extra fingers, text, watermark, subtitles';
 
 /* ---------- utilitaires ---------- */
@@ -753,7 +761,12 @@ async function genImage(prompt,refs,ratio,onProg,stopKey){
 function videoInput(mk,kind,o){
   const m=VIDEO_MODELS[mk];const dur=String(o.duration);
   if(mk==='eco'){const b={prompt:o.prompt.slice(0,2400),duration:dur==='10'?'10':'5',negative_prompt:NEG,cfg_scale:0.5};if(kind==='i2v'){b.image_url=o.image;if(o.end)b.tail_image_url=o.end}else b.aspect_ratio='9:16';return b}
-  const b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
+  let b;
+  if(m.multi&&o.beats&&o.beats.length>1){
+    // plusieurs plans enchaînés dans une seule génération (esquive / contre / saut…)
+    const n=Math.min(o.beats.length,Math.max(1,o.duration));const base=Math.floor(o.duration/n);let extra=o.duration-base*n;
+    b={multi_prompt:o.beats.slice(0,n).map((t,i)=>({prompt:((o.beatPrefix||'')+t+(o.beatSuffix||'')+(i===n-1&&o.lastSuffix?' '+o.lastSuffix:'')).slice(0,2400),duration:String(base+(i<extra?1:0))})),shot_type:'customize',generate_audio:!!o.audio};
+  }else b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
   if(kind==='i2v'){b.image_url=o.image;if(o.end)b.end_image_url=o.end}else b.aspect_ratio='9:16';
   return b;
 }
@@ -800,7 +813,7 @@ function modelPicker(el,key,onChange,opts){
     el.innerHTML='<label class="lbl">Modèle vidéo</label><div class="chips">'+Object.keys(VIDEO_MODELS).map(k=>'<button class="chip '+(st.m===k?'sel':'')+'" data-m="'+k+'">'+esc(VIDEO_MODELS[k].label)+'</button>').join('')+'</div>'+
       '<label class="lbl">Durée '+(opts.perScene?'par scène':'')+'</label><select data-d>'+m.durations.map(d=>'<option value="'+d+'" '+(d===st.d?'selected':'')+'>'+d+' s</option>').join('')+'</select>'+
       (opts.noAudio?'<div class="hint">🔇 Plans muets : ta musique est posée au montage.</div>':m.audio?'<div class="toggle"><span>🔊 Son et voix générés avec la vidéo</span><label class="sw"><input type="checkbox" data-a '+(st.a?'checked':'')+'><span></span></label></div>':'<div class="hint">Ce modèle ne génère pas de son.</div>')+
-      '<div class="hint">'+(st.m==='k3'?'≈ '+money(st.a&&!opts.noAudio?m.priceAudio:m.price)+' par seconde':'≈ '+money(m.price)+' par seconde · le moins cher')+'</div>';
+      '<div class="hint">'+(st.m!=='eco'?'≈ '+money(st.a&&!opts.noAudio?m.priceAudio:m.price)+' par seconde':'≈ '+money(m.price)+' par seconde · le moins cher')+'</div>';
     el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{st.m=b.dataset.m;save()});
     el.querySelector('[data-d]').onchange=e=>{st.d=+e.target.value;save()};
     const a=el.querySelector('[data-a]');if(a)a.onchange=e=>{st.a=e.target.checked;save()};
@@ -893,7 +906,7 @@ async function stWrite(){
   const words=Math.max(4,Math.round(o.duration*2.3));
   const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
   const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+($('stChar').value.trim()||'the person in the reference photo')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
-    '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n'+
+    '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n'+
     'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
   try{
@@ -911,7 +924,13 @@ function stImgPrompt(s,hasRef){
   return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
     (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
 }
+function stBeatSuffix(s,o){
+  const u=stUniv.get();let p='. '+(u?u.p.replace(/Preserve identity\.?/i,'')+' ':'');
+  if(o.audio)p+='Natural sound effects (impacts, footsteps, ambience), no music. ';
+  return p+'Keep the same face, mask and outfit as the first frame. No subtitles, no text.';
+}
 function stVidPrompt(s,o){
+  if(splitBeats(s.action).length>1)s=Object.assign({},s,{action:splitBeats(s.action).join(', then ')});
   const f=FORMATS[ST.format];const u=stUniv.get();
   let p=f.vid+' '+(s.action||'')+' ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
@@ -936,7 +955,8 @@ async function stGenerate(only){
       s.status='busy';stRender();
       if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(stImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
       upd('Vidéo…');
-      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio},m=>upd('Vidéo · '+m),'story');
+      const bt=splitBeats(s.action);
+      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&s.line&&s.line.trim()?'The character says in '+$('stLang').value+': "'+s.line.trim()+'".':''},m=>upd('Vidéo · '+m),'story');
       s.local=await saveLocal(s.vid,'scene'+(i+1));
       s.status='done';s.msg='✓ Prête';
     }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêtée':'✕ '+e.message}
@@ -1157,15 +1177,18 @@ async function anGo(){
   const o=anModel.get();const mode=$('anMode').value;const story=$('anStory').value.trim();
   const cost=AN.images.length*videoCost(o.model,o.duration,o.audio);
   if(!budgetOk(cost))return;
-  AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');
-  let done=0,fail=0;const total=AN.images.length;
+  AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');
+  let done=0,fail=0;const total=AN.images.length;AN.results=new Array(total).fill(null);
+  const beats=splitBeats($('anBeats').value);const useBeats=beats.length>1&&VIDEO_MODELS[o.model].multi;
+  if(beats.length>1&&!useBeats)toast('La chorégraphie en plusieurs plans marche avec Kling 3.0 / 3.0 Pro','warn',4000);
   const tasks=AN.images.map((img,i)=>async()=>{
     const u=mode==='random'?rand(UNIVERS):anUniv.get();
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;padding:.5rem;text-align:center" data-p>Scène '+(i+1)+'<br>en attente</div>';$('anOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
     try{
-      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
-      const local=await saveLocal(url,'anim'+(i+1));
+      const sfx='. Same character, mask and outfit as the starting frame. '+INTENS[$('anInt').value]+', cinematic action, no blood, no gore'+(o.audio?', natural sound effects (impacts, wind, ambience), no music':'')+'. No text.';
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+(beats.length>1?' Action: '+beats.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:useBeats?beats:null,beatPrefix:(story?story+' ':''),beatSuffix:sfx},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
       addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
       ph.replaceWith(resCard({kind:'video',url,local,title:t}));done++;
@@ -1174,7 +1197,23 @@ async function anGo(){
   });
   let k=0;await Promise.all(Array.from({length:Math.min(2,tasks.length)},async()=>{while(k<tasks.length&&!S.stop.anim)await tasks[k++]()}));
   AN.busy=false;$('anGo').disabled=false;$('anStop').classList.add('hide');
+  const ok=AN.results.filter(Boolean).length;
+  if(ok>1){$('anMontage').textContent='🎞️ Assembler les '+ok+' vidéos dans l\'ordre'+(ok<total?' (sans les ratées)':'');$('anMontage').classList.remove('hide')}
   toast(done+' vidéo'+(done>1?'s':'')+' créée'+(done>1?'s':''),done?'ok':'err');
+}
+async function anMontage(){
+  if(!S.server)return toast('Lance python server.py dans Termux pour le montage','err',4500);
+  if(!S.ffmpeg)return toast('Installe ffmpeg : pkg install ffmpeg','err',4500);
+  const b=$('anMontage');b.disabled=true;b.innerHTML='<span class="spin"></span> Montage…';
+  try{
+    const list=[];for(let i=0;i<(AN.results||[]).length;i++){const r=AN.results[i];if(!r)continue;if(!r.local)r.local=await saveLocal(r.url,'anim'+(i+1));if(!r.local)throw new Error('vidéo '+(i+1)+' introuvable');list.push(r.local)}
+    const res=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:list,title:'film'})});
+    const d=await res.json();if(!res.ok)throw new Error(d.detail||'erreur de montage');
+    addHist({kind:'video',type:'Photo→vidéo',title:'Film assemblé',local:d.path,cost:0});
+    $('anFinal').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Film · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('anFinal').appendChild(c);
+    toast('Film assemblé ✓','ok');$('anFinal').scrollIntoView({behavior:'smooth'});
+  }catch(e){toast('Montage : '+e.message,'err',5000)}
+  finally{b.disabled=false;b.textContent='🎞️ Assembler les vidéos dans l\'ordre'}
 }
 function anPrice(){const o=anModel.get();const n=Math.max(1,AN.images.length);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio))}
 
@@ -1365,6 +1404,8 @@ async function checkServer(){
   $('anFiles').onchange=async e=>{AN.images.push(...await loadImages(e.target.files));renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();e.target.value=''};
   $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';e.target.value=''};
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
+  $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
+  $('anMontage').onclick=anMontage;
   $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
 
   // Texte
