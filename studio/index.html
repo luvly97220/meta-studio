@@ -157,6 +157,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="up" data-pick="stMusic"><input type="file" id="stMusic" accept="audio/*"><div class="ico">🎵</div><div class="t" id="stMusicName">Ajouter ta musique</div><div class="h">Mixée sous les voix au montage</div></div>
     <label class="lbl">Volume de la musique : <span id="stVolV">35</span>%</label>
     <input type="range" id="stVol" min="5" max="100" value="35">
+    <div class="toggle"><span>🗣️ Accent natif <span class="hint" style="display:block;margin:0">Demande à Kling de parler sans accent étranger. Décoche pour garder un accent (ex : Luna)</span></span><label class="sw"><input type="checkbox" id="stNative" checked><span></span></label></div>
     <div class="toggle"><span>💬 Sous-titres incrustés <span class="hint" style="display:block;margin:0">Conseillé : beaucoup regardent TikTok sans le son</span></span><label class="sw"><input type="checkbox" id="stSubs" checked><span></span></label></div>
   </div>
 
@@ -167,6 +168,12 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <div class="price hide" id="stPrice"></div>
   <button class="btn hide" id="stGen">🎬 Générer toutes les scènes</button>
   <button class="btn danger hide" id="stStop">⏹ Arrêter</button>
+  <div class="card hide" id="stDubCard">
+    <label class="lbl">🗣️ Accent pas naturel ? Redouble la voix</label>
+    <div class="hint" style="margin:0 0 .5rem">Une vraie voix française (ElevenLabs) remplace celle de Kling, et les lèvres sont resynchronisées. ~0,07 $ par scène. Les bruitages de la scène sont remplacés par la voix seule.</div>
+    <div class="row"><div><label class="lbl">Voix</label><select id="stDubVoice"></select></div></div>
+    <button class="btn sec" id="stDubAll">🗣️ Redoubler toutes les scènes qui parlent</button>
+  </div>
   <button class="btn hide" id="stMontage" style="background:var(--ok)">🎞️ Assembler la vidéo finale</button>
   <div class="prog" id="stProg"></div>
   <div class="out" id="stOut"></div>
@@ -1012,11 +1019,40 @@ function resCard(o){
    ===================================================================== */
 const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
 let stModel,stUniv;
-function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
 function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
 function stInit(){
   $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
   $('stFormat').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ST.format=b.dataset.f;LS.set('ms_story_fmt',ST.format);stInit()});
+}
+const LIPSYNC='fal-ai/kling-video/lipsync/audio-to-video',LIPSYNC_PRICE=0.014;
+function stDubDefault(){const v=$('stVoice').value||'';if(/^femme_(douce)/.test(v))return 'Sarah';if(/^femme_(energique)/.test(v))return 'Laura';if(/^femme_grave/.test(v))return 'Charlotte';if(/^femme/.test(v))return 'Lily';if(v==='homme_grave'||v==='narrateur')return 'Brian';if(v==='homme_jeune')return 'Liam';if(/rauque|age/.test(v))return 'Bill';return 'George'}
+async function stDub(idx){
+  if(ST.busy)return toast('Attends la fin de la génération','warn');
+  const lang=TTS_LANG[$('stLang').value]||'fr';const voice=$('stDubVoice').value||stDubDefault();
+  const list=idx.filter(i=>{const s=ST.scenes[i];return s&&s.vid&&s.line&&s.line.trim()});
+  if(!list.length)return toast('Aucune scène avec une réplique à redoubler','warn');
+  const o=stModel.get();const per=LIPSYNC_PRICE*Math.max(5,Math.ceil((o.duration||5)/5)*5);
+  if(!budgetOk(list.length*per))return;
+  ST.busy=true;stRender();let ok=0;
+  for(const i of list){const s=ST.scenes[i];
+    const upd=m=>{s.msg=m;const el=document.querySelector('.scene[data-i="'+i+'"] .st');if(el)el.textContent=m};
+    try{
+      const parts=parseDialogue(s.line);const names=new Set(parts.map(p=>p.char&&p.char.name));
+      if(names.size>1)toast('Scène '+(i+1)+' : plusieurs personnes parlent, une seule voix sera utilisée','warn',5000);
+      const text=parts.map(p=>p.text).join(' ').replace(/\s+/g,' ').trim();
+      upd('Voix française…');
+      const t=await falRun(TTS,{text,voice,language_code:lang,stability:0.5,similarity_boost:0.75});addSpend(text.length*TTS_PRICE);
+      const au=t.audio&&t.audio.url;if(!au)throw new Error('pas d\'audio');
+      upd('Synchro des lèvres…');
+      const src=s.vidOrig||s.vid;
+      const r=await falRun(LIPSYNC,{video_url:src,audio_url:au},m=>upd('Lèvres · '+m),'story');addSpend(per);
+      const u=r.video&&r.video.url;if(!u)throw new Error('pas de vidéo');
+      s.vidOrig=src;s.vid=u;s.local=await saveLocal(u,'scene'+(i+1)+'_vf');s.status='done';s.msg='✓ Voix redoublée';ok++;
+    }catch(e){s.status='fail';s.msg='✕ '+(e.message||e)}
+    stSave();
+  }
+  ST.busy=false;stRender();if(ok)toast(ok+' scène'+(ok>1?'s':'')+' redoublée'+(ok>1?'s':'')+' — assemble la vidéo finale','ok',5000);
 }
 function stRender(){
   const box=$('stScenes');
@@ -1026,8 +1062,9 @@ function stRender(){
     '<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Ce qui se passe, mouvement">'+esc(s.action)+'</textarea>'+
     '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
     ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
-    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&s.line&&s.line.trim()?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
+  $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>s.vid&&s.line&&s.line.trim())||ST.busy);
   box.querySelectorAll('.scene').forEach(el=>{
     const i=+el.dataset.i;
     el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave();stPrice()});
@@ -1055,8 +1092,9 @@ function stAction(i,a){
   if(a==='del'){if(!confirm('Supprimer la scène '+(i+1)+' ?'))return;ST.scenes.splice(i,1)}
   if(a==='up'&&i>0)[ST.scenes[i-1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i-1]];
   if(a==='down'&&i<ST.scenes.length-1)[ST.scenes[i+1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i+1]];
-  if(a==='regen'){s.img=null;s.vid=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
-  if(a==='revid'){s.vid=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
+  if(a==='regen'){s.img=null;s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
+  if(a==='dub')return stDub([i]);
+  if(a==='revid'){s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   stSave();stRender();
 }
 async function stWrite(){
@@ -1094,7 +1132,7 @@ function stVidPrompt(s,o){
   const f=FORMATS[ST.format];const u=stUniv.get();
   let p=f.vid+' '+(s.action||'')+' ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
-  if(o.audio){p+=s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value):'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
+  if(o.audio){p+=s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value)+($('stNative').checked?'Native '+$('stLang').value+' speaker from the country, natural local accent, no English or foreign accent. ':''):'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
   else if(s.line&&s.line.trim())p+='The person is talking expressively.';
   return p+' Keep the same face and outfit as the first frame. No subtitles, no text.';
 }
@@ -1684,6 +1722,9 @@ async function checkServer(){
 
   // Histoire
   $('stCount').innerHTML=[3,4,5,6,7,8,10,12].map(n=>'<option '+(n===6?'selected':'')+'>'+n+'</option>').join('');
+  $('stDubVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');$('stDubVoice').value=LS.get('ms_stDub','')||stDubDefault();$('stDubVoice').onchange=e=>LS.set('ms_stDub',e.target.value);addPreview('stDubVoice',()=>TTS_LANG[$('stLang').value]||'fr');
+  $('stDubAll').onclick=()=>stDub(ST.scenes.map((_,i)=>i));
+  $('stNative').checked=LS.get('ms_stNative',true)!==false;$('stNative').onchange=e=>LS.set('ms_stNative',e.target.checked);
   $('stVoice').innerHTML=voiceOpts(LS.get('ms_stVoice','auto'));$('stVoice').onchange=e=>LS.set('ms_stVoice',e.target.value);
   $('stName').value=LS.get('ms_stName','');$('stName').oninput=e=>LS.set('ms_stName',e.target.value);
   $('stLang').value=LS.get('ms_stLang','French');$('stLang').onchange=e=>LS.set('ms_stLang',e.target.value);
