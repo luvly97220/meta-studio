@@ -161,21 +161,40 @@ def burn_subs(src, subs, stamp):
     return out, False
 
 
-def fit_filter(src):
-    """Remplit l'ecran 9:16 : recadre les images presque verticales (pas de bandes noires),
-    garde des bandes seulement pour les videos carrees ou horizontales."""
-    w = h = 0
+def video_size(src):
     try:
         out = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                    "stream=width,height", "-of", "csv=p=0", src]).strip().split(",")
-        w, h = int(out[0]), int(out[1])
+        return int(out[0]), int(out[1])
     except Exception:
-        pass
+        return 0, 0
+
+
+def canvas_for(src):
+    """Format du montage d'apres le premier clip : 9:16, 4:5, 1:1 ou 16:9."""
+    w, h = video_size(src)
+    if not (w and h):
+        return 720, 1280
+    r = w / float(h)
+    if r <= 0.7:
+        return 720, 1280
+    if r <= 0.9:
+        return 864, 1080
+    if r <= 1.2:
+        return 1080, 1080
+    return 1280, 720
+
+
+def fit_filter(src, W=720, H=1280):
+    """Remplit le format du montage : recadre si le clip est proche du format
+    (pas de bandes noires), garde des bandes seulement si il est tres different."""
+    w, h = video_size(src)
     tail = ",setsar=1,fps=30,format=yuv420p"
-    if w and h and w / float(h) <= 0.8:
-        return "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280" + tail
-    return ("scale=720:1280:force_original_aspect_ratio=decrease,"
-            "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black" + tail)
+    target = W / float(H)
+    if w and h and abs((w / float(h)) - target) / target <= 0.45:
+        return ("scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d" % (W, H, W, H)) + tail
+    return ("scale=%d:%d:force_original_aspect_ratio=decrease,"
+            "pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black" % (W, H, W, H)) + tail
 
 
 def concat(files, music=None, music_volume=0.35, title="histoire",
@@ -190,6 +209,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
     stamp = time.strftime("%Y%m%d_%H%M%S")
     parts = []
+    W, H = canvas_for(local_path(files[0])) if files else (720, 1280)
     for i, f in enumerate(files):
         src = local_path(f)
         if not os.path.isfile(src):
@@ -198,7 +218,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         D = None
         if durations and i < len(durations) and durations[i]:
             D = float(durations[i])
-        vf = fit_filter(src)
+        vf = fit_filter(src, W, H)
         if D:
             vf += ",tpad=stop_mode=clone:stop_duration=%.2f" % D
         tail = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21",

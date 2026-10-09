@@ -260,6 +260,10 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Intensité</label><select id="anInt"><option value="moderate">Modérée</option><option value="subtle">Subtile</option><option value="strong">Forte</option></select></div>
     </div>
     <label class="lbl">Mode</label><select id="anMode"><option value="indep">🖼️ Chaque photo indépendante</option><option value="story">📖 Histoire enchaînée</option><option value="random">🎲 Univers aléatoire</option></select>
+    <div class="row">
+      <div><label class="lbl">Format de la vidéo</label><select id="anRatio"></select></div>
+      <div><label class="lbl">Si la photo n'a pas ce format</label><select id="anFit"></select></div>
+    </div>
   </div>
   <div class="card" id="anModelCard"></div>
   <button class="btn" id="anGo">Créer les vidéos</button>
@@ -291,6 +295,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Voix (si quelqu'un parle)</label><select id="txVoice"></select></div>
       <div><label class="lbl">Langue</label><select id="txLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option><option value="Brazilian Portuguese">Portugais (Brésil)</option><option value="Italian">Italien</option><option value="German">Allemand</option><option value="Dutch">Néerlandais</option><option value="Arabic">Arabe</option><option value="Moroccan Arabic (Darija)">Arabe darija (expérimental)</option><option value="Turkish">Turc</option><option value="Russian">Russe</option><option value="Polish">Polonais</option><option value="Chinese (Mandarin)">Chinois</option><option value="Japanese">Japonais</option><option value="Korean">Coréen</option><option value="Hindi">Hindi</option><option value="Haitian Creole">Créole haïtien (expérimental)</option><option value="Antillean French Creole">Créole antillais (expérimental)</option><option value="Wolof">Wolof (expérimental)</option><option value="Lingala">Lingala (expérimental)</option><option value="Swahili">Swahili (expérimental)</option></select></div>
     </div>
+    <label class="lbl">Format de la vidéo</label><select id="txRatio"><option value="9:16">📱 9:16 · TikTok / Reels / Shorts</option><option value="1:1">⬛ 1:1 · carré</option><option value="16:9">🖥️ 16:9 · YouTube</option></select>
     <label class="lbl">Nombre de vidéos</label><select id="txCount"><option>1</option><option>2</option><option>3</option><option>4</option></select>
   </div>
   <div class="card" id="txModelCard"></div>
@@ -307,6 +312,10 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="chips" id="tkPersos" style="margin:0 0 .6rem"></div>
     <div class="up" data-pick="tkFiles"><input type="file" id="tkFiles" accept="image/*" multiple><div class="ico">＋</div><div class="t">Photo(s) qui vont parler</div><div class="h">Visage bien visible, de face</div></div>
     <div class="grid" id="tkThumbs"></div>
+    <div class="row">
+      <div><label class="lbl">Format de la vidéo</label><select id="tkRatio"></select></div>
+      <div><label class="lbl">Si la photo n'a pas ce format</label><select id="tkFit"></select></div>
+    </div>
   </div>
   <div class="card">
     <label class="lbl">Voix</label>
@@ -781,6 +790,23 @@ function addHist(item){const h=hist();h.unshift(Object.assign({id:Date.now()+'_'
 /* ---------- images locales ---------- */
 function fileToUri(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('lecture'));r.readAsDataURL(f)})}
 function shrink(uri,max,q){return new Promise(res=>{const i=new Image();i.onload=()=>{try{const sc=Math.min(1,max/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*sc);c.height=Math.round(i.height*sc);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q||.88))}catch(e){res(uri)}};i.onerror=()=>res(uri);i.src=uri})}
+/* ---------- format (9:16, 1:1, 16:9…) ---------- */
+const RATIO_OPTS='<option value="9:16">📱 9:16 · TikTok / Reels / Shorts</option><option value="4:5">🖼️ 4:5 · Instagram</option><option value="1:1">⬛ 1:1 · carré</option><option value="16:9">🖥️ 16:9 · YouTube</option><option value="orig">Garder la photo telle quelle</option>';
+const FIT_OPTS='<option value="crop">✂️ Recadrer (gratuit)</option><option value="extend">🪄 Agrandir le décor par IA (~0,04 $)</option>';
+const RATIO_NUM={'9:16':9/16,'4:5':4/5,'1:1':1,'16:9':16/9};
+function imgSize(uri){return new Promise(r=>{const i=new Image();i.onload=()=>r({w:i.naturalWidth,h:i.naturalHeight,img:i});i.onerror=()=>r(null);i.src=uri})}
+async function needsFit(uri,fmt){const t=RATIO_NUM[fmt];if(!t)return false;const s=await imgSize(uri);if(!s||!s.w)return false;return Math.abs(s.w/s.h-t)/t>0.03}
+async function cropTo(uri,fmt){const s=await imgSize(uri);const t=RATIO_NUM[fmt];if(!s||!t)return uri;let w=s.w,h=s.h,x=0,y=0;
+  if(s.w/s.h>t){w=Math.round(s.h*t);x=Math.round((s.w-w)/2)}else{h=Math.round(s.w/t);y=Math.round((s.h-h)*0.35)}
+  try{const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(s.img,x,y,w,h,0,0,w,h);return c.toDataURL('image/jpeg',.9)}catch(e){return uri}}
+async function fitImage(uri,fmt,how,onProg,stopKey){
+  if(!(await needsFit(uri,fmt)))return uri;
+  if(how==='extend'){try{onProg&&onProg('Agrandissement du décor…');return await genImage('Outpaint this exact photo to fill a '+fmt+' frame. Keep the person 100% identical: face, hair, body, outfit, pose, position and lighting. Only extend the background naturally around them. Photorealistic, no text, no borders.',[uri],fmt,onProg,stopKey)}catch(e){toast('Agrandissement impossible, je recadre','warn')}}
+  return cropTo(uri,fmt);
+}
+async function fitCount(list,fmt,how){if(how!=='extend')return 0;let n=0;for(const x of list)if(await needsFit(x.uri,fmt))n++;return n}
+function ratioSel(id,fitId,key,onCh){const r=$(id);r.innerHTML=RATIO_OPTS;r.value=LS.get('ms_ratio_'+key,'9:16')||'9:16';r.onchange=()=>{LS.set('ms_ratio_'+key,r.value);onCh&&onCh()};
+  if(fitId){const f=$(fitId);f.innerHTML=FIT_OPTS;f.value=LS.get('ms_fit_'+key,'crop')||'crop';f.onchange=()=>{LS.set('ms_fit_'+key,f.value);onCh&&onCh()}}}
 async function loadImages(files){const out=[];for(const f of Array.from(files)){if(!f.type.startsWith('image/'))continue;try{const raw=await fileToUri(f);const uri=await shrink(raw,1280);const th=await shrink(uri,240,.7);out.push({uri,thumb:th,id:Date.now()+Math.random()})}catch(e){}}return out}
 function renderThumbs(el,list,onChange){el.innerHTML=list.map(i=>'<div class="thumb"><img src="'+i.thumb+'"><button class="x" data-x="'+i.id+'">✕</button></div>').join('');el.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=parseFloat(b.dataset.x);const k=list.findIndex(i=>i.id===id);if(k>=0)list.splice(k,1);renderThumbs(el,list,onChange);onChange&&onChange()})}
 
@@ -847,7 +873,7 @@ async function genImage(prompt,refs,ratio,onProg,stopKey){
 }
 function videoInput(mk,kind,o){
   const m=VIDEO_MODELS[mk];const dur=String(o.duration);
-  if(mk==='eco'){const b={prompt:o.prompt.slice(0,2400),duration:dur==='10'?'10':'5',negative_prompt:NEG,cfg_scale:0.5};if(kind==='i2v'){b.image_url=o.image;if(o.end)b.tail_image_url=o.end}else b.aspect_ratio='9:16';return b}
+  if(mk==='eco'){const b={prompt:o.prompt.slice(0,2400),duration:dur==='10'?'10':'5',negative_prompt:NEG,cfg_scale:0.5};if(kind==='i2v'){b.image_url=o.image;if(o.end)b.tail_image_url=o.end}else b.aspect_ratio=o.ratio||'9:16';return b}
   let b;
   if(m.multi&&o.beats&&o.beats.length>1){
     // plusieurs plans enchaînés dans une seule génération (esquive / contre / saut…)
@@ -855,7 +881,7 @@ function videoInput(mk,kind,o){
     b={multi_prompt:o.beats.slice(0,n).map((t,i)=>({prompt:fitPrompt(t,[i===n-1?o.lastSuffix:'',o.beatSuffix,o.beatPrefix,o.beatTail],MULTI_MAX),duration:String(base+(i<extra?1:0))})),shot_type:'customize',generate_audio:!!o.audio};
   }else b={prompt:o.prompt.slice(0,2400),duration:dur,generate_audio:!!o.audio};
   // Kling refuse l'image de fin avec le multi-plans
-  if(kind==='i2v'){b.image_url=o.image;if(o.end&&!b.multi_prompt)b.end_image_url=o.end}else b.aspect_ratio='9:16';
+  if(kind==='i2v'){b.image_url=o.image;if(o.end&&!b.multi_prompt)b.end_image_url=o.end}else b.aspect_ratio=o.ratio||'9:16';
   return b;
 }
 function videoCost(mk,dur,audio){const m=VIDEO_MODELS[mk];if(mk==='eco')dur=dur>5?10:5;return dur*(audio&&m.audio?m.priceAudio:m.price)}
@@ -1388,7 +1414,7 @@ function anPrompt(u,story,idx,total,mode){
 async function anGo(){
   if(!AN.images.length)return toast('Ajoute au moins une image','warn');
   const o=anModel.get();const mode=$('anMode').value;const story=$('anStory').value.trim();
-  const cost=AN.images.length*videoCost(o.model,o.duration,o.audio);
+  const cost=AN.images.length*videoCost(o.model,o.duration,o.audio)+(await fitCount(AN.images,$('anRatio').value,$('anFit').value))*IMG_PRICE;
   if(!budgetOk(cost))return;
   AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');AN.finalPath=null;AN.voFile=null;$('anVOFileName').textContent='📂 Choisir une vidéo déjà faite (optionnel)';
   let done=0,fail=0;const total=AN.images.length;AN.results=new Array(total).fill(null);
@@ -1408,7 +1434,10 @@ async function anGo(){
       const vo=parseVO($('anVO').value).length>0;const ln=LANG_NAME[$('anVOLang').value]||'French';
       const tail=INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?(vo?', no dialogue, no voices, only sound effects and ambience':', all speech in '+ln+' only, never Chinese')+', no music':'')+', no text.';
       const bi=beatsFor(i);
-      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:img.uri,end:i===total-1&&AN.end?AN.end.uri:null,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:story,beatSuffix:sfx,beatTail:tail},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const fmt=$('anRatio').value,how=$('anFit').value;
+      const src=await fitImage(img.uri,fmt,how,m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
+      const endSrc=i===total-1&&AN.end?await fitImage(AN.end.uri,fmt,'crop'):null;
+      const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:src,end:endSrc,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:story,beatSuffix:sfx,beatTail:tail},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
       addHist({kind:'video',type:'Photo→vidéo',title:t,url,local,cost:videoCost(o.model,o.duration,o.audio)});
@@ -1478,7 +1507,7 @@ async function anMontage(){
   }catch(e){toast('Montage : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎞️ Assembler les vidéos dans l\'ordre'}
 }
-function anPrice(){const o=anModel.get();const n=Math.max(1,AN.images.length);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio))}
+async function anPrice(){const o=anModel.get();const n=Math.max(1,AN.images.length);const ex=await fitCount(AN.images,$('anRatio').value,$('anFit').value);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio)+ex*IMG_PRICE)}
 
 /* =====================================================================
    ONGLET TEXTE
@@ -1494,7 +1523,7 @@ async function txGo(){
   await Promise.all(Array.from({length:n},async(_,i)=>{
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('txOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
-    try{const url=await genVideo(o.model,'t2v',{prompt,duration:o.duration,audio:o.audio},m=>pe.textContent=m);const local=await saveLocal(url,'texte');addHist({kind:'video',type:'Texte→vidéo',title:t.slice(0,40),url,local,cost:videoCost(o.model,o.duration,o.audio)});ph.replaceWith(resCard({kind:'video',url,local,title:t.slice(0,30)}));done++}
+    try{const url=await genVideo(o.model,'t2v',{prompt,duration:o.duration,audio:o.audio,ratio:$('txRatio').value},m=>pe.textContent=m);const local=await saveLocal(url,'texte');addHist({kind:'video',type:'Texte→vidéo',title:t.slice(0,40),url,local,cost:videoCost(o.model,o.duration,o.audio)});ph.replaceWith(resCard({kind:'video',url,local,title:t.slice(0,30)}));done++}
     catch(e){pe.textContent='✕ '+e.message}
   }));
   $('txGo').disabled=false;txPrice();if(done)toast('Vidéo prête ✓','ok');
@@ -1509,7 +1538,7 @@ function tkPrice(){
   const q=AVATAR[$('tkQual').value];const n=Math.max(1,TK.images.length);let secs=0,chars=0;
   if(TK.src==='text'){const lines=tkLines();const uniq=[...new Set(lines)];uniq.forEach(l=>chars+=l.length);lines.forEach(l=>secs+=Math.max(2,l.length/14));if(!lines.length)secs=n*5}
   else secs=n*(TK.dur||8);
-  const cost=secs*q.price+chars*TTS_PRICE;
+  const cost=secs*q.price+chars*TTS_PRICE+(($('tkFit').value==='extend'&&$('tkRatio').value!=='orig')?n*IMG_PRICE:0);
   $('tkPrice').innerHTML='Estimation : <b>'+money(cost)+'</b> pour '+n+' vidéo'+(n>1?'s':'')+' (~'+Math.round(secs/n)+' s chacune)';
   return cost;
 }
@@ -1549,7 +1578,8 @@ async function tkGo(){
     try{
       let audio=TK.src==='mic'?TK.recUri:TK.src==='file'?TK.fileUri:null;
       if(TK.src==='text'){pe.textContent='Voix…';audio=await tts(audios[i])}
-      const res=await falRun(q.id,{image_url:TK.images[i].uri,audio_url:audio,prompt:$('tkPrompt').value.trim()||'.'},m=>pe.textContent=m);
+      const img=await fitImage(TK.images[i].uri,$('tkRatio').value,$('tkFit').value,m=>pe.textContent=m,'talk');
+      const res=await falRun(q.id,{image_url:img,audio_url:audio,prompt:$('tkPrompt').value.trim()||'.'},m=>pe.textContent=m);
       const url=res.video&&res.video.url;if(!url)throw new Error('pas de vidéo');
       const c=(res.duration||8)*q.price;addSpend(c);
       const local=await saveLocal(url,'parlant');addHist({kind:'video',type:'Parlant',title:(audios[i]||'Voix').slice(0,40),url,local,cost:c});
@@ -1697,6 +1727,8 @@ async function checkServer(){
   $('anVOGo').onclick=anVoiceOver;
   $('anVOFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!S.server)return toast('Lance python server.py','err');$('anVOFileName').textContent='Envoi…';try{const r=await fetch('/api/upload?name=video&ext=mp4',{method:'POST',body:f});const d=await r.json();AN.voFile=d.path;$('anVOFileName').textContent='🎬 '+f.name+' (touche pour changer)'}catch(err){$('anVOFileName').textContent='Erreur, réessaie'}e.target.value=''};
   persoPicker($('anPersos'),(p,imgs)=>{AN.images.push(...imgs);if(p.desc){$('anChar').value=p.desc;LS.set('ms_anChar',p.desc)}renderThumbs($('anThumbs'),AN.images,anPrice);anPrice()});
+  ratioSel('anRatio','anFit','anim',anPrice);ratioSel('tkRatio','tkFit','talk',()=>tkPrice());
+  {const r=$('txRatio');r.value=LS.get('ms_ratio_tx','9:16')||'9:16';r.onchange=()=>LS.set('ms_ratio_tx',r.value)}
   $('anGo').onclick=anGo;$('anStop').onclick=()=>{S.stop.anim=true;toast('Arrêt…','warn')};anPrice();
 
   // Texte
