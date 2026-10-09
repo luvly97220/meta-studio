@@ -245,6 +245,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <textarea id="anBeats" placeholder="Une étape par ligne, ex :&#10;le soldat attaque, il esquive&#10;il contre avec un coup de pied retourné&#10;il court vers la rampe et saute dans le vide"></textarea>
     <div class="hint">Chaque ligne devient un plan (avec coupes de montage) dans la même vidéo. Plusieurs images ? Sépare la chorégraphie de chaque image par une ligne <b>---</b>, dans l'ordre des images.</div>
     <label class="lbl">🎙️ Répliques en voix off (langue garantie)</label>
+    <div style="display:flex;gap:.4rem;align-items:center;margin:.2rem 0 .4rem"><select id="anVOTry" style="flex:1"></select></div>
     <textarea id="anVO" placeholder="Une réplique par ligne : seconde, personnage (voix) : texte&#10;1 Soldat (homme grave) : Ne bouge pas !&#10;3 Lui (homme posé) : Jamais vous ne m'aurez."></textarea>
     <div class="hint">Idéal avec un masque ou un personnage de dos. La vidéo est générée sans paroles, puis les voix sont posées en vrai français (ou autre langue) avec sous-titres. Voix possibles : homme grave, homme jeune, homme posé, homme rauque, femme douce, femme énergique, femme grave, femme jeune, narrateur, robot. N'écris pas les répliques dans la chorégraphie.</div>
     <div class="row">
@@ -905,6 +906,27 @@ function parseJSON(t){
 
 /* ---------- voix et personnages ---------- */
 const VOICE_TYPES=[['auto','Automatique',''],['homme_grave','Homme · grave','deep, low male voice'],['homme_jeune','Homme · jeune','young, energetic male voice'],['homme_pose','Homme · posé','calm, warm male voice'],['homme_rauque','Homme · rauque','raspy, gritty male voice'],['homme_age','Homme · âgé','old man voice, slightly raspy'],['femme_douce','Femme · douce','soft, gentle female voice'],['femme_energique','Femme · énergique','bright, energetic female voice'],['femme_grave','Femme · grave et posée','low, smooth, confident female voice'],['femme_jeune','Femme · jeune','young female voice, playful'],['femme_agee','Femme · âgée','elderly woman voice'],['enfant','Enfant','child voice'],['robot','Voix robotique','slightly robotic, synthetic voice'],['narrateur','Narrateur de film','deep cinematic movie-trailer narrator voice']];
+/* ---------- écouter une voix avant de choisir ---------- */
+const PREVIEW_TXT={fr:"Salut ! Voilà ma voix. Tu me choisis pour ta prochaine vidéo ?",en:"Hi! This is my voice. Will you pick me for your next video?",es:"¡Hola! Esta es mi voz. ¿Me eliges para tu próximo video?",pt:"Olá! Esta é a minha voz. Escolhes-me para o teu próximo vídeo?",it:"Ciao! Questa è la mia voce. Mi scegli per il tuo prossimo video?",de:"Hallo! Das ist meine Stimme. Nimmst du mich für dein nächstes Video?",nl:"Hoi! Dit is mijn stem. Kies je mij voor je volgende video?",ar:"مرحبا! هذا صوتي. هل تختارني لفيديوك القادم؟",tr:"Merhaba! Bu benim sesim. Bir sonraki videon için beni seçer misin?",ru:"Привет! Это мой голос. Выберешь меня для следующего видео?",pl:"Cześć! To mój głos. Wybierzesz mnie do następnego filmu?",zh:"你好！这是我的声音。下一个视频选我吗？",ja:"こんにちは！これが私の声です。次の動画に選んでくれる？",ko:"안녕하세요! 제 목소리예요. 다음 영상에 저를 골라줄래요?",hi:"नमस्ते! यह मेरी आवाज़ है। अगले वीडियो के लिए मुझे चुनोगे?"};
+let PREV_AUDIO=null;
+async function previewVoice(voice,lang,btn){
+  lang=PREVIEW_TXT[lang]?lang:'fr';const k='ms_vprev_'+voice+'_'+lang;let u=LS.get(k,null);const old=btn.textContent;
+  try{
+    if(!u){btn.textContent='⏳';btn.disabled=true;
+      const txt=PREVIEW_TXT[lang];const res=await falRun(TTS,{text:txt,voice,language_code:lang,stability:0.5,similarity_boost:0.75});
+      addSpend(txt.length*TTS_PRICE);u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');
+      const local=await saveLocal(u,'voix_'+voice+'_'+lang);if(local)u=local;LS.set(k,u)}
+    if(PREV_AUDIO)PREV_AUDIO.pause();PREV_AUDIO=new Audio(u);PREV_AUDIO.onerror=()=>{LS.set(k,null);toast('Aperçu expiré, réappuie sur ▶','warn')};await PREV_AUDIO.play();
+  }catch(e){toast('Écoute impossible : '+(e.message||e),'warn')}
+  finally{btn.textContent=old;btn.disabled=false}
+}
+function addPreview(selId,getLang,getVoice){
+  const sel=$(selId);if(!sel||sel.dataset.prev)return;sel.dataset.prev=1;
+  const wrap=document.createElement('div');wrap.style.cssText='display:flex;gap:.4rem;align-items:center';
+  sel.parentNode.insertBefore(wrap,sel);wrap.appendChild(sel);sel.style.flex='1';
+  const b=document.createElement('button');b.type='button';b.className='btn sec small';b.textContent='▶ Écouter';b.title='Écouter cette voix (~0,01 $ la 1re fois, gratuit ensuite)';
+  b.onclick=()=>{const v=getVoice?getVoice():sel.value;if(!v)return toast('Choisis d\'abord une voix','warn');previewVoice(v,getLang(),b)};wrap.appendChild(b);
+}
 function voiceOpts(sel){return VOICE_TYPES.map(([v,l])=>'<option value="'+v+'" '+(v===sel?'selected':'')+'>'+l+'</option>').join('')}
 function voiceDesc(v){const t=VOICE_TYPES.find(x=>x[0]===v);return t?t[2]:''}
 function stMainName(){return $('stName').value.trim()||'the main character'}
@@ -1669,7 +1691,7 @@ async function checkServer(){
   $('txLang').value=LS.get('ms_txLang','French');$('txLang').onchange=e=>LS.set('ms_txLang',e.target.value);
   $('tkLang').value=LS.get('ms_tkLang','fr');$('tkLang').onchange=e=>LS.set('ms_tkLang',e.target.value);
   // Personnages
-  $('psVoice').innerHTML=voiceOpts('auto');$('psTts').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');
+  $('psVoice').innerHTML=voiceOpts('auto');$('psTts').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');addPreview('psTts',()=>TTS_LANG[$('psLang').value]||'fr');
   $('openPersos').onclick=()=>{psForm(null);psRenderList();$('persos').classList.add('on')};
   $('closePersos').onclick=()=>$('persos').classList.remove('on');
   $('persos').onclick=e=>{if(e.target.id==='persos')$('persos').classList.remove('on')};
@@ -1737,7 +1759,8 @@ async function checkServer(){
   $('txCount').onchange=txPrice;$('txGo').onclick=txGo;txPrice();
 
   // Parlant
-  $('tkVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');
+  $('tkVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');addPreview('tkVoice',()=>$('tkLang').value||'fr');
+  {const seen=new Set();$('anVOTry').innerHTML='<option value="">🎧 Écouter les voix de la voix off…</option>'+VO_VOICE.filter(([k,v])=>k.includes(' ')&&!seen.has(v)&&seen.add(v)).map(([k,v])=>'<option value="'+v+'">('+k+') — '+v+'</option>').join('');addPreview('anVOTry',()=>$('anVOLang').value||'fr')}
   chips($('tkSrc'),[['text','⌨️ Texte → voix IA'],['mic','🎙️ Ma voix'],['file','📂 Fichier audio']],TK.src,v=>{TK.src=v;$('tkTextBox').classList.toggle('hide',v!=='text');$('tkMicBox').classList.toggle('hide',v!=='mic');$('tkFileBox').classList.toggle('hide',v!=='file');tkPrice()});
   chips($('tkSplit'),[['same','Même texte pour toutes les photos'],['lines','Une ligne par photo']],TK.split,v=>{TK.split=v;tkPrice()});
   $('tkFiles').onchange=async e=>{TK.images.push(...await loadImages(e.target.files));renderThumbs($('tkThumbs'),TK.images,tkPrice);tkPrice();e.target.value=''};
