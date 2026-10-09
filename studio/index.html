@@ -1019,7 +1019,7 @@ function resCard(o){
    ===================================================================== */
 const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
 let stModel,stUniv;
-function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dubVoice:s.dubVoice,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
 function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
 function stInit(){
   $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
@@ -1048,7 +1048,7 @@ async function stDub(idx){
       const src=s.vidOrig||s.vid;
       const r=await falRun(LIPSYNC,{video_url:src,audio_url:au},m=>upd('Lèvres · '+m),'story');addSpend(per);
       const u=r.video&&r.video.url;if(!u)throw new Error('pas de vidéo');
-      s.vidOrig=src;s.vid=u;s.local=await saveLocal(u,'scene'+(i+1)+'_vf');s.status='done';s.msg='✓ Voix redoublée';ok++;
+      s.vidOrig=src;s.dubVoice=voice;s.vid=u;s.local=await saveLocal(u,'scene'+(i+1)+'_vf');s.status='done';s.msg='✓ Voix redoublée';ok++;
     }catch(e){s.status='fail';s.msg='✕ '+(e.message||e)}
     stSave();
   }
@@ -1723,7 +1723,7 @@ async function checkServer(){
   // Histoire
   $('stCount').innerHTML=[3,4,5,6,7,8,10,12].map(n=>'<option '+(n===6?'selected':'')+'>'+n+'</option>').join('');
   $('stDubVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');$('stDubVoice').value=LS.get('ms_stDub','')||stDubDefault();$('stDubVoice').onchange=e=>LS.set('ms_stDub',e.target.value);addPreview('stDubVoice',()=>TTS_LANG[$('stLang').value]||'fr');
-  $('stDubAll').onclick=()=>stDub(ST.scenes.map((_,i)=>i));
+  $('stDubAll').onclick=()=>{const v=$('stDubVoice').value;const idx=ST.scenes.map((s,i)=>i).filter(i=>!(ST.scenes[i].vidOrig&&ST.scenes[i].dubVoice===v));if(!idx.some(i=>ST.scenes[i].vid&&ST.scenes[i].line&&ST.scenes[i].line.trim()))return toast('Toutes les scènes sont déjà redoublées avec cette voix','ok');stDub(idx)};
   $('stNative').checked=LS.get('ms_stNative',true)!==false;$('stNative').onchange=e=>LS.set('ms_stNative',e.target.checked);
   $('stVoice').innerHTML=voiceOpts(LS.get('ms_stVoice','auto'));$('stVoice').onchange=e=>LS.set('ms_stVoice',e.target.value);
   $('stName').value=LS.get('ms_stName','');$('stName').oninput=e=>LS.set('ms_stName',e.target.value);
