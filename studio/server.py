@@ -197,6 +197,21 @@ def fit_filter(src, W=720, H=1280):
             "pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black" % (W, H, W, H)) + tail
 
 
+def loud_tiktok(path):
+    """Remonte le son au niveau TikTok/Reels (~-14 LUFS), image inchangée."""
+    tmp = path + ".loud.mp4"
+    try:
+        run(["ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v", "-map", "0:a?",
+             "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-c:a", "aac",
+             "-b:a", "192k", "-ar", "44100", "-movflags", "+faststart", tmp])
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
 def concat(files, music=None, music_volume=0.35, title="histoire",
            mute=False, music_start=0.0, durations=None, subs=None):
     """Assemble des clips + musique optionnelle.
@@ -273,6 +288,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
             os.remove(p)
         except OSError:
             pass
+    loud_tiktok(final)
     return "/videos/" + final_name, duration(final), no_font
 
 
@@ -333,6 +349,7 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
             os.remove(work)
         except OSError:
             pass
+    loud_tiktok(out)
     return "/videos/" + name, duration(out)
 
 
