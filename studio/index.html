@@ -267,6 +267,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Cadrage</label><select id="anFram"><option value="random">Aléatoire</option><option value="close">Gros plan</option><option value="medium">Moyen</option><option value="wide">Large</option></select></div>
       <div><label class="lbl">Intensité</label><select id="anInt"><option value="moderate">Modérée</option><option value="subtle">Subtile</option><option value="strong">Forte</option></select></div>
     </div>
+    <label class="lbl">🎥 Mouvement de caméra</label><select id="anCam"></select>
     <label class="lbl">Mode</label><select id="anMode"><option value="indep">🖼️ Chaque photo indépendante</option><option value="story">📖 Histoire enchaînée</option><option value="random">🎲 Univers aléatoire</option></select>
     <div class="row">
       <div><label class="lbl">Format de la vidéo</label><select id="anRatio"></select></div>
@@ -285,6 +286,23 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="up" data-pick="anVOFile" style="padding:.7rem"><input type="file" id="anVOFile" accept="video/*"><div class="t" id="anVOFileName">📂 Choisir une vidéo déjà faite (optionnel)</div></div>
     <button class="btn" id="anVOGo">🎙️ Ajouter les voix off (~0,01 $)</button>
     <div class="out" id="anVOOut"></div>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <label class="lbl">💃 Copier une danse (transfert de mouvement)</label>
+    <div class="hint">Ton personnage refait exactement les gestes d'une vraie vidéo de danse. Utilise la <b>1re image</b> ajoutée en haut. Idéal : une vidéo où <b>toi ou un proche</b> danse, en pied, bien visible (ou une vidéo libre de droits).</div>
+    <div class="up" data-pick="dnFile" style="padding:.7rem"><input type="file" id="dnFile" accept="video/*"><div class="t" id="dnFileName">📂 Choisir la vidéo de danse (3 à 30 s)</div></div>
+    <div class="row">
+      <div><label class="lbl">Qualité</label><select id="dnModel"></select></div>
+      <div><label class="lbl">Cadrage</label><select id="dnOrient"><option value="video">Suivre la vidéo (jusqu'à 30 s)</option><option value="image">Garder la photo (10 s max)</option></select></div>
+    </div>
+    <div class="row">
+      <div><label class="lbl">Début dans la vidéo (s)</label><input type="number" id="dnStart" min="0" step="0.5" value="0"></div>
+      <div><label class="lbl">Durée max (s)</label><input type="number" id="dnMax" min="3" max="30" step="1" value="15"></div>
+    </div>
+    <div class="toggle"><span>🔊 Garder le son de la vidéo de danse</span><label class="sw"><input type="checkbox" id="dnSound"><span></span></label></div>
+    <button class="btn" id="dnGo">💃 Copier la danse</button>
+    <div class="prog" id="dnProg"></div>
+    <div class="out" id="dnOut"></div>
   </div>
   <div class="res-grid" id="anOut"></div>
 </section>
@@ -749,8 +767,32 @@ const PRESETS=[
   {l:'🌬️ Vent léger',t:'Un vent léger fait bouger les cheveux et les vêtements. Mouvement doux.'},
   {l:'💭 Rêve',t:'Mouvements très lents, lumière douce, ambiance de rêve.'},
   {l:'🎬 Cinéma',t:'Esthétique cinéma, mouvement lent, lumière dramatique.'},
-  {l:'🌙 Nuit calme',t:'Ambiance nocturne paisible, lumière bleutée, mouvement très lent.'}
+  {l:'🌙 Nuit calme',t:'Ambiance nocturne paisible, lumière bleutée, mouvement très lent.'},
+  {l:'💃 Danse TikTok',t:'Plan unique continu, sans coupe. Danse TikTok sur place, pieds bien ancrés : petits pas gauche-droite sur le rythme, épaules qui rebondissent, bras qui pointent vers la caméra puis croisés, mouvement de hanches, finit en pose sûre d\'elle face à la caméra.'},
+  {l:'👯 Groupe synchro',t:'Plan unique continu, sans coupe. Toutes les personnes dansent exactement les mêmes gestes en même temps, comme un miroir : pas à gauche, pas à droite, rebond des épaules, bras levés ensemble, puis pose finale identique face à la caméra.'},
+  {l:'🕺 Hip-hop',t:'Plan unique continu. Danse hip-hop groovy : rebonds des genoux sur le rythme, roulement d\'épaules, pas glissés de côté, bras fluides, attitude cool, regard caméra.'},
+  {l:'🌍 Afro',t:'Plan unique continu. Danse afro énergique : pas rapides et légers, mouvements de hanches et d\'épaules, bras qui ondulent, grand sourire, beaucoup de rythme.'},
+  {l:'✨ K-pop',t:'Plan unique continu. Chorégraphie K-pop nette et précise : gestes de bras secs et synchronisés, petits sauts, pose en cœur avec les mains, clin d\'œil final à la caméra.'},
+  {l:'🚶 Marche défilé',t:'Plan unique continu. Marche de défilé assurée vers la caméra, un pied devant l\'autre, balancement naturel des bras, s\'arrête et prend la pose, main sur la hanche.'}
 ];
+/* mouvements de caméra (Animer) */
+const CAMS=[
+  ['auto','✨ Automatique (selon l\'univers)',''],
+  ['static','📌 Fixe sur trépied','Static locked-off camera on a tripod, no camera movement at all'],
+  ['ground','⬆️ Fixe au sol, contre-plongée (tendance MOOD)','Static camera placed on the ground pointing up, strong low-angle wide shot, the camera never moves'],
+  ['handheld','🤳 Filmé au téléphone (style TikTok)','Handheld smartphone footage, slight natural shake, like a friend filming for TikTok'],
+  ['pushin','🔍 Avance lentement vers le sujet','Slow smooth dolly-in toward the subject'],
+  ['pullout','↩️ Recule lentement','Slow smooth dolly-out pulling away from the subject, revealing the surroundings'],
+  ['orbit','🔄 Tourne autour (360°)','Smooth 360-degree orbit around the subject, subject stays centered'],
+  ['halforbit','↪️ Demi-tour autour','Slow half orbit around the subject, from the front to the side'],
+  ['tracking','➡️ Suit le sujet de côté','Lateral tracking shot following the subject sideways at the same speed'],
+  ['follow','🏃 Suit le sujet de derrière','Camera follows behind the subject at shoulder height, steady tracking'],
+  ['craneup','🏗️ Monte vers le ciel','Crane shot rising up from low to high above the subject'],
+  ['drone','🚁 Vue drone qui descend','Aerial drone shot descending toward the subject'],
+  ['crash','⚡ Zoom rapide','Fast punch-in crash zoom on the subject at the key moment'],
+  ['dutch','🎞️ Clip musical (angles penchés)','Music-video style, dynamic tilted dutch angle, smooth sway with the rhythm']
+];
+function camText(){const c=CAMS.find(x=>x[0]===$('anCam').value);return c?c[2]:''}
 const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
 const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
 // Kling multi-plans : 512 caractères max par plan. On garde l'action d'abord,
@@ -1466,8 +1508,10 @@ function anPrompt(u,story,idx,total,mode){
   const p=['Animate this exact image as the starting frame. The subject must remain identical to the input image: same face, expression, clothing. Continuation, not re-imagination.'];
   if(mode==='story'&&total>1){p.push('This is scene '+(idx+1)+' of '+total+' in a story.');if(story)p.push('Story: "'+story.slice(0,400)+'".')}
   else if(story)p.push('Direction: '+story);
-  if(u){p.push(u.p,rand(u.acts),rand(u.cams),rand(u.lights))}
-  else if(!story){p.push(rand(['the subject slowly moves, breathing visible','the subject turns their head gently','hair moves in a soft breeze']),rand(['slow dolly-in','static frame','handheld follow']))}
+  const cam=camText();
+  if(u){p.push(u.p,rand(u.acts),cam||rand(u.cams),rand(u.lights))}
+  else if(!story){p.push(rand(['the subject slowly moves, breathing visible','the subject turns their head gently','hair moves in a soft breeze']),cam||rand(['slow dolly-in','static frame','handheld follow']))}
+  else if(cam)p.push('Camera: '+cam);
   const fr=$('anFram').value;if(FRAMING[fr])p.push(FRAMING[fr]);
   p.push(INTENS[$('anInt').value]);
   p.push('Vertical 9:16, no text, no watermark');
@@ -1494,7 +1538,7 @@ async function anGo(){
       const look=$('anChar').value.trim();
       const sfx=look?'Same character as the first frame: '+look+'.':'Same character, mask and outfit as the first frame.';
       const vo=parseVO($('anVO').value).length>0;const ln=LANG_NAME[$('anVOLang').value]||'French';
-      const tail=INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?(vo?', no dialogue, no voices, only sound effects and ambience':', all speech in '+ln+' only, never Chinese')+', no music':'')+', no text.';
+      const tail=(camText()?camText()+', ':'')+INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?(vo?', no dialogue, no voices, only sound effects and ambience':', all speech in '+ln+' only, never Chinese')+', no music':'')+', no text.';
       const bi=beatsFor(i);
       const fmt=$('anRatio').value,how=$('anFit').value;
       const src=await fitImage(img.uri,fmt,how,m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
@@ -1512,6 +1556,47 @@ async function anGo(){
   const ok=AN.results.filter(Boolean).length;
   if(ok>1){$('anMontage').textContent='🎞️ Assembler les '+ok+' vidéos dans l\'ordre'+(ok<total?' (sans les ratées)':'');$('anMontage').classList.remove('hide')}
   toast(done+' vidéo'+(done>1?'s':'')+' créée'+(done>1?'s':''),done?'ok':'err');
+}
+/* ---------- copier une danse (Kling Motion Control) ---------- */
+const DANCE_MODELS={
+  v26:{l:'Kling 2.6 · éco (0,07 $/s)',id:'fal-ai/kling-video/v2.6/standard/motion-control',price:0.07},
+  v3:{l:'Kling 3.0 · net (0,126 $/s)',id:'fal-ai/kling-video/v3/standard/motion-control',price:0.126},
+  v3pro:{l:'Kling 3.0 Pro · le plus fluide (0,168 $/s)',id:'fal-ai/kling-video/v3/pro/motion-control',price:0.168}
+};
+const DN={ref:null};
+function dnLen(){
+  const max=Math.min(+$('dnMax').value||15,$('dnOrient').value==='image'?10:30);
+  if(!DN.ref||!DN.ref.duration)return max;
+  return Math.max(0,Math.min(max,DN.ref.duration-(+$('dnStart').value||0)));
+}
+function dnPrice(){
+  const m=DANCE_MODELS[$('dnModel').value]||DANCE_MODELS.v26;const d=dnLen();
+  $('dnGo').textContent='💃 Copier la danse'+(DN.ref?' · '+Math.round(d)+' s · ~'+money(d*m.price):'');
+}
+async function dnGo(){
+  if(!S.server)return toast('Lance python server.py pour copier une danse','err',4500);
+  if(!AN.images.length)return toast('Ajoute d\'abord la photo du personnage en haut (1re image)','warn',4500);
+  if(!DN.ref)return toast('Choisis la vidéo de danse','warn');
+  const len=dnLen();if(len<3)return toast('Il faut au moins 3 s de danse après le début choisi','warn',4500);
+  const m=DANCE_MODELS[$('dnModel').value]||DANCE_MODELS.v26;const cost=len*m.price;
+  if(!budgetOk(cost))return;
+  const b=$('dnGo');b.disabled=true;const upd=t=>{$('dnProg').textContent=t};
+  try{
+    upd('Préparation de la vidéo de danse…');
+    const r=await fetch('/api/refvideo',{method:'POST',body:JSON.stringify({path:DN.ref.path,start:+$('dnStart').value||0,max:len})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||'vidéo de danse illisible');
+    const look=$('anChar').value.trim();
+    const prompt='The character from the image performs exactly the same dance moves as the person in the reference video, same rhythm and timing. Keep the exact face, hair, body and outfit of the image.'+(look?' Character: '+look+'.':'')+' Realistic, smooth natural motion, no text, no watermark.';
+    const res=await falRun(m.id,{image_url:AN.images[0].uri,video_url:d.datauri,character_orientation:$('dnOrient').value,keep_original_sound:$('dnSound').checked,prompt},t=>upd('Danse · '+t),'anim');
+    const url=res.video&&res.video.url;if(!url)throw new Error('Pas de vidéo reçue');
+    const real=d.duration||len;addSpend(real*m.price);
+    const local=await saveLocal(url,'danse');
+    addHist({kind:'video',type:'Photo→vidéo',title:'Danse copiée',url,local,cost:real*m.price});
+    $('dnOut').innerHTML='';const c=resCard({kind:'video',url,local,title:'Danse · '+Math.round(real)+' s'});c.style.maxWidth='360px';c.style.margin='.6rem auto 0';$('dnOut').appendChild(c);
+    captionTool($('dnOut'),()=>'Type: dance video of a virtual influencer\nCharacter: '+look);
+    upd('✓ Danse créée');toast('Danse créée ✓','ok');
+  }catch(e){upd('✕ '+(e.message==='stop'?'Arrêtée':e.message));toast('Danse : '+e.message,'err',6000)}
+  finally{b.disabled=false;dnPrice()}
 }
 /* ---------- voix off ---------- */
 const LANG_NAME={fr:'French',en:'English',es:'Spanish',pt:'Portuguese',it:'Italian',de:'German',nl:'Dutch',ar:'Arabic',tr:'Turkish',ru:'Russian',pl:'Polish',zh:'Chinese',ja:'Japanese',ko:'Korean',hi:'Hindi'};
@@ -1783,6 +1868,15 @@ async function checkServer(){
   $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';$('anEndClear').classList.toggle('hide',!AN.end);e.target.value=''};
   $('anEndClear').onclick=()=>{AN.end=null;$('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide')};
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
+  $('anCam').innerHTML=CAMS.map(c=>'<option value="'+c[0]+'">'+c[1]+'</option>').join('');$('anCam').value=LS.get('ms_anCam','auto');$('anCam').onchange=e=>LS.set('ms_anCam',e.target.value);
+  // Copier une danse
+  $('dnModel').innerHTML=Object.entries(DANCE_MODELS).map(([k,m])=>'<option value="'+k+'">'+m.l+'</option>').join('');
+  ['dnModel','dnOrient','dnStart','dnMax'].forEach(id=>{const v=LS.get('ms_'+id,null);if(v!==null)$(id).value=v;const ev=$(id).tagName==='SELECT'?'onchange':'oninput';$(id)[ev]=e=>{LS.set('ms_'+id,e.target.value);dnPrice()}});
+  $('dnSound').checked=LS.get('ms_dnSound',false);$('dnSound').onchange=e=>LS.set('ms_dnSound',e.target.checked);
+  $('dnFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!S.server)return toast('Lance python server.py','err');$('dnFileName').textContent='Envoi…';
+    try{const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const r=await fetch('/api/upload?name=danse&ext='+ext,{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.detail||'');DN.ref={path:d.path,duration:d.duration||0};$('dnFileName').textContent='🎬 '+f.name+(d.duration?' · '+Math.round(d.duration)+' s':'')+' (touche pour changer)';dnPrice()}
+    catch(err){$('dnFileName').textContent='Erreur, réessaie'}e.target.value=''};
+  $('dnGo').onclick=dnGo;dnPrice();
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;

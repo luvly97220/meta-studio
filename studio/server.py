@@ -371,6 +371,29 @@ def audio_cut_datauri(rel, start, dur):
     return "data:audio/mpeg;base64," + base64.b64encode(data).decode()
 
 
+def video_ref_datauri(rel, start=0.0, maxdur=30.0):
+    """Prepare une video de danse (reference de mouvement) : coupe, compresse en 720p, base64 pour fal."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    src = local_path(rel)
+    if not os.path.isfile(src):
+        raise RuntimeError("video de danse introuvable, remets-la")
+    out = os.path.join(WORK, "ref_%d.mp4" % int(time.time() * 1000))
+    vf = ("scale='if(lt(iw,ih),min(720,iw),-2)':'if(lt(iw,ih),-2,min(720,ih))',"
+          "fps=30,format=yuv420p")
+    cmd = ["ffmpeg", "-y", "-v", "error", "-ss", "%.2f" % float(start or 0), "-t", "%.2f" % float(maxdur),
+           "-i", src, "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "28"]
+    cmd += (["-c:a", "aac", "-b:a", "96k"] if has_audio(src) else ["-an"])
+    run(cmd + ["-movflags", "+faststart", out])
+    dur = duration(out)
+    with open(out, "rb") as fh:
+        data = fh.read()
+    os.remove(out)
+    if dur < 3:
+        raise RuntimeError("la video de danse doit durer au moins 3 secondes")
+    return "data:video/mp4;base64," + base64.b64encode(data).decode(), dur
+
+
 def to_mp3_datauri(raw, ext):
     """Convertit un enregistrement micro (webm/ogg/m4a...) en MP3 base64 pour fal."""
     stamp = str(int(time.time() * 1000))
@@ -391,7 +414,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*a, directory=ROOT, **kw)
 
     def log_message(self, fmt, *args):
-        if "/api/fal" in (args[0] if args else ""):
+        if "/api/fal" in (str(args[0]) if args else ""):
             return
         sys.stderr.write("  %s\n" % (fmt % args))
 
@@ -511,6 +534,11 @@ class Handler(SimpleHTTPRequestHandler):
                 d = json.loads(self.body() or b"{}")
                 uri = audio_cut_datauri(d.get("path", ""), d.get("start", 0), d.get("dur", 5))
                 return self.send_json({"datauri": uri})
+
+            if p.path == "/api/refvideo":
+                d = json.loads(self.body() or b"{}")
+                uri, dur = video_ref_datauri(d.get("path", ""), d.get("start", 0), d.get("max", 30))
+                return self.send_json({"datauri": uri, "duration": dur})
 
             if p.path == "/api/delete":
                 d = json.loads(self.body() or b"{}")
