@@ -830,10 +830,12 @@ async function http(method,url,body){
 async function readErr(r){let t='';try{t=await r.text()}catch(e){}
   if(r.status===401||r.status===403)return 'Clé fal.ai refusée — vérifie-la dans ⚙️';
   if(r.status===402||/balance|credit|locked|exhausted/i.test(t))return 'Crédit fal.ai épuisé — recharge sur fal.ai';
+  if(/flagged|content checker|content polic|nsfw|safety|moderat/i.test(t))return 'Refusé par le filtre de contenu (souvent l\'image : foule, visages). Fais « Refaire la scène » pour une nouvelle image, ou simplifie le décor. Une vidéo refusée n\'est normalement pas facturée.';
   try{const j=JSON.parse(t);const d=j.detail;if(Array.isArray(d))return 'Paramètre refusé : '+d.map(x=>(x.loc||[]).slice(-1)[0]+' '+(x.msg||'')).join(', ');if(d)return String(d).slice(0,180)}catch(e){}
   if(/content|nsfw|safety|policy/i.test(t))return 'Refusé par le filtre de contenu';
   return 'Erreur '+r.status+' '+t.slice(0,140)}
 /* Lance un modèle et attend le résultat. onProg(texte) pour l'avancement. */
+document.addEventListener('click',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('st')&&t.textContent.length>28)toast(t.textContent,'warn',9000)});
 async function falRun(model,input,onProg,stopKey){
   if(!getKey())throw new Error('Ajoute ta clé fal.ai dans ⚙️');
   const base='https://queue.fal.run/'+model;
