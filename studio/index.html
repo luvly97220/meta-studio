@@ -110,6 +110,31 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <button class="btn sec small" id="stNew" style="float:right;margin-top:.2rem">🆕 Nouveau</button><h2>🎬 Histoire d'une minute</h2>
   <p class="lead">Ton personnage, une époque, une idée → l'IA écrit le script, crée les scènes (image + vidéo parlante) et monte une seule vidéo prête à poster.</p>
 
+  <div class="card" id="srCard">
+    <label class="lbl">📁 Série / projet (optionnel)</label>
+    <div style="display:flex;gap:.4rem;align-items:center"><select id="srSel" style="flex:1"></select><button class="btn sec small" id="srNewBtn" style="width:auto;margin:0">＋ Nouvelle</button></div>
+    <div class="hint" id="srHint">Une série garde ses personnages, son univers et la mémoire des épisodes. Pour une mini-série, un compte de films ou un client.</div>
+    <div id="srBody" class="hide">
+      <label class="lbl">Nom de la série</label><input type="text" id="srName" placeholder="ex : Le Veilleur">
+      <label class="lbl">Univers, histoire et ton (la « bible » de la série)</label>
+      <textarea id="srBible" placeholder="ex : Paris, de nos jours. Jordan, 25 ans, vit une vie normale le jour ; la nuit il devient Le Veilleur, un justicier masqué silencieux. Personne ne connaît son secret. Ton : mystérieux, héroïque, un peu d'humour."></textarea>
+      <div class="row">
+        <div><label class="lbl">Modèle de script</label><select id="srModel"></select></div>
+        <div><label class="lbl">Durée d'un épisode</label><select id="srDur"><option value="15">15 s</option><option value="30">30 s</option><option value="60">60 s (monétisable)</option></select></div>
+      </div>
+      <label class="lbl">🎭 Distribution</label>
+      <div id="srCast"></div>
+      <button class="btn sec small" id="srAddCast">＋ Ajouter un personnage</button>
+      <div class="hint">Le 1er est le personnage principal : sa photo sert de référence. <b>Voix off</b> = on l'entend sans voir ses lèvres (masque, de dos, narrateur) : la voix est posée au montage.</div>
+      <label class="lbl">📜 Épisodes déjà écrits</label>
+      <div id="srEps"></div>
+      <label class="lbl">Idée pour le prochain épisode (optionnel)</label>
+      <textarea id="srIdea" placeholder="Vide = l'IA imagine la suite logique de la série"></textarea>
+      <button class="btn" id="srWrite">✍️ Écrire l'épisode 1</button>
+      <button class="btn danger small" id="srDel" style="margin-top:.5rem">🗑️ Supprimer cette série</button>
+    </div>
+  </div>
+
   <div class="card">
     <label class="lbl">1. Personnage (ta photo, conseillé)</label>
     <div class="chips" id="stPersos" style="margin:0 0 .6rem"></div>
@@ -128,6 +153,8 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     </div>
     <label class="lbl">Personnalité (optionnel)</label>
     <input type="text" id="stPersona" placeholder="ex : drôle, taquine, finit souvent par une question">
+    <div class="toggle"><span>🎙️ Parle en voix off <span class="hint" style="display:block;margin:0">Masque, de dos ou narrateur : pas de lèvres à l'écran, la voix est posée au montage</span></span><label class="sw"><input type="checkbox" id="stMainVO"><span></span></label></div>
+    <div id="stMainTTSBox" class="hide"><label class="lbl">Voix off du personnage principal</label><select id="stMainTTS"></select></div>
     <label class="lbl">Autres personnages (dialogues)</label>
     <div id="stOthers"></div>
     <button class="btn sec" id="stAddChar">＋ Ajouter un personnage</button>
@@ -1022,17 +1049,19 @@ function voiceOpts(sel){return VOICE_TYPES.map(([v,l])=>'<option value="'+v+'" '
 function voiceDesc(v){const t=VOICE_TYPES.find(x=>x[0]===v);return t?t[2]:''}
 function stMainName(){return $('stName').value.trim()||'the main character'}
 function stOthers(){return LS.get('ms_others',[])}
+function ttsOpts(sel){return VOICES.map(([v,l])=>'<option value="'+v+'" '+(v===sel?'selected':'')+'>'+v+' · '+l+'</option>').join('')}
+function ttsFromType(v){v=v||'';if(/^femme_douce/.test(v))return 'Sarah';if(/^femme_energique/.test(v))return 'Laura';if(/^femme_grave/.test(v))return 'Charlotte';if(/^femme_agee/.test(v))return 'Matilda';if(/^femme|enfant/.test(v))return 'Lily';if(v==='homme_grave')return 'Brian';if(v==='narrateur')return 'Daniel';if(v==='homme_jeune')return 'Liam';if(/rauque|age/.test(v))return 'Bill';if(v==='robot')return 'Roger';return 'George'}
 function stRenderOthers(){
   const list=stOthers();
-  $('stOthers').innerHTML=list.map((c,i)=>'<div class="scene" data-c="'+i+'" style="margin-top:.4rem"><div class="row"><div><input type="text" data-f="name" placeholder="Nom (ex : Marc)" value="'+esc(c.name)+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div><input type="text" data-f="desc" placeholder="Description (ex : homme 40 ans, costume noir, barbe)" value="'+esc(c.desc)+'" style="margin-top:.4rem"><div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div></div>').join('');
+  $('stOthers').innerHTML=list.map((c,i)=>'<div class="scene" data-c="'+i+'" style="margin-top:.4rem"><div class="row"><div><input type="text" data-f="name" placeholder="Nom (ex : Marc)" value="'+esc(c.name)+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div><input type="text" data-f="desc" placeholder="Description (ex : homme 40 ans, costume noir, barbe)" value="'+esc(c.desc)+'" style="margin-top:.4rem"><div class="toggle"><span>🎙️ Voix off</span><label class="sw"><input type="checkbox" data-f="vo" '+(c.vo?'checked':'')+'><span></span></label></div>'+(c.vo?'<select data-f="tts">'+ttsOpts(c.tts||ttsFromType(c.voice))+'</select>':'')+'<div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div></div>').join('');
   $('stOthers').querySelectorAll('[data-c]').forEach(el=>{const i=+el.dataset.c;
-    el.querySelectorAll('[data-f]').forEach(inp=>{const ev=inp.tagName==='SELECT'?'onchange':'oninput';inp[ev]=()=>{const l=stOthers();l[i][inp.dataset.f]=inp.value;LS.set('ms_others',l)}});
+    el.querySelectorAll('[data-f]').forEach(inp=>{const cb=inp.type==='checkbox';const ev=inp.tagName==='SELECT'||cb?'onchange':'oninput';inp[ev]=()=>{const l=stOthers();l[i][inp.dataset.f]=cb?inp.checked:inp.value;LS.set('ms_others',l);if(cb)stRenderOthers()}});
     el.querySelector('[data-del]').onclick=()=>{const l=stOthers();l.splice(i,1);LS.set('ms_others',l);stRenderOthers()};
   });
   $('stAddChar').classList.toggle('hide',list.length>=3);
 }
 function stChars(){
-  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim()})));
+  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:$('stMainTTS').value||ttsFromType($('stVoice').value)}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice)})));
 }
 // "Luna : salut\nMarc : tu es en retard" -> [{who, text, char}]
 function parseDialogue(line){
@@ -1051,6 +1080,11 @@ function dialoguePrompt(line,lang,masked){
   if(parts.length===1&&parts[0].char.main)return 'The person speaks to the camera'+(masked?'':' with accurate lip-sync')+(voiceDesc(parts[0].char.voice)?' with a '+voiceDesc(parts[0].char.voice):'')+', saying in '+lang+': "'+parts[0].text+'". ';
   return 'Dialogue in '+lang+', each character with their own distinct voice and accurate lip-sync: '+parts.map((p,i)=>desc(p.char)+(i?' replies':' says')+': "'+p.text+'"').join('. Then ')+'. ';
 }
+function screenLine(s){
+  const parts=parseDialogue(s&&s.line);const many=stChars().length>1;
+  return parts.filter(p=>!(p.char&&p.char.vo)).map(p=>(many&&p.char?p.char.name+' : ':'')+p.text).join('\n');
+}
+function hasVO(s){return parseDialogue(s&&s.line).some(p=>p.char&&p.char.vo)}
 function othersInScene(s){const t=((s.line||'')+' '+(s.decor||'')+' '+(s.action||'')).toLowerCase();return stChars().filter(c=>!c.main&&t.includes(c.name.toLowerCase()))}
 
 /* ---------- sélecteur de modèle réutilisable ---------- */
@@ -1145,7 +1179,7 @@ function stRender(){
     '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
     '<span class="mini">🎥 Caméra</span><select data-k="cam">'+camOptions('= caméra du film').replace('value="'+(s.cam||'')+'"','value="'+(s.cam||'')+'" selected')+'</select>'+
     ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
-    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&s.line&&s.line.trim()?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
   $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>s.vid&&s.line&&s.line.trim())||ST.busy);
   box.querySelectorAll('.scene').forEach(el=>{
@@ -1181,22 +1215,25 @@ function stAction(i,a){
   if(a==='revid'){s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   stSave();stRender();
 }
-async function stWrite(){
+async function stWrite(ctx){
+  ctx=ctx&&ctx.series?ctx:null;
   const idea=$('stIdea').value.trim();const place=stPlace();
-  if(!idea&&!place)return toast('Écris une idée ou choisis un univers','warn');
+  if(!ctx&&!idea&&!place)return toast('Écris une idée ou choisis un univers','warn');
   const n=+$('stCount').value;const o=stModel.get();const lang=$('stLang').value;
   const words=Math.max(4,Math.round(o.duration*2.3));
   const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
-  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+($('stPersona').value.trim()?'\nPersonality / way of speaking of '+stMainName()+': '+$('stPersona').value.trim()+' (make the lines sound like this)':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
+  const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+($('stPersona').value.trim()?'\nPersonality / way of speaking of '+stMainName()+': '+$('stPersona').value.trim()+' (make the lines sound like this)':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+(stChars().some(c=>c.vo)?'\nVoice-over characters (we hear them but never see their lips move: masked, seen from behind, or narrator): '+stChars().filter(c=>c.vo).map(c=>c.name).join(', ')+'. Their lines are fine, but in "action" never describe their mouth speaking; describe body language instead.':'')+(ctx?ctx.extra:'')+'\nSetting / era: '+(place||(ctx?'as described in the series bible':'free choice that fits the idea'))+'\nIdea: '+(idea||(ctx?'continue the series logically':'surprise me, make it engaging'))+
     '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+(stChars().length>1?'- "line": dialogue in '+lang+', natural spoken style. One line per speaker, formatted "Name: text", separated by \\n. Use the characters\' exact names. Max '+words+' words in total (it must fit in '+o.duration+' seconds). Can be empty.\n- When another character speaks or appears, mention them by name in "decor".\n':'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n')+
     ($('stCam').value==='auto'?'- "cam": the best camera move for the scene, one id from this list: '+CAM_ALL.map(c=>c[0]+' ('+c[2].split(',')[0]+')').join('; ')+'. Vary the camera from scene to scene like a real film.\n':'')+
-    'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."'+($('stCam').value==='auto'?',"cam":"..."':'')+'}]} with exactly '+n+' scenes.';
+    'Return: {"title":"short title",'+(ctx?'"summary":"2 short sentences in French summarizing what happens in this episode (for the series memory)",':'')+'"scenes":[{"decor":"...","action":"...","line":"..."'+($('stCam').value==='auto'?',"cam":"..."':'')+'}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
   try{
     const j=await llm(sys,prompt);
     if(ST.scenes.some(s=>s.vid)&&!confirm('Remplacer les scènes actuelles par ce nouveau script ?')){return}
     ST.scenes=j.scenes.map(s=>({decor:s.decor||'',action:s.action||'',line:s.line||'',cam:camPrompt(s.cam)?s.cam:''}));
-    ST.title=j.title||'histoire';LS.set('ms_story_title',ST.title);
+    ST.title=j.title||'histoire';
+    if(ctx){ST.title=ctx.series.name+' · Ép. '+ctx.n+' · '+ST.title;ctx.onDone(j)}
+    LS.set('ms_story_title',ST.title);
     stSave();stRender();toast('Script prêt : « '+ST.title+' » — tu peux modifier chaque scène','ok',3500);
     $('stScenes').scrollIntoView({behavior:'smooth'});
   }catch(e){toast(e.message==='stop'?'Arrêté':'Script : '+e.message+' — réessaie, ou utilise « Ajouter une scène vide »','err',6000)}
@@ -1219,8 +1256,10 @@ function stVidPrompt(s,o){
   let p=f.vid+' '+(s.action||'')+' ';
   if(stCamFor(s))p+='Camera: '+stCamFor(s)+'. ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
-  if(o.audio){p+=s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value)+($('stNative').checked?'Native '+$('stLang').value+' speaker from the country, natural local accent, no English or foreign accent. ':''):'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
-  else if(s.line&&s.line.trim())p+='The person is talking expressively.';
+  const sl=screenLine(s);
+  if(o.audio){p+=sl?dialoguePrompt(sl,$('stLang').value)+($('stNative').checked?'Native '+$('stLang').value+' speaker from the country, natural local accent, no English or foreign accent. ':''):(hasVO(s)?'Nobody speaks on screen, mouths stay closed, no lip movement (the voice is added later as a voice-over). ':'No dialogue. ');p+='Natural ambient sound effects matching the scene, no music.'}
+  else if(sl)p+='The person is talking expressively.';
+  else if(hasVO(s))p+='Nobody speaks on screen, no lip movement.';
   return p+' Keep the same face and outfit as the first frame. No subtitles, no text.';
 }
 async function stGenerate(only){
@@ -1241,7 +1280,7 @@ async function stGenerate(only){
       if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(stImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
       upd('Vidéo…');
       const bt=splitBeats(s.action);
-      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
+      s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&screenLine(s)?dialoguePrompt(screenLine(s),$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
       s.local=await saveLocal(s.vid,'scene'+(i+1));s.dur=o.duration;
       s.status='done';s.msg='✓ Prête';
     }catch(e){s.status=e.message==='stop'?'':'fail';s.msg=e.message==='stop'?'Arrêtée':'✕ '+e.message}
@@ -1275,6 +1314,15 @@ async function stMontage(){
     const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire'),durations:durs,subs})});
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
     if(d.subs_skipped)toast('Sous-titres non ajoutés : aucune police trouvée sur le téléphone','warn',4500);
+    // voix off (personnages masqués, de dos, narrateur) posées par-dessus
+    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&pt.char.vo)vo.push({start:t+D*k/parts.length+0.15,text:pt.text,voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
+    if(vo.length){
+      b.innerHTML='<span class="spin"></span> Voix off…';const lang=TTS_LANG[$('stLang').value]||'fr';const voices=[];
+      for(const v of vo){const res=await falRun(TTS,{text:v.text,voice:v.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text})}
+      const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:d.path,voices,orig_volume:0.8,subs:false,title:LS.get('ms_story_title','histoire')})});
+      const d2=await r2.json();if(!r2.ok)throw new Error(d2.detail||'mixage des voix off impossible');d.path=d2.path;d.duration=d2.duration;
+    }
+    srMarkFinal(d.path);
     ST.final=d.path;
     addHist({kind:'video',type:'Histoire',title:LS.get('ms_story_title','Histoire'),local:d.path,cost:0});
     $('stOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Vidéo finale · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='0 auto';$('stOut').appendChild(c);
@@ -1284,6 +1332,93 @@ async function stMontage(){
   }catch(e){toast('Montage : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎞️ Assembler la vidéo finale'}
 }
+
+/* =====================================================================
+   SÉRIES / PROJETS (mémoire des épisodes, distribution, modèle, durée)
+   ===================================================================== */
+const SR_MODELS={
+  libre:{l:'✨ Libre',fmt:null,llm:''},
+  heros:{l:'🦸 Héros / action',fmt:'action',llm:'Hero / vigilante action series: a threat appears, tension rises, a heroic intervention with readable action (no gore), a twist at the end.'},
+  comedie:{l:'😂 Comédie',fmt:'comedy',llm:'Comedy series: everyday situation, escalating absurdity, a strong punchline at the end of each episode.'},
+  horreur:{l:'👻 Horreur / suspense',fmt:'film',llm:'Suspense / horror series: eerie atmosphere, slow build-up, a scare or shocking reveal, no gore.'},
+  romance:{l:'💕 Romance',fmt:'film',llm:'Romance series: chemistry, misunderstandings, emotional moments, a sweet or bittersweet ending.'},
+  mystere:{l:'🕵️ Mystère / enquête',fmt:'film',llm:'Mystery series: a strange clue, investigation, suspects, a surprising discovery at the end.'},
+  storytime:{l:'🤳 Storytime / vlog',fmt:'vlog',llm:'Storytime vlog series: the main character tells a funny or crazy true-sounding story to the camera, with a payoff at the end.'},
+  apprend:{l:'🎓 « Il/elle apprend… »',fmt:'vlog',llm:'Challenge series: in each episode the main character tries to learn a new skill, fails in a funny way first, then succeeds, and asks viewers what to try next.'},
+  pub:{l:'🛍️ Pub produit / client',fmt:'vlog',llm:'Product ad series: hook with a relatable problem, show the product being used, one clear benefit, a clear call to action. No fake testimonials, no false or medical claims.'}
+};
+function srAll(){return LS.get('ms_series',[])}
+function srSaveAll(l){LS.set('ms_series',l)}
+function srCur(){const id=LS.get('ms_series_cur','');return srAll().find(x=>x.id===id)||null}
+function srUpdate(fn){const l=srAll();const x=l.find(y=>y.id===LS.get('ms_series_cur',''));if(!x)return;fn(x);srSaveAll(l)}
+function srMarkFinal(path){const x=srCur();if(!x||!x.episodes.length)return;const t=LS.get('ms_story_title','');const ep=x.episodes[x.episodes.length-1];if(t.indexOf('Ép. '+ep.n+' ')<0)return;srUpdate(y=>{y.episodes[y.episodes.length-1].final=path})}
+function srRenderSel(){
+  const cur=LS.get('ms_series_cur','');
+  $('srSel').innerHTML='<option value="">— Aucune (histoire simple) —</option>'+srAll().map(x=>'<option value="'+x.id+'" '+(x.id===cur?'selected':'')+'>'+esc(x.name||'Sans nom')+' · '+x.episodes.length+' ép.</option>').join('');
+}
+function srRender(){
+  srRenderSel();const x=srCur();
+  $('srBody').classList.toggle('hide',!x);$('srHint').classList.toggle('hide',!!x);
+  if(!x)return;
+  $('srName').value=x.name||'';$('srBible').value=x.bible||'';$('srModel').value=x.model||'libre';$('srDur').value=String(x.dur||30);
+  const lib=persos();
+  $('srCast').innerHTML=x.cast.map((c,i)=>'<div class="scene" data-k="'+i+'" style="margin-top:.4rem">'+
+    '<div class="scene-h"><b>'+(i?'Personnage '+(i+1):'⭐ Principal')+'</b></div>'+
+    '<select data-f="perso"><option value="">— personnage libre (sans fiche) —</option>'+lib.map(p=>'<option value="'+esc(p.name)+'" '+(p.name===c.perso?'selected':'')+'>👤 '+esc(p.name)+'</option>').join('')+'</select>'+
+    '<div class="row" style="margin-top:.4rem"><div><input type="text" data-f="name" placeholder="Nom (ex : Le Veilleur)" value="'+esc(c.name||'')+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div>'+
+    '<input type="text" data-f="desc" placeholder="Description (look, tenue, masque…)" value="'+esc(c.desc||'')+'" style="margin-top:.4rem">'+
+    '<div class="toggle"><span>🎙️ Voix off (masque, de dos, narrateur)</span><label class="sw"><input type="checkbox" data-f="vo" '+(c.vo?'checked':'')+'><span></span></label></div>'+
+    (c.vo?'<select data-f="tts">'+ttsOpts(c.tts||ttsFromType(c.voice))+'</select>':'')+
+    (i?'<div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div>':'')+'</div>').join('');
+  $('srCast').querySelectorAll('[data-k]').forEach(el=>{const i=+el.dataset.k;
+    el.querySelectorAll('[data-f]').forEach(inp=>{const cb=inp.type==='checkbox';const ev=inp.tagName==='SELECT'||cb?'onchange':'oninput';inp[ev]=()=>{
+      const f=inp.dataset.f;const val=cb?inp.checked:inp.value;
+      srUpdate(y=>{const c=y.cast[i];c[f]=val;if(f==='perso'&&val){const p=persos().find(q=>q.name===val);if(p){c.name=p.name;c.desc=p.desc||'';c.voice=p.voice||'auto'}}});
+      if(cb||f==='perso')srRender();}});
+    const d=el.querySelector('[data-del]');if(d)d.onclick=()=>{srUpdate(y=>y.cast.splice(i,1));srRender()};
+  });
+  $('srAddCast').classList.toggle('hide',x.cast.length>=4);
+  $('srEps').innerHTML=x.episodes.length?x.episodes.map((e,i)=>'<div class="scene" style="margin-top:.4rem"><div class="scene-h"><b>Ép. '+e.n+' · '+esc(e.title||'')+'</b><span class="st">'+(e.final?'✓ monté':'écrit')+'</span></div><div class="hint" style="margin:.2rem 0">'+esc(e.summary||'')+'</div>'+(i===x.episodes.length-1?'<div class="scene-btns"><button class="btn danger small" data-epdel>✕ Retirer cet épisode</button></div>':'')+'</div>').join(''):'<div class="hint">Aucun épisode pour l\'instant.</div>';
+  const del=$('srEps').querySelector('[data-epdel]');if(del)del.onclick=()=>{if(confirm('Retirer le dernier épisode de la mémoire de la série ?')){srUpdate(y=>y.episodes.pop());srRender()}};
+  $('srWrite').textContent='✍️ Écrire l\'épisode '+(x.episodes.length+1)+' · '+(x.dur||30)+' s (~0,01 $)';
+}
+function srNew(){
+  const x={id:'sr'+Date.now(),name:'',bible:'',model:'libre',dur:30,cast:[{perso:'',name:'',desc:'',voice:'auto',vo:false}],episodes:[]};
+  const l=srAll();l.push(x);srSaveAll(l);LS.set('ms_series_cur',x.id);srRender();$('srName').focus();
+}
+async function stApplyPerso(p,imgs){ST.refs=(imgs||[]).slice(0,3);renderThumbs($('stRefThumbs'),ST.refs);$('stChar').value=p.desc||'';LS.set('ms_stChar',p.desc||'');$('stName').value=p.name;LS.set('ms_stName',p.name);$('stVoice').value=p.voice||'auto';LS.set('ms_stVoice',p.voice||'auto');if(p.lang){$('stLang').value=p.lang;LS.set('ms_stLang',p.lang)}$('stPersona').value=p.perso||'';LS.set('ms_stPersona',p.perso||'')}
+async function srWrite(){
+  const x=srCur();if(!x)return;
+  if(!x.name.trim())return toast('Donne un nom à ta série','warn');
+  const main=x.cast[0];if(!main||!(main.name||main.perso))return toast('Choisis ou nomme le personnage principal','warn');
+  if(ST.busy)return toast('Attends la fin de la création en cours','warn');
+  const last=x.episodes[x.episodes.length-1];
+  let replace=false;
+  if(last&&!last.final&&confirm('L\'épisode '+last.n+' n\'a pas encore été monté.\nOK = le réécrire · Annuler = écrire l\'épisode '+(last.n+1)))replace=true;
+  const n=replace?last.n:x.episodes.length+1;
+  // 1. distribution → onglet Histoire
+  const p=main.perso&&persos().find(q=>q.name===main.perso);
+  if(p)await stApplyPerso(p,await persoImages(p));
+  else{$('stName').value=main.name;LS.set('ms_stName',main.name);$('stChar').value=main.desc||'';LS.set('ms_stChar',main.desc||'');$('stVoice').value=main.voice||'auto';LS.set('ms_stVoice',main.voice||'auto')}
+  $('stMainVO').checked=!!main.vo;LS.set('ms_stMainVO',!!main.vo);$('stMainTTS').value=main.tts||ttsFromType(main.voice);LS.set('ms_stMainTTS',$('stMainTTS').value);stMainVOui();
+  LS.set('ms_others',x.cast.slice(1).filter(c=>c.name||c.perso).map(c=>({name:c.name||c.perso,voice:c.voice||'auto',desc:c.desc||'',vo:!!c.vo,tts:c.tts||ttsFromType(c.voice)})));stRenderOthers();
+  // 2. modèle et durée
+  const m=SR_MODELS[x.model]||SR_MODELS.libre;if(m.fmt){ST.format=m.fmt;LS.set('ms_story_fmt',ST.format);stInit()}
+  const per=stModel.get().duration||5;const opts=[3,4,5,6,7,8,10,12];const want=Math.max(3,Math.round((x.dur||30)/per));
+  $('stCount').value=String(opts.reduce((a,b)=>Math.abs(b-want)<Math.abs(a-want)?b:a));
+  $('stIdea').value=$('srIdea').value.trim();LS.set('ms_stIdea',$('stIdea').value);
+  // 3. mémoire de la série
+  const prev=x.episodes.filter(e=>e.n<n);
+  const extra='\n\nSERIES: "'+x.name+'" — this is episode '+n+'.'+(x.bible?'\nSeries bible (world, story, tone): '+x.bible:'')+(m.llm?'\nSeries style: '+m.llm:'')+
+    '\nTarget length: about '+(x.dur||30)+' seconds.'+
+    (prev.length?'\nPrevious episodes (keep strict continuity: characters, secrets, places, objects):\n'+prev.map(e=>'- Ep. '+e.n+' "'+e.title+'": '+e.summary).join('\n'):'\nThis is the first episode: introduce the main character and the world quickly, with a strong hook.')+
+    '\nEnd with a cliffhanger or a question that makes viewers want the next episode.';
+  const b=$('srWrite');b.disabled=true;
+  try{
+    await stWrite({series:x,n,extra,onDone:j=>{srUpdate(y=>{const ep={n,title:j.title||('Épisode '+n),summary:j.summary||'',date:Date.now()};if(replace)y.episodes[y.episodes.length-1]=ep;else y.episodes.push(ep)});$('srIdea').value='';srRender()}});
+  }finally{b.disabled=false;srRender()}
+}
+function stMainVOui(){$('stMainTTSBox').classList.toggle('hide',!$('stMainVO').checked)}
 
 /* =====================================================================
    PERSONNAGES (fiches réutilisables)
@@ -1886,6 +2021,17 @@ async function checkServer(){
   $('stVoice').innerHTML=voiceOpts(LS.get('ms_stVoice','auto'));$('stVoice').onchange=e=>LS.set('ms_stVoice',e.target.value);
   $('stName').value=LS.get('ms_stName','');$('stName').oninput=e=>LS.set('ms_stName',e.target.value);
   $('stLang').value=LS.get('ms_stLang','French');$('stLang').onchange=e=>LS.set('ms_stLang',e.target.value);
+  $('stMainTTS').innerHTML=ttsOpts(LS.get('ms_stMainTTS','George'));$('stMainTTS').onchange=e=>LS.set('ms_stMainTTS',e.target.value);
+  $('stMainVO').checked=!!LS.get('ms_stMainVO',false);$('stMainVO').onchange=e=>{LS.set('ms_stMainVO',e.target.checked);if(e.target.checked&&!LS.get('ms_stMainTTS',''))$('stMainTTS').value=ttsFromType($('stVoice').value);LS.set('ms_stMainTTS',$('stMainTTS').value);stMainVOui();stRender()};stMainVOui();
+  $('srModel').innerHTML=Object.entries(SR_MODELS).map(([k,m])=>'<option value="'+k+'">'+m.l+'</option>').join('');
+  $('srSel').onchange=e=>{LS.set('ms_series_cur',e.target.value);srRender()};
+  $('srNewBtn').onclick=srNew;$('srWrite').onclick=srWrite;
+  $('srAddCast').onclick=()=>{srUpdate(y=>{if(y.cast.length<4)y.cast.push({perso:'',name:'',desc:'',voice:'auto',vo:false})});srRender()};
+  [['srName','name'],['srBible','bible']].forEach(([id,f])=>$(id).oninput=e=>{srUpdate(y=>y[f]=e.target.value);if(f==='name')srRenderSel()});
+  $('srModel').onchange=e=>srUpdate(y=>y.model=e.target.value);
+  $('srDur').onchange=e=>{srUpdate(y=>y.dur=+e.target.value);srRender()};
+  $('srDel').onclick=()=>{const x=srCur();if(!x)return;if(!confirm('Supprimer la série « '+(x.name||'sans nom')+' » et sa mémoire des épisodes ?\n(Tes vidéos déjà faites restent dans 📁 Mes créations.)'))return;srSaveAll(srAll().filter(y=>y.id!==x.id));LS.set('ms_series_cur','');srRender()};
+  srRender();
   $('stAddChar').onclick=()=>{const l=stOthers();if(l.length<3){l.push({name:'',voice:'auto',desc:''});LS.set('ms_others',l);stRenderOthers()}};
   stRenderOthers();
   $('txVoice').innerHTML=voiceOpts(LS.get('ms_txVoice','auto'));$('txVoice').onchange=e=>LS.set('ms_txVoice',e.target.value);
@@ -1913,7 +2059,7 @@ async function checkServer(){
   $('stStop').onclick=()=>{S.stop.story=true;toast('Arrêt après les scènes en cours…','warn')};
   $('stMontage').onclick=stMontage;
   stRender();
-  persoPicker($('stPersos'),(p,imgs)=>{ST.refs=imgs.slice(0,3);renderThumbs($('stRefThumbs'),ST.refs);$('stChar').value=p.desc||'';LS.set('ms_stChar',p.desc||'');$('stName').value=p.name;LS.set('ms_stName',p.name);$('stVoice').value=p.voice||'auto';LS.set('ms_stVoice',p.voice||'auto');if(p.lang){$('stLang').value=p.lang;LS.set('ms_stLang',p.lang)}$('stPersona').value=p.perso||'';LS.set('ms_stPersona',p.perso||'')});
+  persoPicker($('stPersos'),(p,imgs)=>stApplyPerso(p,imgs));
 
   // Clip musical
   clUniv=univPicker($('clUnivGrid'),$('clUnivSearch'),'clip',true);
