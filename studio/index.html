@@ -1582,12 +1582,12 @@ async function dnGo(){
   if(!budgetOk(cost))return;
   const b=$('dnGo');b.disabled=true;const upd=t=>{$('dnProg').textContent=t};
   try{
-    upd('Préparation de la vidéo de danse…');
-    const r=await fetch('/api/refvideo',{method:'POST',body:JSON.stringify({path:DN.ref.path,start:+$('dnStart').value||0,max:len})});
+    upd('Envoi de la vidéo de danse…');
+    const r=await fetch('/api/refvideo',{method:'POST',headers:falHeaders(),body:JSON.stringify({path:DN.ref.path,start:+$('dnStart').value||0,max:len})});
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'vidéo de danse illisible');
     const look=$('anChar').value.trim();
     const prompt='The character from the image performs exactly the same dance moves as the person in the reference video, same rhythm and timing. Keep the exact face, hair, body and outfit of the image.'+(look?' Character: '+look+'.':'')+' Realistic, smooth natural motion, no text, no watermark.';
-    const res=await falRun(m.id,{image_url:AN.images[0].uri,video_url:d.datauri,character_orientation:$('dnOrient').value,keep_original_sound:$('dnSound').checked,prompt},t=>upd('Danse · '+t),'anim');
+    const res=await falRun(m.id,{image_url:AN.images[0].uri,video_url:d.url,character_orientation:$('dnOrient').value,keep_original_sound:$('dnSound').checked,prompt},t=>upd('Danse · '+t),'anim');
     const url=res.video&&res.video.url;if(!url)throw new Error('Pas de vidéo reçue');
     const real=d.duration||len;addSpend(real*m.price);
     const local=await saveLocal(url,'danse');

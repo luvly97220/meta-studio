@@ -28,6 +28,7 @@ VIDEOS = os.path.join(ROOT, "videos")
 UPLOADS = os.path.join(ROOT, "uploads")
 WORK = os.path.join(ROOT, ".travail")
 FAL_QUEUE = "https://queue.fal.run/"
+FAL_STORAGE = "https://rest.alpha.fal.ai/storage/upload/initiate"
 ALLOWED_HOSTS = ("fal.run", "fal.media", "fal.ai", "falserverless", "googleapis.com", "fal-cdn")
 
 for d in (VIDEOS, UPLOADS, WORK):
@@ -371,8 +372,8 @@ def audio_cut_datauri(rel, start, dur):
     return "data:audio/mpeg;base64," + base64.b64encode(data).decode()
 
 
-def video_ref_datauri(rel, start=0.0, maxdur=30.0):
-    """Prepare une video de danse (reference de mouvement) : coupe, compresse en 720p, base64 pour fal."""
+def video_ref_bytes(rel, start=0.0, maxdur=30.0):
+    """Prepare une video de danse (reference de mouvement) : coupe et compresse en 720p."""
     if not has_ffmpeg():
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
     src = local_path(rel)
@@ -391,7 +392,41 @@ def video_ref_datauri(rel, start=0.0, maxdur=30.0):
     os.remove(out)
     if dur < 3:
         raise RuntimeError("la video de danse doit durer au moins 3 secondes")
-    return "data:video/mp4;base64," + base64.b64encode(data).decode(), dur
+    return data, dur
+
+
+def fal_upload(data, content_type, file_name, auth):
+    """Envoie un fichier sur le stockage fal.ai et renvoie son adresse publique."""
+    if not auth:
+        raise RuntimeError("cle fal.ai manquante (reglages)")
+    info, err = None, ""
+    for url in (FAL_STORAGE + "?storage_type=fal-cdn-v3", FAL_STORAGE):
+        req = urllib.request.Request(
+            url, method="POST",
+            data=json.dumps({"content_type": content_type, "file_name": file_name}).encode(),
+            headers={"Authorization": auth, "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                info = json.loads(r.read())
+            if info.get("upload_url") and info.get("file_url"):
+                break
+        except urllib.error.HTTPError as e:
+            err = "%s : %s" % (e.code, e.read()[:150].decode("utf8", "ignore"))
+            if e.code in (401, 403):
+                raise RuntimeError("Clé fal.ai refusée — vérifie-la dans ⚙️")
+        except Exception as e:
+            err = str(e)
+        info = None
+    if not info:
+        raise RuntimeError("envoi de la vidéo sur fal.ai impossible (%s)" % err)
+    put = urllib.request.Request(info["upload_url"], data=data, method="PUT",
+                                 headers={"Content-Type": content_type})
+    try:
+        with urllib.request.urlopen(put, timeout=300) as r:
+            r.read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError("envoi sur fal.ai impossible (%s)" % e.code)
+    return info["file_url"]
 
 
 def to_mp3_datauri(raw, ext):
@@ -537,8 +572,10 @@ class Handler(SimpleHTTPRequestHandler):
 
             if p.path == "/api/refvideo":
                 d = json.loads(self.body() or b"{}")
-                uri, dur = video_ref_datauri(d.get("path", ""), d.get("start", 0), d.get("max", 30))
-                return self.send_json({"datauri": uri, "duration": dur})
+                data, dur = video_ref_bytes(d.get("path", ""), d.get("start", 0), d.get("max", 30))
+                url = fal_upload(data, "video/mp4", "danse_%d.mp4" % int(time.time()),
+                                 self.headers.get("Authorization"))
+                return self.send_json({"url": url, "duration": dur})
 
             if p.path == "/api/delete":
                 d = json.loads(self.body() or b"{}")
