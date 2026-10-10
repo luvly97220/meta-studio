@@ -107,7 +107,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 
 <!-- ================= HISTOIRE ================= -->
 <section class="tab on" id="t-story">
-  <h2>🎬 Histoire d'une minute</h2>
+  <button class="btn sec small" id="stNew" style="float:right;margin-top:.2rem">🆕 Nouveau</button><h2>🎬 Histoire d'une minute</h2>
   <p class="lead">Ton personnage, une époque, une idée → l'IA écrit le script, crée les scènes (image + vidéo parlante) et monte une seule vidéo prête à poster.</p>
 
   <div class="card">
@@ -182,7 +182,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 
 <!-- ================= CLIP MUSICAL ================= -->
 <section class="tab" id="t-clip">
-  <h2>🎵 Clip musical</h2>
+  <button class="btn sec small" id="clNew" style="float:right;margin-top:.2rem">🆕 Nouveau</button><h2>🎵 Clip musical</h2>
   <p class="lead">Ton son + ton artiste → l'IA imagine le clip, crée les plans (dont des plans où l'artiste chante en play-back sur ta voix) et les cale exactement sur ta musique.</p>
   <div class="card">
     <label class="lbl">1. Ton morceau</label>
@@ -233,7 +233,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 
 <!-- ================= ANIMER ================= -->
 <section class="tab" id="t-anim">
-  <h2>🖼️ Photo → Vidéo</h2>
+  <button class="btn sec small" id="anNew" style="float:right;margin-top:.2rem">🆕 Nouveau</button><h2>🖼️ Photo → Vidéo</h2>
   <p class="lead">Anime une ou plusieurs photos avec un des 300 univers. Chaque photo devient une vidéo.</p>
   <div class="card">
     <div class="chips" id="anPersos" style="margin:0 0 .6rem"></div>
@@ -1101,7 +1101,7 @@ function resCard(o){
    ===================================================================== */
 const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
 let stModel,stUniv;
-function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dubVoice:s.dubVoice,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,cam:s.cam||'',img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dubVoice:s.dubVoice,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
 function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
 function stInit(){
   $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
@@ -1603,6 +1603,32 @@ async function anGo(){
   if(ok>1){$('anMontage').textContent='🎞️ Assembler les '+ok+' vidéos dans l\'ordre'+(ok<total?' (sans les ratées)':'');$('anMontage').classList.remove('hide')}
   toast(done+' vidéo'+(done>1?'s':'')+' créée'+(done>1?'s':''),done?'ok':'err');
 }
+/* ---------- 🆕 Nouveau montage : vide l'onglet (garde personnages, clé, modèles, voix) ---------- */
+function newMontage(tab){
+  if(({story:ST,clip:CL,anim:AN})[tab].busy)return toast('Attends la fin de la création en cours','warn');
+  if(!confirm('Commencer un nouveau montage ?\nLe montage en cours sera effacé de cet onglet (tes vidéos déjà créées restent dans 📁 Mes créations).'))return;
+  const clr=(ids)=>ids.forEach(id=>{const el=$(id);if(!el)return;el.value='';LS.set('ms_'+id,'')});
+  if(tab==='story'){
+    ST.scenes=[];ST.refs=[];ST.music=null;ST.final=null;stSave();LS.set('ms_story_title','histoire');
+    clr(['stChar','stPlace','stIdea','stName','stPersona']);renderThumbs($('stRefThumbs'),ST.refs);
+    stUniv.set(null);LS.set('ms_univ_story',null);$('stCam').value='auto';LS.set('ms_stCam','auto');
+    $('stMusicName').textContent='Ajouter ta musique';$('stOut').innerHTML='';$('stProg').textContent='';stRender();
+  }else if(tab==='clip'){
+    CL.scenes=[];CL.refs=[];CL.song=null;LS.set('ms_clip_song',null);clSave();LS.set('ms_clip_name','');
+    clr(['clStart','clLen','clChar','clTitle','clGenre','clIdea','clLyrics']);renderThumbs($('clRefThumbs'),CL.refs);
+    clUniv.set(null);LS.set('ms_univ_clip',null);$('clCam').value='auto';LS.set('ms_clCam','auto');
+    $('clOut').innerHTML='';clSongInfo();clRender();
+  }else{
+    AN.images=[];AN.end=null;AN.results=[];AN.finalPath=null;AN.voFile=null;DN.ref=null;
+    renderThumbs($('anThumbs'),AN.images,anPrice);
+    ['anChar','anBeats','anVO'].forEach(id=>{$(id).value='';LS.set('ms_'+id,'')});$('anStory').value='';
+    $('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide');
+    $('anVOFileName').textContent='📂 Choisir une vidéo déjà faite (optionnel)';$('dnFileName').textContent='📂 Choisir la vidéo de danse (3 à 30 s)';
+    ['anOut','anFinal','anVOOut','dnOut'].forEach(id=>$(id).innerHTML='');['anProg','dnProg'].forEach(id=>$(id).textContent='');
+    $('anMontage').classList.add('hide');anPrice();dnPrice();
+  }
+  window.scrollTo({top:0,behavior:'smooth'});toast('Nouveau montage prêt ✓','ok');
+}
 /* ---------- copier une danse (Kling Motion Control) ---------- */
 const DANCE_MODELS={
   v26:{l:'Kling 2.6 · éco (0,07 $/s)',id:'fal-ai/kling-video/v2.6/standard/motion-control',price:0.07},
@@ -1924,6 +1950,7 @@ async function checkServer(){
     try{const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const r=await fetch('/api/upload?name=danse&ext='+ext,{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.detail||'');DN.ref={path:d.path,duration:d.duration||0};$('dnFileName').textContent='🎬 '+f.name+(d.duration?' · '+Math.round(d.duration)+' s':'')+' (touche pour changer)';dnPrice()}
     catch(err){$('dnFileName').textContent='Erreur, réessaie'}e.target.value=''};
   $('dnGo').onclick=dnGo;dnPrice();
+  $('stNew').onclick=()=>newMontage('story');$('clNew').onclick=()=>newMontage('clip');$('anNew').onclick=()=>newMontage('anim');
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;
