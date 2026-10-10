@@ -142,6 +142,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="univ-grid" id="stUnivGrid"></div>
     <label class="lbl">ou décris le lieu toi-même</label>
     <input type="text" id="stPlace" placeholder="ex : l'âge de glace avec des mammouths">
+    <label class="lbl">🎥 Caméra du film (chaque scène peut avoir la sienne)</label><select id="stCam"></select>
     <label class="lbl">4. Idée de l'histoire</label>
     <textarea id="stIdea" placeholder="ex : je me réveille à l'âge de glace, je filme les mammouths, une tempête arrive, je me cache dans une grotte, à la fin je trouve un truc incroyable…"></textarea>
     <div class="row">
@@ -213,6 +214,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <label class="lbl">Univers (optionnel)</label>
     <input type="text" id="clUnivSearch" placeholder="🔎 Chercher un univers (néon, nuit, désert…)">
     <div class="univ-grid" id="clUnivGrid"></div>
+    <label class="lbl">🎥 Mouvement de caméra</label><select id="clCam"></select>
     <label class="lbl">Plans où l'artiste chante (play-back)</label>
     <select id="clSing"><option value="0">Aucun</option><option value="3" selected>1 plan sur 3</option><option value="2">1 plan sur 2</option><option value="1">Tous les plans</option></select>
     <div class="hint">🎤 Sur ces plans, le visage chante en synchro avec ta voix (~0,06 $/s). Les autres plans sont des scènes de cinéma, ta musique est posée par-dessus au montage.</div>
@@ -321,6 +323,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Voix (si quelqu'un parle)</label><select id="txVoice"></select></div>
       <div><label class="lbl">Langue</label><select id="txLang"><option value="French">Français</option><option value="English">Anglais</option><option value="Spanish">Espagnol</option><option value="Portuguese">Portugais</option><option value="Brazilian Portuguese">Portugais (Brésil)</option><option value="Italian">Italien</option><option value="German">Allemand</option><option value="Dutch">Néerlandais</option><option value="Arabic">Arabe</option><option value="Moroccan Arabic (Darija)">Arabe darija (expérimental)</option><option value="Turkish">Turc</option><option value="Russian">Russe</option><option value="Polish">Polonais</option><option value="Chinese (Mandarin)">Chinois</option><option value="Japanese">Japonais</option><option value="Korean">Coréen</option><option value="Hindi">Hindi</option><option value="Haitian Creole">Créole haïtien (expérimental)</option><option value="Antillean French Creole">Créole antillais (expérimental)</option><option value="Wolof">Wolof (expérimental)</option><option value="Lingala">Lingala (expérimental)</option><option value="Swahili">Swahili (expérimental)</option></select></div>
     </div>
+    <label class="lbl">🎥 Mouvement de caméra</label><select id="txCam"></select>
     <label class="lbl">Format de la vidéo</label><select id="txRatio"><option value="9:16">📱 9:16 · TikTok / Reels / Shorts</option><option value="1:1">⬛ 1:1 · carré</option><option value="16:9">🖥️ 16:9 · YouTube</option></select>
     <label class="lbl">Nombre de vidéos</label><select id="txCount"><option>1</option><option>2</option><option>3</option><option>4</option></select>
   </div>
@@ -775,24 +778,61 @@ const PRESETS=[
   {l:'✨ K-pop',t:'Plan unique continu. Chorégraphie K-pop nette et précise : gestes de bras secs et synchronisés, petits sauts, pose en cœur avec les mains, clin d\'œil final à la caméra.'},
   {l:'🚶 Marche défilé',t:'Plan unique continu. Marche de défilé assurée vers la caméra, un pied devant l\'autre, balancement naturel des bras, s\'arrête et prend la pose, main sur la hanche.'}
 ];
-/* mouvements de caméra (Animer) */
-const CAMS=[
-  ['auto','✨ Automatique (selon l\'univers)',''],
-  ['static','📌 Fixe sur trépied','Static locked-off camera on a tripod, no camera movement at all'],
-  ['ground','⬆️ Fixe au sol, contre-plongée (tendance MOOD)','Static camera placed on the ground pointing up, strong low-angle wide shot, the camera never moves'],
-  ['handheld','🤳 Filmé au téléphone (style TikTok)','Handheld smartphone footage, slight natural shake, like a friend filming for TikTok'],
-  ['pushin','🔍 Avance lentement vers le sujet','Slow smooth dolly-in toward the subject'],
-  ['pullout','↩️ Recule lentement','Slow smooth dolly-out pulling away from the subject, revealing the surroundings'],
-  ['orbit','🔄 Tourne autour (360°)','Smooth 360-degree orbit around the subject, subject stays centered'],
-  ['halforbit','↪️ Demi-tour autour','Slow half orbit around the subject, from the front to the side'],
-  ['tracking','➡️ Suit le sujet de côté','Lateral tracking shot following the subject sideways at the same speed'],
-  ['follow','🏃 Suit le sujet de derrière','Camera follows behind the subject at shoulder height, steady tracking'],
-  ['craneup','🏗️ Monte vers le ciel','Crane shot rising up from low to high above the subject'],
-  ['drone','🚁 Vue drone qui descend','Aerial drone shot descending toward the subject'],
-  ['crash','⚡ Zoom rapide','Fast punch-in crash zoom on the subject at the key moment'],
-  ['dutch','🎞️ Clip musical (angles penchés)','Music-video style, dynamic tilted dutch angle, smooth sway with the rhythm']
+/* bibliothèque de mouvements de caméra (Animer, Histoire, Clip, Texte) */
+const CAM_GROUPS=[
+ ['📌 Plans fixes',[
+  ['static','Fixe sur trépied','Static locked-off camera on a tripod, no camera movement at all'],
+  ['ground','Fixe au sol, contre-plongée (tendance MOOD)','Static camera placed on the ground pointing up, strong low-angle wide shot, the camera never moves'],
+  ['eye','Face caméra, hauteur des yeux','Static eye-level medium shot, the subject faces the camera'],
+  ['lowangle','Contre-plongée héroïque','Low-angle hero shot looking up at the subject, powerful and imposing'],
+  ['highangle','Plongée (vue d\'en haut)','High-angle shot looking down at the subject'],
+  ['topdown','Vue du dessus, à la verticale','Top-down overhead shot looking straight down at the subject'],
+  ['closeup','Très gros plan sur le visage','Extreme close-up on the face, shallow depth of field, background blurred'],
+  ['wide','Plan très large (petit dans le décor)','Extreme wide shot, the subject is small in a vast environment'],
+  ['cctv','Caméra de surveillance','CCTV security camera angle from a high corner, slightly grainy footage, static']]],
+ ['🔍 Avancer / reculer',[
+  ['pushin','Avance lentement vers le sujet','Slow smooth dolly-in toward the subject'],
+  ['pullout','Recule lentement','Slow smooth dolly-out pulling away from the subject, revealing the surroundings'],
+  ['reveal','Révélation (détail → scène entière)','The camera starts on a close detail then pulls back to reveal the whole scene'],
+  ['zoom','Zoom lent','Slow optical zoom in on the subject'],
+  ['crash','Zoom rapide (effet choc)','Fast punch-in crash zoom on the subject at the key moment'],
+  ['vertigo','Effet vertige (dolly zoom)','Vertigo dolly zoom: the camera moves back while zooming in, the background stretches dramatically']]],
+ ['🔄 Tourner autour',[
+  ['orbit','Tour complet (360°)','Smooth 360-degree orbit around the subject, the subject stays centered'],
+  ['halforbit','Demi-tour autour','Slow half orbit around the subject, from the front to the side'],
+  ['orbitfast','Tour rapide et dynamique','Fast energetic orbit around the subject'],
+  ['spiral','Spirale qui monte','The camera spirals upward around the subject'],
+  ['bullet','Effet « bullet time » (temps figé)','Bullet-time effect: the action freezes and the camera circles around the frozen subject']]],
+ ['🏃 Suivre le sujet',[
+  ['tracking','Suit de côté (travelling)','Lateral tracking shot following the subject sideways at the same speed'],
+  ['follow','Suit de derrière','The camera follows behind the subject at shoulder height, steady tracking'],
+  ['leading','Recule devant lui pendant qu\'il avance','Leading shot: the camera moves backward in front of the subject as they walk toward it'],
+  ['shoulder','Par-dessus l\'épaule','Over-the-shoulder shot from behind the subject'],
+  ['pov','Vue subjective (ses yeux)','First-person POV shot, the camera is the character\'s eyes'],
+  ['fpv','Drone FPV qui fonce','FPV drone flying fast and close through the scene, swooping around the subject']]],
+ ['🚁 Haut / bas / côté',[
+  ['craneup','Monte vers le ciel (grue)','Crane shot rising up from low to high above the subject'],
+  ['cranedown','Descend vers le sujet (grue)','Crane shot descending from high above down to the subject'],
+  ['drone','Vue drone qui descend','Aerial drone shot descending toward the subject'],
+  ['aerial','Survol aérien de la ville','Wide aerial establishing shot slowly flying over the city'],
+  ['tiltup','Remonte des pieds au visage','The camera tilts up slowly from the feet to the face'],
+  ['tiltdown','Descend du visage aux pieds','The camera tilts down slowly from the face to the feet'],
+  ['pan','Panoramique gauche → droite','Slow horizontal pan from left to right across the scene']]],
+ ['🎬 Styles',[
+  ['handheld','Filmé au téléphone (style TikTok)','Handheld smartphone footage, slight natural shake, like a friend filming for TikTok'],
+  ['selfie','Selfie (elle/il tient le téléphone)','Selfie shot: the subject holds the phone at arm\'s length, front camera, natural handheld framing'],
+  ['action','Caméra d\'action qui tremble','Shaky intense handheld camera, action movie energy, quick reactive movements'],
+  ['slowmo','Ralenti cinéma','Cinematic slow-motion shot, smooth and dramatic'],
+  ['whip','Mouvement fouetté rapide','Fast whip pan, energetic transition-style camera move'],
+  ['rack','Mise au point qui glisse','Rack focus from a foreground object to the subject'],
+  ['dutch','Clip musical (angles penchés)','Music-video style, dynamic tilted dutch angle, smooth sway with the rhythm'],
+  ['doc','Documentaire / reportage','Documentary style handheld camera, observational, natural framing']]]
 ];
-function camText(){const c=CAMS.find(x=>x[0]===$('anCam').value);return c?c[2]:''}
+const CAM_ALL=CAM_GROUPS.flatMap(g=>g[1]);
+function camPrompt(id){const c=CAM_ALL.find(x=>x[0]===id);return c?c[2]:''}
+function camOptions(first){return '<option value="'+(first?'':'auto')+'">'+(first||'✨ Automatique')+'</option>'+CAM_GROUPS.map(([g,l])=>'<optgroup label="'+g+'">'+l.map(c=>'<option value="'+c[0]+'">'+c[1]+'</option>').join('')+'</optgroup>').join('')}
+function camSelect(id,key){const el=$(id);el.innerHTML=camOptions();el.value=LS.get(key,'auto');if(!el.value)el.value='auto';el.onchange=e=>LS.set(key,e.target.value)}
+function camText(){return camPrompt($('anCam').value)}
 const FRAMING={close:'extreme close-up framing, tight on the subject',medium:'medium shot, subject framed from the waist up',wide:'wide shot, subject framed with the environment visible'};
 const INTENS={subtle:'very subtle movement',moderate:'moderate, controlled movement',strong:'strong dynamic movement, energetic motion'};
 // Kling multi-plans : 512 caractères max par plan. On garde l'action d'abord,
@@ -1103,6 +1143,7 @@ function stRender(){
     '<span class="mini">Décor (image)</span><textarea data-k="decor" placeholder="Où il est, ce qu\'on voit">'+esc(s.decor)+'</textarea>'+
     '<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Ce qui se passe, mouvement">'+esc(s.action)+'</textarea>'+
     '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
+    '<span class="mini">🎥 Caméra</span><select data-k="cam">'+camOptions('= caméra du film').replace('value="'+(s.cam||'')+'"','value="'+(s.cam||'')+'" selected')+'</select>'+
     ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
     '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&s.line&&s.line.trim()?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
@@ -1110,6 +1151,7 @@ function stRender(){
   box.querySelectorAll('.scene').forEach(el=>{
     const i=+el.dataset.i;
     el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave();stPrice()});
+    el.querySelectorAll('select[data-k]').forEach(t=>t.onchange=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave()});
     el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>stAction(i,b.dataset.a));
   });
   const has=ST.scenes.length>0;
@@ -1147,12 +1189,13 @@ async function stWrite(){
   const sys='You are a viral TikTok short-video screenwriter. You write tight, visual, funny or gripping stories for AI video generation. Answer ONLY with valid JSON, no markdown.';
   const prompt='Write a '+n+'-scene vertical video story.\nFormat: '+FORMATS[ST.format].llm+'\nMain character: '+stMainName()+' — '+($('stChar').value.trim()||'the person in the reference photo')+(voiceDesc($('stVoice').value)?' ('+voiceDesc($('stVoice').value)+')':'')+($('stPersona').value.trim()?'\nPersonality / way of speaking of '+stMainName()+': '+$('stPersona').value.trim()+' (make the lines sound like this)':'')+(stChars().length>1?'\nOther characters: '+stChars().slice(1).map(c=>c.name+(c.desc?' — '+c.desc:'')).join('; '):'')+'\nSetting / era: '+(place||'free choice that fits the idea')+'\nIdea: '+(idea||'surprise me, make it engaging')+
     '\nRules:\n- Scene 1 must hook the viewer in the first 2 seconds (surprise, question or danger).\n- Escalate scene after scene, end with a strong payoff or punchline.\n- Keep the same character and outfit in every scene.\n- "decor": English, one sentence describing the place, lighting and what is visible around the character (for an image generator). Do NOT describe the face.\n'+(FORMATS[ST.format].beats?'- "action": English, 2 or 3 quick beats separated by " | " (e.g. "he dodges the punch | he counters with a spinning kick | the enemy crashes into the crates"), covering the '+o.duration+' second shot. Readable moves, no blood.\n':'- "action": English, one sentence describing movement, camera and sounds during the '+o.duration+' second shot.\n')+(stChars().length>1?'- "line": dialogue in '+lang+', natural spoken style. One line per speaker, formatted "Name: text", separated by \\n. Use the characters\' exact names. Max '+words+' words in total (it must fit in '+o.duration+' seconds). Can be empty.\n- When another character speaks or appears, mention them by name in "decor".\n':'- "line": what the character says, in '+lang+', natural spoken style, max '+words+' words (it must fit in '+o.duration+' seconds). Can be empty for silent scenes.\n')+
-    'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."}]} with exactly '+n+' scenes.';
+    ($('stCam').value==='auto'?'- "cam": the best camera move for the scene, one id from this list: '+CAM_ALL.map(c=>c[0]+' ('+c[2].split(',')[0]+')').join('; ')+'. Vary the camera from scene to scene like a real film.\n':'')+
+    'Return: {"title":"short title","scenes":[{"decor":"...","action":"...","line":"..."'+($('stCam').value==='auto'?',"cam":"..."':'')+'}]} with exactly '+n+' scenes.';
   const b=$('stWrite');b.disabled=true;b.innerHTML='<span class="spin"></span> Écriture du script…';
   try{
     const j=await llm(sys,prompt);
     if(ST.scenes.some(s=>s.vid)&&!confirm('Remplacer les scènes actuelles par ce nouveau script ?')){return}
-    ST.scenes=j.scenes.map(s=>({decor:s.decor||'',action:s.action||'',line:s.line||''}));
+    ST.scenes=j.scenes.map(s=>({decor:s.decor||'',action:s.action||'',line:s.line||'',cam:camPrompt(s.cam)?s.cam:''}));
     ST.title=j.title||'histoire';LS.set('ms_story_title',ST.title);
     stSave();stRender();toast('Script prêt : « '+ST.title+' » — tu peux modifier chaque scène','ok',3500);
     $('stScenes').scrollIntoView({behavior:'smooth'});
@@ -1164,8 +1207,9 @@ function stImgPrompt(s,hasRef){
   return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
     (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
 }
+function stCamFor(s){return camPrompt(s&&s.cam||$('stCam').value)}
 function stBeatSuffix(s,o){
-  const u=stUniv.get();let p='. '+(u?u.p.replace(/Preserve identity\.?/i,'')+' ':'');
+  const u=stUniv.get();let p='. '+(stCamFor(s)?'Camera: '+stCamFor(s)+'. ':'')+(u?u.p.replace(/Preserve identity\.?/i,'')+' ':'');
   if(o.audio)p+='Natural sound effects (impacts, footsteps, ambience), no music. ';
   return p+'Keep the same face, mask and outfit as the first frame. No subtitles, no text.';
 }
@@ -1173,6 +1217,7 @@ function stVidPrompt(s,o){
   if(splitBeats(s.action).length>1)s=Object.assign({},s,{action:splitBeats(s.action).join(', then ')});
   const f=FORMATS[ST.format];const u=stUniv.get();
   let p=f.vid+' '+(s.action||'')+' ';
+  if(stCamFor(s))p+='Camera: '+stCamFor(s)+'. ';
   if(u)p+=u.p.replace(/Preserve identity\.?/i,'')+' ';
   if(o.audio){p+=s.line&&s.line.trim()?dialoguePrompt(s.line,$('stLang').value)+($('stNative').checked?'Native '+$('stLang').value+' speaker from the country, natural local accent, no English or foreign accent. ':''):'No dialogue. ';p+='Natural ambient sound effects matching the scene, no music.'}
   else if(s.line&&s.line.trim())p+='The person is talking expressively.';
@@ -1426,8 +1471,9 @@ function clImgPrompt(s,hasRef){
 }
 function clVidPrompt(s){
   const u=clUniv.get();const g=$('clGenre').value.trim();
-  return 'Cinematic music video shot'+(g?' for a '+g+' song':'')+'. '+(s.action||'')+' '+(u?u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights)+'. ':'')+
-    'Rhythmic, dynamic camera movement. Keep the same face and outfit as the first frame. No dialogue, no lip movement, no text, no subtitles.';
+  const cam=camPrompt($('clCam').value);
+  return 'Cinematic music video shot'+(g?' for a '+g+' song':'')+'. '+(s.action||'')+' '+(u?u.p.replace(/Preserve identity\.?/i,'')+' '+(cam||rand(u.cams))+', '+rand(u.lights)+'. ':'')+
+    (cam&&!u?'Camera: '+cam+'. ':cam?'':'Rhythmic, dynamic camera movement. ')+'Keep the same face and outfit as the first frame. No dialogue, no lip movement, no text, no subtitles.';
 }
 async function clGenerate(only){
   if(CL.busy)return;
@@ -1666,7 +1712,8 @@ async function txGo(){
   const o=txModel.get();const n=+$('txCount').value;const u=txUniv.get();
   if(!budgetOk(n*videoCost(o.model,o.duration,o.audio)))return;
   $('txGo').disabled=true;let done=0;
-  const prompt=t.replace(/[.!?\s]+$/,'')+(u?'. '+u.p.replace(/Preserve identity\.?/i,'')+' '+rand(u.cams)+', '+rand(u.lights):'')+(o.audio?'. Natural sound effects; characters speak '+$('txLang').value+(voiceDesc($('txVoice').value)?' with a '+voiceDesc($('txVoice').value):'')+' with accurate lip-sync if they talk':'')+'. Vertical 9:16, no text.';
+  const cam=camPrompt($('txCam').value);
+  const prompt=t.replace(/[.!?\s]+$/,'')+(u?'. '+u.p.replace(/Preserve identity\.?/i,'')+' '+(cam||rand(u.cams))+', '+rand(u.lights):cam?'. Camera: '+cam:'')+(o.audio?'. Natural sound effects; characters speak '+$('txLang').value+(voiceDesc($('txVoice').value)?' with a '+voiceDesc($('txVoice').value):'')+' with accurate lip-sync if they talk':'')+'. Vertical 9:16, no text.';
   await Promise.all(Array.from({length:n},async(_,i)=>{
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('txOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
@@ -1868,7 +1915,7 @@ async function checkServer(){
   $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';$('anEndClear').classList.toggle('hide',!AN.end);e.target.value=''};
   $('anEndClear').onclick=()=>{AN.end=null;$('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide')};
   chips($('anPresets'),PRESETS.map((p,i)=>[String(i),p.l]),null,v=>{$('anStory').value=PRESETS[+v].t});
-  $('anCam').innerHTML=CAMS.map(c=>'<option value="'+c[0]+'">'+c[1]+'</option>').join('');$('anCam').value=LS.get('ms_anCam','auto');$('anCam').onchange=e=>LS.set('ms_anCam',e.target.value);
+  camSelect('anCam','ms_anCam');camSelect('stCam','ms_stCam');camSelect('clCam','ms_clCam');camSelect('txCam','ms_txCam');
   // Copier une danse
   $('dnModel').innerHTML=Object.entries(DANCE_MODELS).map(([k,m])=>'<option value="'+k+'">'+m.l+'</option>').join('');
   ['dnModel','dnOrient','dnStart','dnMax'].forEach(id=>{const v=LS.get('ms_'+id,null);if(v!==null)$(id).value=v;const ev=$(id).tagName==='SELECT'?'onchange':'oninput';$(id)[ev]=e=>{LS.set('ms_'+id,e.target.value);dnPrice()}});
