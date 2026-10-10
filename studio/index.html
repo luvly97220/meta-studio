@@ -191,9 +191,11 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 
   <button class="btn sec" id="stWrite">✍️ Écrire le script avec l'IA (~0,01 $)</button>
   <button class="btn sec" id="stAddScene">＋ Ajouter une scène vide (écrire moi-même)</button>
+  <div class="row" style="margin-top:.4rem"><div><button class="btn sec small" id="stAddMove" style="width:100%">＋ 💃 Mouvement Pexels</button></div><div><button class="btn sec small" id="stAddBroll" style="width:100%">＋ 🎞️ Plan d'ambiance</button></div></div>
 
   <div class="up hide" data-pick="stBoard" id="stBoardBox" style="padding:.7rem;margin-bottom:.6rem"><input type="file" id="stBoard" accept="image/*" multiple><div class="t">🖼️ Mettre mes images (storyboard ChatGPT / Meta…)</div><div class="h">Choisis-les dans l'ordre : 1re image → scène 1, 2e → scène 2… Elles remplacent les images de l'IA (gratuit).</div></div>
   <input type="file" id="stOneImg" accept="image/*" class="hide">
+  <input type="file" id="stRefFile" accept="video/*" class="hide">
   <div id="stScenes"></div>
   <div class="price hide" id="stPrice"></div>
   <button class="btn hide" id="stGen">🎬 Générer toutes les scènes</button>
@@ -1138,7 +1140,7 @@ function resCard(o){
    ===================================================================== */
 const ST={refs:[],scenes:LS.get('ms_story_scenes',[]),music:null,format:LS.get('ms_story_fmt','vlog'),busy:false,final:null};
 let stModel,stUniv;
-function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,cam:s.cam||'',img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dubVoice:s.dubVoice,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
+function stSave(){LS.set('ms_story_scenes',ST.scenes.map(s=>({decor:s.decor,action:s.action,line:s.line,cam:s.cam||'',kind:s.kind||'',ref:s.ref||null,refStart:s.refStart||0,refDur:s.refDur||0,img:s.img,vid:s.vid,local:s.local,vidOrig:s.vidOrig,dubVoice:s.dubVoice,dur:s.dur,status:s.status==='busy'?'':s.status,msg:s.status==='busy'?'':s.msg})))}
 function stPlace(){const p=$('stPlace').value.trim();const u=stUniv.get();return p||(u?u.n+' ('+u.p.replace(/Preserve identity\.?/i,'').trim()+')':'')}
 function stInit(){
   $('stFormat').innerHTML=Object.keys(FORMATS).map(k=>'<button class="chip '+(ST.format===k?'sel':'')+'" data-f="'+k+'">'+FORMATS[k].l+'</button>').join('');
@@ -1173,23 +1175,58 @@ async function stDub(idx){
   }
   ST.busy=false;stRender();if(ok)toast(ok+' scène'+(ok>1?'s':'')+' redoublée'+(ok>1?'s':'')+' — assemble la vidéo finale','ok',5000);
 }
+/* ---------- scènes spéciales : mouvement copié / plan d'ambiance (vidéos Pexels) ---------- */
+const SC_KINDS={'':'🎬 Scène IA normale','move':'💃 Mouvement copié (vidéo Pexels)','broll':'🎞️ Plan d\'ambiance (vidéo Pexels, gratuit)'};
+const MOVE_MODEL={id:'fal-ai/kling-video/v2.6/standard/motion-control',price:0.07};
+function scDefDur(s){return s.kind==='broll'?Math.min(4,stModel.get().duration):Math.min(10,stModel.get().duration)}
+function scLen(s){
+  const want=s.refDur||scDefDur(s);const cap=s.kind==='move'?10:30;let L=Math.min(want,cap);
+  if(s.ref&&s.ref.duration)L=Math.min(L,Math.max(0,s.ref.duration-(s.refStart||0)));
+  return Math.max(0,L);
+}
+function scCost(s,o){if(s.kind==='broll')return 0;if(s.kind==='move')return (s.img?0:IMG_PRICE)+scLen(s)*MOVE_MODEL.price;return (s.img?0:IMG_PRICE)+videoCost(o.model,o.duration,o.audio)}
+function scBrollReady(s){if(s.kind!=='broll')return;if(s.ref){s.local=s.ref.path;s.vid=null;s.img=null;s.dur=scLen(s);s.status='done';s.msg='✓ Plan d\'ambiance'}else{s.local=null;s.status='';s.msg=''}}
+function scSetKind(s,k){
+  const was=s.kind||'';s.kind=k;if(was===k)return;
+  if(was==='broll'||k==='broll'||was==='move'||k==='move'){s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';if(k==='broll'||was==='broll')s.img=null}
+  if(k==='move'&&s.img)s.img=null; // il faut une image en pied
+  scBrollReady(s);
+}
+async function scPickRef(i,f){
+  const s=ST.scenes[i];if(!s)return;
+  if(!S.server)return toast('Lance python server.py','err');
+  s.msg='Envoi de la vidéo…';stRender();
+  try{const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const r=await fetch('/api/upload?name=pexels&ext='+ext,{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.detail||'');
+    s.ref={path:d.path,duration:d.duration||0,name:f.name.length>28?f.name.slice(0,25)+'…':f.name};
+    if(s.ref.duration&&(s.refStart||0)>=s.ref.duration)s.refStart=0;
+    if(s.kind==='move'){s.vid=null;s.local=null;s.status='';s.msg=''}
+    scBrollReady(s);if(s.kind==='move')s.msg='Vidéo prête · à générer';
+    if(s.kind==='move'&&s.ref.duration&&s.ref.duration<3)toast('Vidéo trop courte : il faut au moins 3 s de mouvement','warn',4500);
+  }catch(e){s.msg='✕ Envoi impossible, réessaie'}
+  stSave();stRender();
+}
 function stRender(){
   const box=$('stScenes');
   box.innerHTML=ST.scenes.map((s,i)=>'<div class="scene '+(s.status||'')+'" data-i="'+i+'">'+
     '<div class="scene-h"><b>Scène '+(i+1)+'</b><span class="st">'+esc(s.msg||(s.local||s.vid?'✓ Prête':s.img?'Image prête':'À générer'))+'</span></div>'+
-    '<span class="mini">Décor (image)</span><textarea data-k="decor" placeholder="Où il est, ce qu\'on voit">'+esc(s.decor)+'</textarea>'+
-    '<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Ce qui se passe, mouvement">'+esc(s.action)+'</textarea>'+
-    '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
-    '<span class="mini">🎥 Caméra</span><select data-k="cam">'+camOptions('= caméra du film').replace('value="'+(s.cam||'')+'"','value="'+(s.cam||'')+'" selected')+'</select>'+
+    '<select data-k="kind" class="st-kind">'+Object.keys(SC_KINDS).map(k=>'<option value="'+k+'" '+((s.kind||'')===k?'selected':'')+'>'+SC_KINDS[k]+'</option>').join('')+'</select>'+
+    (s.kind?'<div class="up" data-a="pickref" style="padding:.6rem;margin-top:.4rem"><div class="t">'+(s.ref?'🎬 '+esc(s.ref.name)+(s.ref.duration?' · '+Math.round(s.ref.duration)+' s':'')+' (touche pour changer)':'📂 Choisir la vidéo Pexels'+(s.kind==='move'?' (le mouvement à copier)':''))+'</div></div>'+
+      '<div class="row" style="margin-top:.4rem"><div><span class="mini">Début dans la vidéo (s)</span><input type="number" min="0" step="0.5" data-n="refStart" value="'+(s.refStart||0)+'"></div><div><span class="mini">Durée (s)</span><input type="number" min="'+(s.kind==='move'?3:1)+'" max="'+(s.kind==='move'?10:30)+'" step="0.5" data-n="refDur" value="'+(s.refDur||scDefDur(s))+'"></div></div>'+
+      '<div class="hint" style="margin:.3rem 0">'+(s.kind==='move'?'Le personnage fait exactement le mouvement de la vidéo (danse, sport, marche…), dans le décor ci-dessous. Kling 2.6 · ~'+money(scLen(s)*MOVE_MODEL.price)+'. Vidéo avec visages découverts, 1 personne de préférence.':'La vidéo est mise telle quelle dans le montage, sans IA : gratuit. Une vidéo horizontale est mise en vertical avec un fond flou.')+'</div>':'')+
+    (s.kind!=='broll'?'<span class="mini">Décor (image)</span><textarea data-k="decor" placeholder="Où il est, ce qu\'on voit">'+esc(s.decor)+'</textarea>':'')+
+    (!s.kind?'<span class="mini">Action (vidéo)</span><textarea data-k="action" placeholder="Ce qui se passe, mouvement">'+esc(s.action)+'</textarea>':'')+
+    '<span class="mini">'+(s.kind?'Voix off pendant cette scène (optionnel)':'Réplique (ce qu\'il dit)')+'</span><textarea data-k="line" placeholder="'+(s.kind?'Ex : Ce matin, direction la plage…':'Laisser vide = pas de parole')+'">'+esc(s.line)+'</textarea>'+
+    (!s.kind?'<span class="mini">🎥 Caméra</span><select data-k="cam">'+camOptions('= caméra du film').replace('value="'+(s.cam||'')+'"','value="'+(s.cam||'')+'" selected')+'</select>':'')+
     ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
-    '<div class="scene-btns"><button class="btn sec small" data-a="myimg">🖼️ Mon image</button><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+    '<div class="scene-btns">'+(s.kind!=='broll'?'<button class="btn sec small" data-a="myimg">🖼️ Mon image</button><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':''):'')+(!s.kind&&s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
   $('stBoardBox').classList.toggle('hide',!ST.scenes.length||ST.busy);
   $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>s.vid&&s.line&&s.line.trim())||ST.busy);
   box.querySelectorAll('.scene').forEach(el=>{
     const i=+el.dataset.i;
     el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave();stPrice()});
-    el.querySelectorAll('select[data-k]').forEach(t=>t.onchange=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave()});
+    el.querySelectorAll('select[data-k]').forEach(t=>t.onchange=()=>{const sc=ST.scenes[i];if(t.dataset.k==='kind'){scSetKind(sc,t.value);stSave();return stRender()}sc[t.dataset.k]=t.value;stSave()});
+    el.querySelectorAll('input[data-n]').forEach(t=>t.onchange=()=>{const sc=ST.scenes[i];sc[t.dataset.n]=Math.max(0,+t.value||0);if(sc.kind==='move'&&sc.vid){sc.vid=null;sc.local=null;sc.status='';sc.msg='Réglage changé : à refaire'}scBrollReady(sc);stSave();stRender()});
     el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>stAction(i,b.dataset.a));
   });
   const has=ST.scenes.length>0;
@@ -1202,8 +1239,8 @@ function stRender(){
 function stPrice(){
   const p=$('stPrice');if(!ST.scenes.length){p.classList.add('hide');return}
   const o=stModel.get();let total=0,todo=0;
-  ST.scenes.forEach(s=>{if(!(s.local||s.vid)){todo++;total+=(s.img?0:IMG_PRICE)+videoCost(o.model,o.duration,o.audio)}});
-  const len=ST.scenes.length*o.duration;
+  ST.scenes.forEach(s=>{if(!(s.local||s.vid)){todo++;total+=scCost(s,o)}});
+  const len=Math.round(ST.scenes.reduce((a,s)=>a+(s.kind?scLen(s):(s.dur||o.duration)),0));
   p.classList.remove('hide');
   p.innerHTML=todo?'Coût estimé : <b>'+money(total)+'</b> pour '+todo+' scène'+(todo>1?'s':'')+' · vidéo finale ≈ <b>'+len+' s</b>'+(len<60?' <br>💡 Pour être payé par TikTok il faut au moins 60 s : ajoute des scènes ou allonge la durée.':''):'Toutes les scènes sont prêtes · vidéo finale ≈ <b>'+len+' s</b>';
   $('stGen').textContent=todo===ST.scenes.length?'🎬 Générer les '+todo+' scènes':'🎬 Générer les '+todo+' scène'+(todo>1?'s':'')+' restante'+(todo>1?'s':'');
@@ -1216,6 +1253,7 @@ function stAction(i,a){
   if(a==='down'&&i<ST.scenes.length-1)[ST.scenes[i+1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i+1]];
   if(a==='regen'){s.img=null;s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   if(a==='dub')return stDub([i]);
+  if(a==='pickref'){ST.refFor=i;$('stRefFile').value='';return $('stRefFile').click()}
   if(a==='myimg'){ST.imgFor=i;$('stOneImg').value='';return $('stOneImg').click()}
   if(a==='revid'){s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   stSave();stRender();
@@ -1246,8 +1284,9 @@ async function stWrite(ctx){
 }
 function stImgPrompt(s,hasRef,legend){
   const f=FORMATS[ST.format];const place=stPlace();const ch=$('stChar').value.trim();
+  const body=s.kind==='move'?' Full body visible from head to feet, standing facing the camera, arms slightly away from the body, nobody else around.':'';
   return (legend?legend:hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
-    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
+    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+''+body+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
 }
 function stCamFor(s){return camPrompt(s&&s.cam||$('stCam').value)}
 function stBeatSuffix(s,o){
@@ -1272,7 +1311,10 @@ async function stGenerate(only){
   const o=stModel.get();
   const idx=only||ST.scenes.map((s,i)=>i).filter(i=>!(ST.scenes[i].local||ST.scenes[i].vid));
   if(!idx.length)return;
-  let cost=0;idx.forEach(i=>{cost+=(ST.scenes[i].img?0:IMG_PRICE)+videoCost(o.model,o.duration,o.audio)});
+  const noRef=idx.filter(i=>ST.scenes[i].kind&&!ST.scenes[i].ref);
+  if(noRef.length)return toast('Scène '+(noRef[0]+1)+' : choisis d\'abord la vidéo Pexels','warn',4500);
+  if(idx.some(i=>ST.scenes[i].kind==='move')&&!S.server)return toast('Lance python server.py pour les scènes « mouvement copié »','err',4500);
+  let cost=0;idx.forEach(i=>{cost+=scCost(ST.scenes[i],o)});
   if(!budgetOk(cost))return;
   ST.busy=true;S.stop.story=false;stRender();
   let refs=ST.refs.map(r=>r.uri);
@@ -1292,7 +1334,18 @@ async function stGenerate(only){
     const s=ST.scenes[i];const upd=(m,st)=>{s.msg=m;if(st)s.status=st;const el=document.querySelector('.scene[data-i="'+i+'"]');if(el){el.className='scene '+(s.status||'');el.querySelector('.st').textContent=m}};
     try{
       s.status='busy';stRender();
+      if(s.kind==='broll'){scBrollReady(s);s.status='done';s.msg='✓ Plan d\'ambiance';stSave();stRender();return}
       if(!s.img){upd('Image…');const sr=sceneRefs(s);s.img=await genImage(stImgPrompt(s,sr.list.length>0,sr.legend),sr.list,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
+      if(s.kind==='move'){
+        upd('Envoi du mouvement…');const len=scLen(s);
+        const r=await fetch('/api/refvideo',{method:'POST',headers:falHeaders(),body:JSON.stringify({path:s.ref.path,start:s.refStart||0,max:len})});
+        const d=await r.json();if(!r.ok)throw new Error(d.detail||'vidéo Pexels illisible');
+        const look=$('stChar').value.trim();
+        const res=await falRun(MOVE_MODEL.id,{image_url:await shrink(s.img,1280),video_url:d.url,character_orientation:'image',keep_original_sound:false,prompt:'The character from the image performs exactly the same movements as the person in the reference video, same rhythm and timing, in the place shown in the image. Keep the exact face, hair, body and outfit of the image.'+(look?' Character: '+look+'.':'')+' Realistic, smooth natural motion, no text, no watermark.'},m=>upd('Mouvement · '+m),'story');
+        const u=res.video&&res.video.url;if(!u)throw new Error('pas de vidéo reçue');
+        const real=d.duration||len;addSpend(real*MOVE_MODEL.price);
+        s.vid=u;s.local=await saveLocal(u,'scene'+(i+1));s.dur=Math.min(real,len);s.status='done';s.msg='✓ Prête';stSave();stRender();return;
+      }
       upd('Vidéo…');
       const bt=splitBeats(s.action);
       s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&screenLine(s)?dialoguePrompt(screenLine(s),$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
@@ -1321,16 +1374,16 @@ async function stMontage(){
   try{
     for(let i=0;i<ST.scenes.length;i++){const s=ST.scenes[i];if(!s.local){s.local=await saveLocal(s.vid,'scene'+(i+1));if(!s.local)throw new Error('impossible de récupérer la scène '+(i+1)+' (lien expiré ? refais-la)')}}
     stSave();
-    const dd=stModel.get().duration;const durs=ST.scenes.map(s=>s.dur||dd);
+    const dd=stModel.get().duration;const durs=ST.scenes.map(s=>s.kind==='broll'?scLen(s):(s.dur||dd));
     const subs=[];
     if($('stSubs').checked){let t=0;const many=stChars().length>1;
       ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];
         parts.forEach((pt,k)=>{const a=t+D*k/parts.length,b=t+D*(k+1)/parts.length;subs.push({start:a+0.1,end:b-0.1,text:(many?pt.char.name+' : ':'')+pt.text})});t+=D});}
-    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire'),durations:durs,subs})});
+    const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:ST.scenes.map(s=>s.local),starts:ST.scenes.map(s=>s.kind==='broll'?(s.refStart||0):0),size:[720,1280],music:ST.music,music_volume:+$('stVol').value/100,title:LS.get('ms_story_title','histoire'),durations:durs,subs})});
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
     if(d.subs_skipped)toast('Sous-titres non ajoutés : aucune police trouvée sur le téléphone','warn',4500);
     // voix off (personnages masqués, de dos, narrateur) posées par-dessus
-    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&pt.char.vo)vo.push({start:t+D*k/parts.length+0.15,text:pt.text,voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
+    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&(pt.char.vo||s.kind))vo.push({start:t+D*k/parts.length+0.15,text:pt.text,voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
     if(vo.length){
       b.innerHTML='<span class="spin"></span> Voix off…';const lang=TTS_LANG[$('stLang').value]||'fr';const voices=[];
       for(const v of vo){const res=await falRun(TTS,{text:v.text,voice:v.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text})}
@@ -2070,6 +2123,8 @@ async function checkServer(){
   $('stVol').oninput=e=>$('stVolV').textContent=e.target.value;
   $('stWrite').onclick=stWrite;
   $('stAddScene').onclick=()=>{ST.scenes.push({decor:'',action:'',line:''});stSave();stRender()};
+  const addSpecial=k=>{ST.scenes.push({decor:'',action:'',line:'',kind:k});stSave();stRender();const i=ST.scenes.length-1;setTimeout(()=>{const el=document.querySelector('.scene[data-i="'+i+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},50);ST.refFor=i;$('stRefFile').value='';$('stRefFile').click()};
+  $('stAddMove').onclick=()=>addSpecial('move');$('stAddBroll').onclick=()=>addSpecial('broll');
   $('stGen').onclick=()=>stGenerate();
   $('stStop').onclick=()=>{S.stop.story=true;toast('Arrêt après les scènes en cours…','warn')};
   $('stMontage').onclick=stMontage;
@@ -2112,8 +2167,9 @@ async function checkServer(){
     catch(err){$('dnFileName').textContent='Erreur, réessaie'}e.target.value=''};
   $('dnGo').onclick=dnGo;dnPrice();
   const stSetImg=async(i,f)=>{const l=await loadImages([f]);if(!l[0])return false;const s=ST.scenes[i];s.img=await cropTo(l[0].uri,'9:16');s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='Ta propre image';return true};
+  $('stRefFile').onchange=e=>{const f=e.target.files[0];if(f&&ST.refFor!=null)scPickRef(ST.refFor,f)};
   $('stOneImg').onchange=async e=>{const f=e.target.files[0];if(!f||ST.imgFor==null)return;if(await stSetImg(ST.imgFor,f)){stSave();stRender();toast('Image de la scène '+(ST.imgFor+1)+' remplacée ✓','ok')}};
-  $('stBoard').onchange=async e=>{const fs=Array.from(e.target.files).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));let k=0;for(let i=0;i<fs.length&&i<ST.scenes.length;i++){if(await stSetImg(i,fs[i]))k++}e.target.value='';stSave();stRender();toast(k+' image'+(k>1?'s':'')+' posée'+(k>1?'s':'')+' sur les scènes ✓'+(fs.length>ST.scenes.length?' ('+(fs.length-ST.scenes.length)+' en trop ignorées)':''),'ok',4000)};
+  $('stBoard').onchange=async e=>{const fs=Array.from(e.target.files).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));let k=0;const tgt=ST.scenes.map((s,i)=>i).filter(i=>ST.scenes[i].kind!=='broll');for(let j=0;j<fs.length&&j<tgt.length;j++){if(await stSetImg(tgt[j],fs[j]))k++}e.target.value='';stSave();stRender();toast(k+' image'+(k>1?'s':'')+' posée'+(k>1?'s':'')+' sur les scènes ✓'+(fs.length>tgt.length?' ('+(fs.length-tgt.length)+' en trop ignorées)':''),'ok',4000)};
   $('stNew').onclick=()=>newMontage('story');$('clNew').onclick=()=>newMontage('clip');$('anNew').onclick=()=>newMontage('anim');
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);

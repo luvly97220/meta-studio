@@ -194,8 +194,10 @@ def fit_filter(src, W=720, H=1280):
     target = W / float(H)
     if w and h and abs((w / float(h)) - target) / target <= 0.45:
         return ("scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d" % (W, H, W, H)) + tail
-    return ("scale=%d:%d:force_original_aspect_ratio=decrease,"
-            "pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=black" % (W, H, W, H)) + tail
+    # format tres different (ex : video Pexels horizontale) : fond flou au lieu de bandes noires
+    return ("split[bg0][fg0];[bg0]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,"
+            "boxblur=20:2,eq=brightness=-0.08[bg];[fg0]scale=%d:%d:force_original_aspect_ratio=decrease[fg];"
+            "[bg][fg]overlay=(W-w)/2:(H-h)/2" % (W, H, W, H, W, H)) + tail
 
 
 def loud_tiktok(path):
@@ -214,7 +216,7 @@ def loud_tiktok(path):
 
 
 def concat(files, music=None, music_volume=0.35, title="histoire",
-           mute=False, music_start=0.0, durations=None, subs=None):
+           mute=False, music_start=0.0, durations=None, subs=None, starts=None, size=None):
     """Assemble des clips + musique optionnelle.
 
     mute=True       : on coupe le son des clips, seule la musique reste (clip musical)
@@ -225,7 +227,10 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
     stamp = time.strftime("%Y%m%d_%H%M%S")
     parts = []
-    W, H = canvas_for(local_path(files[0])) if files else (720, 1280)
+    if size and len(size) == 2:
+        W, H = int(size[0]), int(size[1])
+    else:
+        W, H = canvas_for(local_path(files[0])) if files else (720, 1280)
     for i, f in enumerate(files):
         src = local_path(f)
         if not os.path.isfile(src):
@@ -234,6 +239,9 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         D = None
         if durations and i < len(durations) and durations[i]:
             D = float(durations[i])
+        ss = []
+        if starts and i < len(starts) and starts[i]:
+            ss = ["-ss", "%.2f" % float(starts[i])]
         vf = fit_filter(src, W, H)
         if D:
             vf += ",tpad=stop_mode=clone:stop_duration=%.2f" % D
@@ -242,10 +250,10 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         if D:
             tail += ["-t", "%.3f" % D]
         if has_audio(src) and not mute:
-            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", vf] + \
+            cmd = ["ffmpeg", "-y", "-v", "error"] + ss + ["-i", src, "-vf", vf] + \
                   (["-af", "apad"] if D else []) + tail + [out]
         else:
-            cmd = ["ffmpeg", "-y", "-v", "error", "-i", src,
+            cmd = ["ffmpeg", "-y", "-v", "error"] + ss + ["-i", src,
                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                    "-vf", vf, "-map", "0:v", "-map", "1:a"] + \
                   ([] if D else ["-shortest"]) + tail + [out]
@@ -536,7 +544,7 @@ class Handler(SimpleHTTPRequestHandler):
                 path, dur, no_font = concat(d.get("files", []), d.get("music"),
                                             float(d.get("music_volume", 0.35)), d.get("title", "histoire"),
                                             bool(d.get("mute")), float(d.get("music_start") or 0),
-                                            d.get("durations"), d.get("subs"))
+                                            d.get("durations"), d.get("subs"), d.get("starts"), d.get("size"))
                 return self.send_json({"path": path, "duration": dur, "subs_skipped": no_font})
 
             if p.path == "/api/upload":
