@@ -192,6 +192,8 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <button class="btn sec" id="stWrite">✍️ Écrire le script avec l'IA (~0,01 $)</button>
   <button class="btn sec" id="stAddScene">＋ Ajouter une scène vide (écrire moi-même)</button>
 
+  <div class="up hide" data-pick="stBoard" id="stBoardBox" style="padding:.7rem;margin-bottom:.6rem"><input type="file" id="stBoard" accept="image/*" multiple><div class="t">🖼️ Mettre mes images (storyboard ChatGPT / Meta…)</div><div class="h">Choisis-les dans l'ordre : 1re image → scène 1, 2e → scène 2… Elles remplacent les images de l'IA (gratuit).</div></div>
+  <input type="file" id="stOneImg" accept="image/*" class="hide">
   <div id="stScenes"></div>
   <div class="price hide" id="stPrice"></div>
   <button class="btn hide" id="stGen">🎬 Générer toutes les scènes</button>
@@ -1179,8 +1181,9 @@ function stRender(){
     '<span class="mini">Réplique (ce qu\'il dit)</span><textarea data-k="line" placeholder="Laisser vide = pas de parole">'+esc(s.line)+'</textarea>'+
     '<span class="mini">🎥 Caméra</span><select data-k="cam">'+camOptions('= caméra du film').replace('value="'+(s.cam||'')+'"','value="'+(s.cam||'')+'" selected')+'</select>'+
     ((s.img||s.vid)?'<div class="scene-media">'+(s.img?'<img src="'+esc(s.img)+'">':'')+(s.local||s.vid?'<video src="'+esc(s.local||s.vid)+'" controls playsinline preload="metadata"></video>':'')+'</div>':'')+
-    '<div class="scene-btns"><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
+    '<div class="scene-btns"><button class="btn sec small" data-a="myimg">🖼️ Mon image</button><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':'')+(s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
+  $('stBoardBox').classList.toggle('hide',!ST.scenes.length||ST.busy);
   $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>s.vid&&s.line&&s.line.trim())||ST.busy);
   box.querySelectorAll('.scene').forEach(el=>{
     const i=+el.dataset.i;
@@ -1212,6 +1215,7 @@ function stAction(i,a){
   if(a==='down'&&i<ST.scenes.length-1)[ST.scenes[i+1],ST.scenes[i]]=[ST.scenes[i],ST.scenes[i+1]];
   if(a==='regen'){s.img=null;s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   if(a==='dub')return stDub([i]);
+  if(a==='myimg'){ST.imgFor=i;$('stOneImg').value='';return $('stOneImg').click()}
   if(a==='revid'){s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='';stSave();stRender();return stGenerate([i])}
   stSave();stRender();
 }
@@ -2096,6 +2100,9 @@ async function checkServer(){
     try{const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const r=await fetch('/api/upload?name=danse&ext='+ext,{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.detail||'');DN.ref={path:d.path,duration:d.duration||0};$('dnFileName').textContent='🎬 '+f.name+(d.duration?' · '+Math.round(d.duration)+' s':'')+' (touche pour changer)';dnPrice()}
     catch(err){$('dnFileName').textContent='Erreur, réessaie'}e.target.value=''};
   $('dnGo').onclick=dnGo;dnPrice();
+  const stSetImg=async(i,f)=>{const l=await loadImages([f]);if(!l[0])return false;const s=ST.scenes[i];s.img=await cropTo(l[0].uri,'9:16');s.vid=null;s.vidOrig=null;s.local=null;s.status='';s.msg='Ta propre image';return true};
+  $('stOneImg').onchange=async e=>{const f=e.target.files[0];if(!f||ST.imgFor==null)return;if(await stSetImg(ST.imgFor,f)){stSave();stRender();toast('Image de la scène '+(ST.imgFor+1)+' remplacée ✓','ok')}};
+  $('stBoard').onchange=async e=>{const fs=Array.from(e.target.files).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));let k=0;for(let i=0;i<fs.length&&i<ST.scenes.length;i++){if(await stSetImg(i,fs[i]))k++}e.target.value='';stSave();stRender();toast(k+' image'+(k>1?'s':'')+' posée'+(k>1?'s':'')+' sur les scènes ✓'+(fs.length>ST.scenes.length?' ('+(fs.length-ST.scenes.length)+' en trop ignorées)':''),'ok',4000)};
   $('stNew').onclick=()=>newMontage('story');$('clNew').onclick=()=>newMontage('clip');$('anNew').onclick=()=>newMontage('anim');
   $('anChar').value=LS.get('ms_anChar','');$('anChar').oninput=e=>LS.set('ms_anChar',e.target.value);
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
