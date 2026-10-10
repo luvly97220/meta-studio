@@ -1055,15 +1055,16 @@ function ttsOpts(sel){return VOICES.map(([v,l])=>'<option value="'+v+'" '+(v===s
 function ttsFromType(v){v=v||'';if(/^femme_douce/.test(v))return 'Sarah';if(/^femme_energique/.test(v))return 'Laura';if(/^femme_grave/.test(v))return 'Charlotte';if(/^femme_agee/.test(v))return 'Matilda';if(/^femme|enfant/.test(v))return 'Lily';if(v==='homme_grave')return 'Brian';if(v==='narrateur')return 'Daniel';if(v==='homme_jeune')return 'Liam';if(/rauque|age/.test(v))return 'Bill';if(v==='robot')return 'Roger';return 'George'}
 function stRenderOthers(){
   const list=stOthers();
-  $('stOthers').innerHTML=list.map((c,i)=>'<div class="scene" data-c="'+i+'" style="margin-top:.4rem"><div class="row"><div><input type="text" data-f="name" placeholder="Nom (ex : Marc)" value="'+esc(c.name)+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div><input type="text" data-f="desc" placeholder="Description (ex : homme 40 ans, costume noir, barbe)" value="'+esc(c.desc)+'" style="margin-top:.4rem"><div class="toggle"><span>🎙️ Voix off</span><label class="sw"><input type="checkbox" data-f="vo" '+(c.vo?'checked':'')+'><span></span></label></div>'+(c.vo?'<select data-f="tts">'+ttsOpts(c.tts||ttsFromType(c.voice))+'</select>':'')+'<div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div></div>').join('');
+  const lib=persos();
+  $('stOthers').innerHTML=list.map((c,i)=>'<div class="scene" data-c="'+i+'" style="margin-top:.4rem"><select data-f="perso" style="margin-bottom:.4rem"><option value="">— sans fiche (décrit par le texte) —</option>'+lib.map(p=>'<option value="'+esc(p.name)+'" '+(p.name===c.perso?'selected':'')+'>👤 '+esc(p.name)+'</option>').join('')+'</select><div class="row"><div><input type="text" data-f="name" placeholder="Nom (ex : Marc)" value="'+esc(c.name)+'"></div><div><select data-f="voice">'+voiceOpts(c.voice||'auto')+'</select></div></div><input type="text" data-f="desc" placeholder="Description (ex : homme 40 ans, costume noir, barbe)" value="'+esc(c.desc)+'" style="margin-top:.4rem"><div class="toggle"><span>🎙️ Voix off</span><label class="sw"><input type="checkbox" data-f="vo" '+(c.vo?'checked':'')+'><span></span></label></div>'+(c.vo?'<select data-f="tts">'+ttsOpts(c.tts||ttsFromType(c.voice))+'</select>':'')+'<div class="scene-btns"><button class="btn danger small" data-del>✕ Retirer</button></div></div>').join('');
   $('stOthers').querySelectorAll('[data-c]').forEach(el=>{const i=+el.dataset.c;
-    el.querySelectorAll('[data-f]').forEach(inp=>{const cb=inp.type==='checkbox';const ev=inp.tagName==='SELECT'||cb?'onchange':'oninput';inp[ev]=()=>{const l=stOthers();l[i][inp.dataset.f]=cb?inp.checked:inp.value;LS.set('ms_others',l);if(cb)stRenderOthers()}});
+    el.querySelectorAll('[data-f]').forEach(inp=>{const cb=inp.type==='checkbox';const ev=inp.tagName==='SELECT'||cb?'onchange':'oninput';inp[ev]=()=>{const l=stOthers();const f=inp.dataset.f;l[i][f]=cb?inp.checked:inp.value;if(f==='perso'&&inp.value){const p=persos().find(q=>q.name===inp.value);if(p){l[i].name=p.name;l[i].desc=p.desc||'';l[i].voice=p.voice||'auto'}}LS.set('ms_others',l);if(cb||f==='perso')stRenderOthers()}});
     el.querySelector('[data-del]').onclick=()=>{const l=stOthers();l.splice(i,1);LS.set('ms_others',l);stRenderOthers()};
   });
   $('stAddChar').classList.toggle('hide',list.length>=3);
 }
 function stChars(){
-  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:$('stMainTTS').value||ttsFromType($('stVoice').value)}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice)})));
+  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:$('stMainTTS').value||ttsFromType($('stVoice').value)}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));
 }
 // "Luna : salut\nMarc : tu es en retard" -> [{who, text, char}]
 function parseDialogue(line){
@@ -1243,9 +1244,9 @@ async function stWrite(ctx){
   }catch(e){toast(e.message==='stop'?'Arrêté':'Script : '+e.message+' — réessaie, ou utilise « Ajouter une scène vide »','err',6000)}
   finally{b.disabled=false;b.textContent='✍️ Écrire le script avec l\'IA (~0,01 $)'}
 }
-function stImgPrompt(s,hasRef){
+function stImgPrompt(s,hasRef,legend){
   const f=FORMATS[ST.format];const place=stPlace();const ch=$('stChar').value.trim();
-  return (hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
+  return (legend?legend:hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
     (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
 }
 function stCamFor(s){return camPrompt(s&&s.cam||$('stCam').value)}
@@ -1276,12 +1277,22 @@ async function stGenerate(only){
   ST.busy=true;S.stop.story=false;stRender();
   let refs=ST.refs.map(r=>r.uri);
   const anchor=()=>{if(refs.length)return refs;const first=ST.scenes.find(s=>s.img);return first?[first.img]:[]};
+  // photo de fiche de chaque autre personnage présent dans la scène
+  const ficheImg={};
+  for(const c of stChars().filter(c=>!c.main&&c.perso)){const p=persos().find(q=>q.name===c.perso);if(p){try{const l=await persoImages(p);if(l[0])ficheImg[c.name]=await shrink(l[0].uri,1024)}catch(e){}}}
+  const sceneRefs=s=>{
+    const base=anchor();const others=othersInScene(s).filter(c=>ficheImg[c.name]).slice(0,2);
+    if(!others.length)return{list:base,legend:''};
+    const main=base.slice(0,others.length>1?1:2);
+    const legend=(main.length?'Reference images: the first '+(main.length>1?main.length+' images show':'image shows')+' '+stMainName()+'; ':'Reference images: ')+others.map((c,k)=>'image '+(main.length+k+1)+' shows '+c.name).join('; ')+'. Keep every person exactly as in their own reference image: same face, hair, skin tone, outfit and colors. Place them together in a new scene. ';
+    return{list:main.concat(others.map(c=>ficheImg[c.name])),legend};
+  };
   // sans photo : la 1re image sert de référence aux suivantes (même personnage)
   const runOne=async i=>{
     const s=ST.scenes[i];const upd=(m,st)=>{s.msg=m;if(st)s.status=st;const el=document.querySelector('.scene[data-i="'+i+'"]');if(el){el.className='scene '+(s.status||'');el.querySelector('.st').textContent=m}};
     try{
       s.status='busy';stRender();
-      if(!s.img){upd('Image…');const r=anchor();s.img=await genImage(stImgPrompt(s,r.length>0),r,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
+      if(!s.img){upd('Image…');const sr=sceneRefs(s);s.img=await genImage(stImgPrompt(s,sr.list.length>0,sr.legend),sr.list,'9:16',m=>upd('Image · '+m),'story');stSave();stRender()}
       upd('Vidéo…');
       const bt=splitBeats(s.action);
       s.vid=await genVideo(o.model,'i2v',{prompt:stVidPrompt(s,o),image:s.img,duration:o.duration,audio:o.audio,beats:bt.length>1?bt:null,beatPrefix:FORMATS[ST.format].vid+' ',beatSuffix:stBeatSuffix(s,o),lastSuffix:o.audio&&screenLine(s)?dialoguePrompt(screenLine(s),$('stLang').value):''},m=>upd('Vidéo · '+m),'story');
@@ -1405,7 +1416,7 @@ async function srWrite(){
   if(p)await stApplyPerso(p,await persoImages(p));
   else{$('stName').value=main.name;LS.set('ms_stName',main.name);$('stChar').value=main.desc||'';LS.set('ms_stChar',main.desc||'');$('stVoice').value=main.voice||'auto';LS.set('ms_stVoice',main.voice||'auto')}
   $('stMainVO').checked=!!main.vo;LS.set('ms_stMainVO',!!main.vo);$('stMainTTS').value=main.tts||ttsFromType(main.voice);LS.set('ms_stMainTTS',$('stMainTTS').value);stMainVOui();
-  LS.set('ms_others',x.cast.slice(1).filter(c=>c.name||c.perso).map(c=>({name:c.name||c.perso,voice:c.voice||'auto',desc:c.desc||'',vo:!!c.vo,tts:c.tts||ttsFromType(c.voice)})));stRenderOthers();
+  LS.set('ms_others',x.cast.slice(1).filter(c=>c.name||c.perso).map(c=>({name:c.name||c.perso,voice:c.voice||'auto',desc:c.desc||'',vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));stRenderOthers();
   // 2. modèle et durée
   const m=SR_MODELS[x.model]||SR_MODELS.libre;if(m.fmt){ST.format=m.fmt;LS.set('ms_story_fmt',ST.format);stInit()}
   const per=stModel.get().duration||5;const opts=[3,4,5,6,7,8,10,12];const want=Math.max(3,Math.round((x.dur||30)/per));
