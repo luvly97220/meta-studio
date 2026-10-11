@@ -188,6 +188,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div class="toggle"><span>🗣️ Accent natif <span class="hint" style="display:block;margin:0">Demande à Kling de parler sans accent étranger. Décoche pour garder un accent (ex : Luna)</span></span><label class="sw"><input type="checkbox" id="stNative" checked><span></span></label></div>
     <div class="toggle"><span>💬 Sous-titres incrustés <span class="hint" style="display:block;margin:0">Conseillé : beaucoup regardent TikTok sans le son</span></span><label class="sw"><input type="checkbox" id="stSubs" checked><span></span></label></div>
     <div class="toggle"><span>🗣️ Voix françaises pour tous <span class="hint" style="display:block;margin:0">Coupe les voix de Kling (accent) : chaque personnage parle avec sa voix ElevenLabs. Ajoute une musique, le son de Kling est coupé.</span></span><label class="sw"><input type="checkbox" id="stAllVO"><span></span></label></div>
+    <div class="toggle"><span>🎭 Voix d'acteur (émotions) <span class="hint" style="display:block;margin:0">Cris, chuchotements, ironie selon la ponctuation. Tu peux aussi écrire le ton : <b>Brutor : [angry] Ce quartier…</b></span></span><label class="sw"><input type="checkbox" id="stActor" checked><span></span></label></div>
   </div>
 
   <button class="btn sec" id="stWrite">✍️ Écrire le script avec l'IA (~0,01 $)</button>
@@ -793,6 +794,21 @@ const VIDEO_MODELS={
 const IMG_EDIT='fal-ai/nano-banana/edit',IMG_GEN='fal-ai/nano-banana',IMG_PRICE=0.039;
 const AVATAR={standard:{id:'fal-ai/kling-video/ai-avatar/v2/standard',price:0.0562},pro:{id:'fal-ai/kling-video/ai-avatar/v2/pro',price:0.115}};
 const TTS='fal-ai/elevenlabs/tts/multilingual-v2',TTS_PRICE=0.1/1000;
+const TTS_V3='fal-ai/elevenlabs/tts/eleven-v3';
+// ton de jeu d'acteur (balises Eleven v3) : celles écrites à la main gardées, sinon devinées d'après la ponctuation
+function emoTags(text,fmt){
+  if(/\[[^\]]{1,30}\]/.test(text))return text;
+  const t=text.trim();
+  if(/!/.test(t))return '[shouting] '+t;
+  if(/(…|\.\.\.)$/.test(t))return (fmt==='comedy'?'[sighs] ':'[slowly] ')+t;
+  if(/\?$/.test(t))return (fmt==='action'?'[sarcastically] ':fmt==='comedy'?'[excited] ':'')+t;
+  return (fmt==='action'?'[confident] ':fmt==='comedy'?'[happy] ':'')+t;
+}
+async function ttsActor(text,voice,lang,fmt){
+  if($('stActor')&&!$('stActor').checked)return falRun(TTS,{text,voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
+  try{return await falRun(TTS_V3,{text:emoTags(text,fmt),voice,language_code:lang,stability:0.5,similarity_boost:0.75})}
+  catch(e){return falRun(TTS,{text:text.replace(/\[[^\]]{1,30}\]\s*/g,''),voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1})}
+}
 const LLM='openrouter/router',LLM_MODELS=['openai/gpt-4o-mini','google/gemini-2.5-flash','meta-llama/llama-3.3-70b-instruct'],LLM_PRICE=0.01;
 const VOICES=[['George','Homme · posé'],['Brian','Homme · grave'],['Liam','Homme · jeune'],['Charlie','Homme · décontracté'],['Daniel','Homme · narrateur'],['Chris','Homme · naturel'],['Roger','Homme · assuré'],['Will','Homme · amical'],['Bill','Homme · âgé'],['Rachel','Femme · calme'],['Sarah','Femme · douce'],['Charlotte','Femme · séduisante'],['Laura','Femme · enjouée'],['Alice','Femme · claire'],['Matilda','Femme · chaleureuse'],['Jessica','Femme · expressive'],['Lily','Femme · jeune'],['Aria','Femme · dynamique']];
 const FORMATS={
@@ -1096,7 +1112,7 @@ function parseDialogue(line){
     const m=l.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/);
     let c=null,text=l;
     if(m&&!/^https?$/i.test(m[1].trim())){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;text=m[2].trim();if(!c&&!/^[A-ZÀ-Ý][^\s:]*( [A-ZÀ-Ý][^\s:]*)?$/.test(m[1].trim())){text=l}else if(!c){let k=0;for(const ch of nm)k=(k*31+ch.charCodeAt(0))%997;c={name:m[1].trim(),voice:'auto',desc:'',tts:AD_HOC_TTS[k%AD_HOC_TTS.length]}}}
-    out.push({char:c||chars[0],text});
+    out.push({char:c||chars[0],text:text.replace(/\[[^\]]{1,30}\]\s*/g,'').trim(),raw:text});
   });
   return out;
 }
@@ -1182,9 +1198,9 @@ async function stDub(idx){
     try{
       const parts=parseDialogue(s.line);const names=new Set(parts.map(p=>p.char&&p.char.name));
       if(names.size>1)toast('Scène '+(i+1)+' : plusieurs personnes parlent, une seule voix sera utilisée','warn',5000);
-      const text=parts.map(p=>p.text).join(' ').replace(/\s+/g,' ').trim();
+      const text=parts.map(p=>p.raw||p.text).join(' ').replace(/\s+/g,' ').trim();
       upd('Voix française…');
-      const t=await falRun(TTS,{text,voice,language_code:lang,stability:0.5,similarity_boost:0.75});addSpend(text.length*TTS_PRICE);
+      const t=await ttsActor(text,voice,lang,ST.format);addSpend(text.length*TTS_PRICE);
       const au=t.audio&&t.audio.url;if(!au)throw new Error('pas d\'audio');
       upd('Synchro des lèvres…');
       const src=s.vidOrig||s.vid;
@@ -1404,10 +1420,10 @@ async function stMontage(){
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
     if(d.subs_skipped)toast('Sous-titres non ajoutés : aucune police trouvée sur le téléphone','warn',4500);
     // voix off (personnages masqués, de dos, narrateur) posées par-dessus
-    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&(allVO||pt.char.vo||s.kind))vo.push({start:t+D*k/parts.length+0.15,text:pt.text,voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
+    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&(allVO||pt.char.vo||s.kind))vo.push({start:t+D*k/parts.length+0.15,text:pt.text,raw:pt.raw,voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
     if(vo.length){
       b.innerHTML='<span class="spin"></span> Voix off…';const lang=TTS_LANG[$('stLang').value]||'fr';const voices=[];
-      for(const v of vo){const res=await falRun(TTS,{text:v.text,voice:v.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text})}
+      for(const v of vo){const res=await ttsActor(v.raw||v.text,v.voice,lang,ST.format);addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text})}
       const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:d.path,voices,orig_volume:allVO?1:0.8,subs:false,title:LS.get('ms_story_title','histoire')})});
       const d2=await r2.json();if(!r2.ok)throw new Error(d2.detail||'mixage des voix off impossible');d.path=d2.path;d.duration=d2.duration;
     }
@@ -2117,7 +2133,7 @@ async function checkServer(){
   // Histoire
   $('stCount').innerHTML=[3,4,5,6,7,8,10,12].map(n=>'<option '+(n===6?'selected':'')+'>'+n+'</option>').join('');
   $('stDubVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');$('stDubVoice').value=LS.get('ms_stDub','')||stDubDefault();$('stDubVoice').onchange=e=>LS.set('ms_stDub',e.target.value);addPreview('stDubVoice',()=>TTS_LANG[$('stLang').value]||'fr');
-  $('stAllVO').checked=!!LS.get('ms_stAllVO',false);$('stAllVO').onchange=e=>LS.set('ms_stAllVO',e.target.checked);
+  $('stAllVO').checked=!!LS.get('ms_stAllVO',false);$('stActor').checked=LS.get('ms_stActor',true)!==false;$('stActor').onchange=e=>LS.set('ms_stActor',e.target.checked);$('stAllVO').onchange=e=>LS.set('ms_stAllVO',e.target.checked);
   $('stDubAll').onclick=()=>{const v=$('stDubVoice').value;const idx=ST.scenes.map((s,i)=>i).filter(i=>!(ST.scenes[i].vidOrig&&ST.scenes[i].dubVoice===v));if(!idx.some(i=>ST.scenes[i].vid&&ST.scenes[i].line&&ST.scenes[i].line.trim()))return toast('Toutes les scènes sont déjà redoublées avec cette voix','ok');stDub(idx)};
   $('stNative').checked=LS.get('ms_stNative',true)!==false;$('stNative').onchange=e=>LS.set('ms_stNative',e.target.checked);
   $('stVoice').innerHTML=voiceOpts(LS.get('ms_stVoice','auto'));$('stVoice').onchange=e=>LS.set('ms_stVoice',e.target.value);
