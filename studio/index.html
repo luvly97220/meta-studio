@@ -1065,8 +1065,15 @@ function stRenderOthers(){
   });
   $('stAddChar').classList.toggle('hide',list.length>=3);
 }
+// voix ElevenLabs du perso principal : celle choisie en voix off, sinon d'après « Sa voix » (ou la description si Automatique)
+function stMainTTSVoice(){
+  if($('stMainVO').checked&&$('stMainTTS').value)return $('stMainTTS').value;
+  const v=$('stVoice').value||'';if(v&&v!=='auto')return ttsFromType(v);
+  const d=norm(($('stChar').value||'')+' '+($('stPersona').value||''));
+  return /femme|fille|woman|girl|elle |influenceuse|americaine|actrice/.test(d)?'Sarah':'George';
+}
 function stChars(){
-  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:$('stMainTTS').value||ttsFromType($('stVoice').value)}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));
+  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:stMainTTSVoice()}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));
 }
 // "Luna : salut\nMarc : tu es en retard" -> [{who, text, char}]
 function parseDialogue(line){
@@ -1151,7 +1158,7 @@ function stDubDefault(){const v=$('stVoice').value||'';if(/^femme_(douce)/.test(
 async function stDub(idx){
   if(ST.busy)return toast('Attends la fin de la génération','warn');
   const lang=TTS_LANG[$('stLang').value]||'fr';const voice=$('stDubVoice').value||stDubDefault();
-  const list=idx.filter(i=>{const s=ST.scenes[i];return s&&s.vid&&s.line&&s.line.trim()});
+  const list=idx.filter(i=>{const s=ST.scenes[i];return s&&!s.kind&&s.vid&&s.line&&s.line.trim()});
   if(!list.length)return toast('Aucune scène avec une réplique à redoubler','warn');
   const o=stModel.get();const per=LIPSYNC_PRICE*Math.max(5,Math.ceil((o.duration||5)/5)*5);
   if(!budgetOk(list.length*per))return;
@@ -1221,7 +1228,7 @@ function stRender(){
     '<div class="scene-btns">'+(s.kind!=='broll'?'<button class="btn sec small" data-a="myimg">🖼️ Mon image</button><button class="btn sec small" data-a="regen">↻ Refaire la scène</button>'+(s.img?'<button class="btn sec small" data-a="revid">↻ Refaire juste la vidéo</button>':''):'')+(!s.kind&&s.vid&&screenLine(s)?'<button class="btn sec small" data-a="dub">🗣️ Redoubler la voix</button>':'')+'<button class="btn sec small" data-a="up">↑</button><button class="btn sec small" data-a="down">↓</button><button class="btn danger small" data-a="del">✕</button></div>'+
   '</div>').join('');
   $('stBoardBox').classList.toggle('hide',!ST.scenes.length||ST.busy);
-  $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>s.vid&&s.line&&s.line.trim())||ST.busy);
+  $('stDubCard').classList.toggle('hide',!ST.scenes.some(s=>!s.kind&&s.vid&&s.line&&s.line.trim())||ST.busy);
   box.querySelectorAll('.scene').forEach(el=>{
     const i=+el.dataset.i;
     el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{ST.scenes[i][t.dataset.k]=t.value;stSave();stPrice()});
