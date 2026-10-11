@@ -974,9 +974,12 @@ async function http(method,url,body){
 async function readErr(r){let t='';try{t=await r.text()}catch(e){}
   if(r.status===401||r.status===403)return 'Clé fal.ai refusée — vérifie-la dans ⚙️';
   if(r.status===402||/balance|credit|locked|exhausted/i.test(t))return 'Crédit fal.ai épuisé — recharge sur fal.ai';
-  if(/flagged|content checker|content polic|nsfw|safety|moderat/i.test(t))return 'Refusé par le filtre de contenu (souvent l\'image : foule, visages). Fais « Refaire la scène » pour une nouvelle image, ou simplifie le décor. Une vidéo refusée n\'est normalement pas facturée.';
+  // raison exacte donnée par fal (pour savoir si c'est l'image, la vidéo ou le texte)
+  let why='';try{const j=JSON.parse(t);const d=j.detail;why=Array.isArray(d)?d.map(x=>(x.loc||[]).slice(-1)[0]+' : '+(x.msg||x.type||'')).join(' / '):String(d||j.error||j.message||'')}catch(e){why=t}
+  why=why.replace(/\s+/g,' ').trim().slice(0,160);
+  if(/flagged|content checker|content polic|nsfw|safety|moderat/i.test(t))return 'Refusé par le filtre de contenu (souvent l\'image : foule, visages). Fais « Refaire la scène » pour une nouvelle image, ou simplifie le décor. Une vidéo refusée n\'est normalement pas facturée.'+(why?' — Détail fal : '+why:'');
   try{const j=JSON.parse(t);const d=j.detail;if(Array.isArray(d))return 'Paramètre refusé : '+d.map(x=>(x.loc||[]).slice(-1)[0]+' '+(x.msg||'')).join(', ');if(d)return String(d).slice(0,180)}catch(e){}
-  if(/content|nsfw|safety|policy/i.test(t))return 'Refusé par le filtre de contenu';
+  if(/content|nsfw|safety|policy/i.test(t))return 'Refusé par le filtre de contenu'+(why?' — Détail fal : '+why:'');
   return 'Erreur '+r.status+' '+t.slice(0,140)}
 /* Lance un modèle et attend le résultat. onProg(texte) pour l'avancement. */
 document.addEventListener('click',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('st')&&t.textContent.length>28)toast(t.textContent,'warn',9000)});
