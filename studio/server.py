@@ -321,6 +321,8 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
         d = duration(dest)
         st = v.get("start")
         st = float(st) if st not in (None, "") else t
+        if files:  # jamais deux voix en meme temps
+            st = max(st, files[-1][1] + files[-1][2] + 0.15)
         files.append((dest, st, d, v.get("text", "")))
         t = st + d + 0.25
     work = src
