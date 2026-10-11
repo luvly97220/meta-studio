@@ -2029,7 +2029,7 @@ async function imGo(){
   const n=+$('imNum').value;if(!budgetOk(n*IMG_PRICE))return;
   $('imGo').disabled=true;$('imProg').textContent='Création…';
   try{
-    const input={prompt:p+(IM.refs.length>1?' IMPORTANT: the person to keep is the one in the FIRST image (exact same face, eyes, hair, skin tone, body, tattoos). The other images are only references for objects, clothes or products: ignore any person, face or body shown in them.':IM.refs.length?' Keep the exact same person (face, body, tattoos) as in the reference photo.':'')+' Photorealistic.',aspect_ratio:$('imRatio').value,output_format:'jpeg',num_images:n};
+    const input={prompt:p+(IM.refs.length>1?' IMPORTANT: the person to keep is the one in the FIRST image (exact same face, eyes, hair, skin tone and body; do not add tattoos, piercings or makeup that are not in that image). The other images are only references for objects, clothes or products: ignore any person, face or body shown in them.':IM.refs.length?' Keep the exact same person (face, hair, skin tone, body) as in the reference photo; do not add tattoos that are not in it.':'')+' Photorealistic.',aspect_ratio:$('imRatio').value,output_format:'jpeg',num_images:n};
     const res=IM.refs.length?await falRun(IMG_EDIT,Object.assign(input,{image_urls:IM.refs.map(r=>r.uri)}),m=>$('imProg').textContent=m):await falRun(IMG_GEN,input,m=>$('imProg').textContent=m);
     addSpend(n*IMG_PRICE);
     for(const im of res.images||[]){
