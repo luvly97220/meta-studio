@@ -977,6 +977,7 @@ async function readErr(r){let t='';try{t=await r.text()}catch(e){}
   // raison exacte donnée par fal (pour savoir si c'est l'image, la vidéo ou le texte)
   let why='';try{const j=JSON.parse(t);const d=j.detail;why=Array.isArray(d)?d.map(x=>(x.loc||[]).slice(-1)[0]+' : '+(x.msg||x.type||'')).join(' / '):String(d||j.error||j.message||'')}catch(e){why=t}
   why=why.replace(/\s+/g,' ').trim().slice(0,160);
+  if(/upper body|no (complete )?(human|person|body|character)|not detect|detected in the (video|image)/i.test(t))return 'Kling ne voit pas bien le corps'+(/in the video/i.test(t)?' dans la vidéo de danse':/in the image/i.test(t)?' sur ta photo':'')+' (haut du corps coupé, penché ou caché). Change « Début dans la vidéo » (+1 ou 2 s) pour partir d\'un moment où les danseurs sont bien debout, de face, en entier. Pas facturé. — Détail fal : '+why;
   if(/flagged|content checker|content polic|nsfw|safety|moderat/i.test(t))return 'Refusé par le filtre de contenu (souvent l\'image : foule, visages). Fais « Refaire la scène » pour une nouvelle image, ou simplifie le décor. Une vidéo refusée n\'est normalement pas facturée.'+(why?' — Détail fal : '+why:'');
   try{const j=JSON.parse(t);const d=j.detail;if(Array.isArray(d))return 'Paramètre refusé : '+d.map(x=>(x.loc||[]).slice(-1)[0]+' '+(x.msg||'')).join(', ');if(d)return String(d).slice(0,180)}catch(e){}
   if(/content|nsfw|safety|policy/i.test(t))return 'Refusé par le filtre de contenu'+(why?' — Détail fal : '+why:'');
