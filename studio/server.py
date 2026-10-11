@@ -304,7 +304,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
     return "/videos/" + final_name, duration(final), no_font
 
 
-def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
+def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=False):
     """Pose des voix off (fichiers fal) sur une video, avec sous-titres optionnels."""
     if not has_ffmpeg():
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
@@ -349,7 +349,14 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
         eff = ",apad=pad_dur=1,aecho=0.8:0.75:70|140:0.35|0.18" if fx == "echo" else ""
         fc.append("[%d:a]aresample=44100%s,volume=1.8,adelay=%d|%d[v%d]" % (n0 + i, eff, ms, ms, i))
         labels.append("[v%d]" % i)
-    fc.append("%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0[a]" % ("".join(labels), len(labels)))
+    if duck and len(labels) > 1:
+        # le fond (bruitages, musique) baisse tout seul pendant que quelqu'un parle
+        fc.append("%samix=inputs=%d:duration=longest:dropout_transition=0:normalize=0,apad=whole_dur=%.2f,asplit=2[vk][vm]"
+                  % ("".join(labels[1:]), len(labels) - 1, total))
+        fc.append("[a0][vk]sidechaincompress=threshold=0.03:ratio=4:attack=20:release=400[bg]")
+        fc.append("[bg][vm]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]")
+    else:
+        fc.append("%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0[a]" % ("".join(labels), len(labels)))
     name = "%s_%s.mp4" % (safe_name(title, "voixoff"), stamp)
     out = os.path.join(VIDEOS, name)
     cmd += ["-filter_complex", ";".join(fc), "-map", "0:v", "-map", "[a]", "-c:v", "copy",
@@ -578,7 +585,7 @@ class Handler(SimpleHTTPRequestHandler):
                 d = json.loads(self.body() or b"{}")
                 path, dur = mix_voices(d.get("video", ""), d.get("voices", []),
                                        float(d.get("orig_volume", 0.7)), bool(d.get("subs", True)),
-                                       d.get("title", "voixoff"))
+                                       d.get("title", "voixoff"), bool(d.get("duck")))
                 return self.send_json({"path": path, "duration": dur})
 
             if p.path == "/api/audiocut":

@@ -1437,7 +1437,7 @@ async function stMontage(){
     if(vo.length){
       b.innerHTML='<span class="spin"></span> Voix off…';const lang=TTS_LANG[$('stLang').value]||'fr';const voices=[];
       for(const v of vo){const res=await ttsActor(v.raw||v.text,v.voice,lang,ST.format);addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text,fx:v.fx})}
-      const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:d.path,voices,orig_volume:allVO?(sfxOn?0.7:1):0.8,subs:false,title:LS.get('ms_story_title','histoire')})});
+      const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:d.path,voices,orig_volume:allVO?(sfxOn?0.8:1):0.8,duck:allVO,subs:false,title:LS.get('ms_story_title','histoire')})});
       const d2=await r2.json();if(!r2.ok)throw new Error(d2.detail||'mixage des voix off impossible');d.path=d2.path;d.duration=d2.duration;
     }
     srMarkFinal(d.path);
