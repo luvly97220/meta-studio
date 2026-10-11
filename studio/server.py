@@ -216,7 +216,7 @@ def loud_tiktok(path):
 
 
 def concat(files, music=None, music_volume=0.35, title="histoire",
-           mute=False, music_start=0.0, durations=None, subs=None, starts=None, size=None):
+           mute=False, music_start=0.0, durations=None, subs=None, starts=None, size=None, mutes=None):
     """Assemble des clips + musique optionnelle.
 
     mute=True       : on coupe le son des clips, seule la musique reste (clip musical)
@@ -227,6 +227,9 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
     stamp = time.strftime("%Y%m%d_%H%M%S")
     parts = []
+    # mutes : son coupe clip par clip (ex. voix Kling coupees mais bruitages gardes)
+    file_mute = [bool(mutes[i]) if mutes and i < len(mutes) else mute for i in range(len(files))]
+    mute = bool(file_mute) and all(file_mute)
     if size and len(size) == 2:
         W, H = int(size[0]), int(size[1])
     else:
@@ -249,7 +252,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
                 "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "160k"]
         if D:
             tail += ["-t", "%.3f" % D]
-        if has_audio(src) and not mute:
+        if has_audio(src) and not file_mute[i]:
             cmd = ["ffmpeg", "-y", "-v", "error"] + ss + ["-i", src, "-vf", vf] + \
                   (["-af", "apad"] if D else []) + tail + [out]
         else:
@@ -323,11 +326,11 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
         st = float(st) if st not in (None, "") else t
         if files:  # jamais deux voix en meme temps
             st = max(st, files[-1][1] + files[-1][2] + 0.15)
-        files.append((dest, st, d, v.get("text", "")))
+        files.append((dest, st, d, v.get("text", ""), v.get("fx", "")))
         t = st + d + 0.25
     work = src
     if subs:
-        work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx) in files], stamp)
+        work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx, _fx) in files], stamp)
     cmd = ["ffmpeg", "-y", "-v", "error", "-i", work]
     if not has_audio(work):
         cmd += ["-f", "lavfi", "-t", "%.2f" % total, "-i", "anullsrc=r=44100:cl=stereo"]
@@ -335,14 +338,16 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
     else:
         base = 0
     first = len(cmd)
-    for (f, _, _, _) in files:
+    for (f, _, _, _, _) in files:
         cmd += ["-i", f]
     n0 = 2 if base == 1 else 1
     fc = ["[%d:a]volume=%.2f,aresample=44100[a0]" % (base, float(orig_volume))]
     labels = ["[a0]"]
-    for i, (_, st, _, _) in enumerate(files):
+    for i, (_, st, _, _, fx) in enumerate(files):
         ms = int(st * 1000)
-        fc.append("[%d:a]aresample=44100,volume=1.8,adelay=%d|%d[v%d]" % (n0 + i, ms, ms, i))
+        # echo : voix de boss / voix venue de l'ombre
+        eff = ",apad=pad_dur=1,aecho=0.8:0.75:70|140:0.35|0.18" if fx == "echo" else ""
+        fc.append("[%d:a]aresample=44100%s,volume=1.8,adelay=%d|%d[v%d]" % (n0 + i, eff, ms, ms, i))
         labels.append("[v%d]" % i)
     fc.append("%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0[a]" % ("".join(labels), len(labels)))
     name = "%s_%s.mp4" % (safe_name(title, "voixoff"), stamp)
@@ -350,7 +355,7 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff"):
     cmd += ["-filter_complex", ";".join(fc), "-map", "0:v", "-map", "[a]", "-c:v", "copy",
             "-c:a", "aac", "-b:a", "192k", "-t", "%.2f" % total, out]
     run(cmd)
-    for (f, _, _, _) in files:
+    for (f, _, _, _, _) in files:
         try:
             os.remove(f)
         except OSError:
@@ -546,7 +551,8 @@ class Handler(SimpleHTTPRequestHandler):
                 path, dur, no_font = concat(d.get("files", []), d.get("music"),
                                             float(d.get("music_volume", 0.35)), d.get("title", "histoire"),
                                             bool(d.get("mute")), float(d.get("music_start") or 0),
-                                            d.get("durations"), d.get("subs"), d.get("starts"), d.get("size"))
+                                            d.get("durations"), d.get("subs"), d.get("starts"), d.get("size"),
+                                            d.get("mutes"))
                 return self.send_json({"path": path, "duration": dur, "subs_skipped": no_font})
 
             if p.path == "/api/upload":
