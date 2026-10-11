@@ -1078,15 +1078,24 @@ function stMainTTSVoice(){
   return /femme|fille|woman|girl|elle |influenceuse|americaine|actrice/.test(d)?'Sarah':'George';
 }
 function stChars(){
-  return [{name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:stMainTTSVoice()}].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));
+  const main={name:stMainName(),voice:$('stVoice').value,desc:$('stChar').value.trim(),main:true,vo:$('stMainVO').checked,tts:stMainTTSVoice()};
+  const list=[main].concat(stOthers().filter(c=>c.name&&c.name.trim()).map(c=>({name:c.name.trim(),voice:c.voice,desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})));
+  // personnages de la série en cours (Distribution) : complètent ceux qui manquent ici, et donnent la voix du principal s'il est en « Automatique »
+  const sr=typeof srCur==='function'?srCur():null;
+  if(sr&&sr.cast)sr.cast.forEach(c=>{const nm=(c.name||c.perso||'').trim();if(!nm)return;
+    const have=list.find(x=>x.name.toLowerCase()===nm.toLowerCase());
+    if(have){if(have.main&&(!have.voice||have.voice==='auto')&&!have.vo&&c.voice&&c.voice!=='auto'){have.voice=c.voice;have.tts=ttsFromType(c.voice)}return}
+    list.push({name:nm,voice:c.voice||'auto',desc:(c.desc||'').trim(),vo:!!c.vo,tts:c.tts||ttsFromType(c.voice),perso:c.perso||''})});
+  return list;
 }
+const AD_HOC_TTS=['Brian','Chris','Roger','Bill','Will'];
 // "Luna : salut\nMarc : tu es en retard" -> [{who, text, char}]
 function parseDialogue(line){
   const chars=stChars();const out=[];
   String(line||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(l=>{
     const m=l.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/);
     let c=null,text=l;
-    if(m){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;if(c||chars.length>1)text=m[2].trim();if(!c&&chars.length>1)c={name:m[1].trim(),voice:'auto',desc:''}}
+    if(m&&!/^https?$/i.test(m[1].trim())){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;text=m[2].trim();if(!c&&!/^[A-ZÀ-Ý][^\s:]*( [A-ZÀ-Ý][^\s:]*)?$/.test(m[1].trim())){text=l}else if(!c){let k=0;for(const ch of nm)k=(k*31+ch.charCodeAt(0))%997;c={name:m[1].trim(),voice:'auto',desc:'',tts:AD_HOC_TTS[k%AD_HOC_TTS.length]}}}
     out.push({char:c||chars[0],text});
   });
   return out;
