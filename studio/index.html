@@ -418,10 +418,14 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <h2>🎨 Image</h2>
   <p class="lead">Crée une image, ou mets une personne de tes photos dans un nouveau décor (~0,04 $ l'image).</p>
   <div class="card">
-    <label class="lbl">Photo(s) de référence (optionnel)</label>
+    <label class="lbl">👤 Personnage principal (optionnel)</label>
     <div class="chips" id="imPersos" style="margin:0 0 .6rem"></div>
-    <div class="up" data-pick="imRef"><input type="file" id="imRef" accept="image/*" multiple><div class="t">＋ Ajouter des photos à modifier</div></div>
+    <div class="up" data-pick="imRef"><input type="file" id="imRef" accept="image/*" multiple><div class="t">＋ Photo(s) du personnage (1 à 3, même visage)</div></div>
     <div class="grid" id="imThumbs"></div>
+    <label class="lbl">👟 Article à lui mettre (optionnel)</label>
+    <div class="up" data-pick="imProd"><input type="file" id="imProd" accept="image/*" multiple><div class="t">＋ Photo(s) du produit (1 à 3 vues : chaussures, vêtement, sac…)</div><div class="h">De préférence le produit seul, sans mannequin</div></div>
+    <div class="grid" id="imProdThumbs"></div>
+    <div class="toggle hide" id="imKeepBox"><span>📌 Garder la photo telle quelle <span class="hint" style="display:block;margin:0">Même pose, même décor : on change seulement l'article. Décoche pour une nouvelle scène.</span></span><label class="sw"><input type="checkbox" id="imKeep" checked><span></span></label></div>
     <label class="lbl">Ce que tu veux</label>
     <textarea id="imPrompt" placeholder="ex : mets cette personne en selfie dans la neige, avec des mammouths derrière, tempête qui arrive"></textarea>
     <div class="row">
@@ -2022,15 +2026,27 @@ async function tkGo(){
 /* =====================================================================
    ONGLET IMAGE
    ===================================================================== */
-const IM={refs:[]};
+const IM={refs:[],prods:[]};
+function imProdUI(){$('imKeepBox').classList.toggle('hide',!(IM.prods.length&&IM.refs.length))}
+function imBuildPrompt(p){
+  const P=IM.refs.length,Q=IM.prods.length;
+  if(!Q)return p+(P>1?' IMPORTANT: the person to keep is the one in the FIRST image (exact same face, eyes, hair, skin tone and body; do not add tattoos, piercings or makeup that are not in that image). The other images are only references for objects, clothes or products: ignore any person, face or body shown in them.':P?' Keep the exact same person (face, hair, skin tone, body) as in the reference photo; do not add tattoos that are not in it.':'')+' Photorealistic.';
+  const rng=(a,b)=>a===b?'image '+a:'images '+a+' to '+b;
+  const prod='THE PRODUCT ('+rng(P+1,P+Q)+'): these images only show the product to use. Ignore any person, face, legs, hands or body in them. Copy the product exactly: same shape, colors, gradients, patterns, logos, text, laces and sole.';
+  if(!P)return (p||'Professional product photo of this exact item.')+' '+prod+' Photorealistic.';
+  const who='THE PERSON ('+rng(1,P)+'): this is the main character. Keep EXACTLY the same face, eyes, eyebrows, nose, lips, hair, skin tone and body. Do not change the face and add nothing that is not in that image (no tattoos, freckles, piercings or makeup).';
+  if($('imKeep').checked)return who+' '+prod+' TASK: edit image 1 and keep it identical (same person, pose, framing, outfit, background and lighting); only replace the matching item the person wears or holds with the exact product.'+(p?' Extra instructions: '+p:'')+' Photorealistic.';
+  return who+' '+prod+' TASK: '+(p||'show the person using or wearing the product in a natural scene.')+' The person must be exactly the person of '+rng(1,P)+' wearing or using the exact product of '+rng(P+1,P+Q)+'. Photorealistic.';
+}
 function imPrice(){const n=+$('imNum').value;$('imPrice').innerHTML='Coût : <b>'+money(n*IMG_PRICE)+'</b>'}
 async function imGo(){
-  const p=$('imPrompt').value.trim();if(!p)return toast('Décris l\'image','warn');
+  const p=$('imPrompt').value.trim();if(!p&&!IM.prods.length)return toast('Décris l\'image','warn');
   const n=+$('imNum').value;if(!budgetOk(n*IMG_PRICE))return;
   $('imGo').disabled=true;$('imProg').textContent='Création…';
   try{
-    const input={prompt:p+(IM.refs.length>1?' IMPORTANT: the person to keep is the one in the FIRST image (exact same face, eyes, hair, skin tone and body; do not add tattoos, piercings or makeup that are not in that image). The other images are only references for objects, clothes or products: ignore any person, face or body shown in them.':IM.refs.length?' Keep the exact same person (face, hair, skin tone, body) as in the reference photo; do not add tattoos that are not in it.':'')+' Photorealistic.',aspect_ratio:$('imRatio').value,output_format:'jpeg',num_images:n};
-    const res=IM.refs.length?await falRun(IMG_EDIT,Object.assign(input,{image_urls:IM.refs.map(r=>r.uri)}),m=>$('imProg').textContent=m):await falRun(IMG_GEN,input,m=>$('imProg').textContent=m);
+    const input={prompt:imBuildPrompt(p),aspect_ratio:$('imRatio').value,output_format:'jpeg',num_images:n};
+    const all=IM.refs.concat(IM.prods);
+    const res=all.length?await falRun(IMG_EDIT,Object.assign(input,{image_urls:all.map(r=>r.uri)}),m=>$('imProg').textContent=m):await falRun(IMG_GEN,input,m=>$('imProg').textContent=m);
     addSpend(n*IMG_PRICE);
     for(const im of res.images||[]){
       const local=await saveLocal(im.url,'image');addHist({kind:'image',type:'Image',title:p.slice(0,40),url:im.url,local,cost:IMG_PRICE});
@@ -2210,8 +2226,9 @@ async function checkServer(){
   persoPicker($('tkPersos'),(p,imgs)=>{if(imgs[0]){TK.images=[imgs[0]];renderThumbs($('tkThumbs'),TK.images,tkPrice)}if(p.tts)$('tkVoice').value=p.tts;const lc=TTS_LANG[p.lang];if(lc){$('tkLang').value=lc;LS.set('ms_tkLang',lc)}tkPrice()});
 
   // Image
-  $('imRef').onchange=async e=>{IM.refs.push(...await loadImages(e.target.files));renderThumbs($('imThumbs'),IM.refs);e.target.value=''};
-  persoPicker($('imPersos'),(p,imgs)=>{IM.refs=imgs.slice(0,3);renderThumbs($('imThumbs'),IM.refs)});
+  $('imRef').onchange=async e=>{IM.refs.push(...await loadImages(e.target.files));IM.refs.splice(3);renderThumbs($('imThumbs'),IM.refs,imProdUI);imProdUI();e.target.value=''};
+  $('imProd').onchange=async e=>{IM.prods.push(...await loadImages(e.target.files));IM.prods.splice(3);renderThumbs($('imProdThumbs'),IM.prods,imProdUI);imProdUI();e.target.value=''};
+  persoPicker($('imPersos'),(p,imgs)=>{IM.refs=imgs.slice(0,3);renderThumbs($('imThumbs'),IM.refs,imProdUI);imProdUI()});
   $('imNum').onchange=imPrice;$('imGo').onclick=imGo;imPrice();
 
   $('libClear').onclick=()=>{if(confirm('Vider l\'historique ? Les fichiers restent dans MetaStudio/videos.')){LS.set('ms_hist',[]);libRender()}};
