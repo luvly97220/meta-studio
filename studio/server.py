@@ -451,6 +451,54 @@ def fal_upload(data, content_type, file_name, auth):
     return info["file_url"]
 
 
+def end_card(video, audio_url, title, text):
+    """Ajoute a la fin de la video une carte (derniere image floutee + texte) avec une voix."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    src = local_path(video)
+    if not os.path.isfile(src):
+        raise RuntimeError("video introuvable")
+    if not host_ok(audio_url):
+        raise RuntimeError("adresse de voix refusee")
+    stamp = str(int(time.time() * 1000))
+    au = os.path.join(WORK, "ec_%s.mp3" % stamp)
+    with urllib.request.urlopen(audio_url, timeout=120) as r, open(au, "wb") as fh:
+        shutil.copyfileobj(r, fh)
+    W, H = video_size(src)
+    W, H = W - W % 2, H - H % 2
+    last = os.path.join(WORK, "ec_%s.png" % stamp)
+    run(["ffmpeg", "-y", "-v", "error", "-sseof", "-0.2", "-i", src, "-frames:v", "1", "-update", "1", last])
+    cd = duration(au) + 0.9
+    font = find_font()
+    card = "scale=%d:%d,boxblur=14:2,eq=brightness=-0.42" % (W, H)
+    tmp = [au, last]
+    if font:
+        rows = [(l, 52, "0xFFD54A") for l in wrap_sub(clean_sub(title), 20)] + [(l, 48, "white") for l in wrap_sub(clean_sub(text), 22)]
+        y0 = 0.40 - len(rows) * 0.03
+        for j, (line, size, col) in enumerate(rows):
+            tf = os.path.join(WORK, "ec_%s_%d.txt" % (stamp, j))
+            with open(tf, "w", encoding="utf-8") as fh:
+                fh.write(line)
+            tmp.append(tf)
+            card += (",drawtext=fontfile='%s':textfile='%s':expansion=none:fontcolor=%s:fontsize=%d:"
+                     "borderw=4:bordercolor=black@0.8:x=(w-text_w)/2:y=h*%.3f+%d" % (font, tf, col, size, y0, j * 68 + (28 if col == "white" else 0)))
+    fc = ("[0:v]fps=30,scale=%d:%d,setsar=1[v0];[0:a]aresample=44100,aformat=channel_layouts=stereo[a0];"
+          "[1:v]%s,fps=30,setsar=1,trim=duration=%.2f[v1];"
+          "[2:a]aresample=44100,aformat=channel_layouts=stereo,volume=1.6,apad=whole_dur=%.2f[a1];"
+          "[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]") % (W, H, card, cd, cd)
+    name = "parlant_moralite_%s.mp4" % stamp
+    out = os.path.join(VIDEOS, name)
+    run(["ffmpeg", "-y", "-v", "error", "-i", src, "-loop", "1", "-t", "%.2f" % cd, "-i", last, "-i", au,
+         "-filter_complex", fc, "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", out])
+    for f in tmp:
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    return "/videos/" + name, duration(out)
+
+
 def voice_build(parts):
     """Piste du personnage qui parle (ses repliques) avec des blancs a la place des repliques
     du public ; renvoie le MP3 (data uri) et les instants ou poser les voix du public."""
@@ -629,6 +677,11 @@ class Handler(SimpleHTTPRequestHandler):
                     except Exception:
                         dur = 0.0
                 return self.send_json({"path": "/uploads/" + name, "duration": dur})
+
+            if p.path == "/api/endcard":
+                d = json.loads(self.body() or b"{}")
+                path, dur = end_card(d.get("video", ""), d.get("audio_url", ""), d.get("title", ""), d.get("text", ""))
+                return self.send_json({"path": path, "duration": dur})
 
             if p.path == "/api/voicebuild":
                 d = json.loads(self.body() or b"{}")

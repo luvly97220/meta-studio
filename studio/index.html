@@ -386,7 +386,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div id="tkTextBox">
       <label class="lbl">Texte à dire</label>
       <textarea id="tkText" placeholder="Une ligne par photo, ou un seul texte pour toutes"></textarea>
-      <div class="hint">💡 Une ligne <b>Public : Krak !</b> est dite par plusieurs autres voix ensemble (le personnage se tait pendant ce temps).</div>
+      <div class="hint">💡 Une ligne <b>Public : Krak !</b> est dite par plusieurs autres voix ensemble (le personnage se tait pendant ce temps). Une ligne <b>Moralité : …</b> est dite à la fin sur la dernière image, avec le texte à l'écran (presque gratuit).</div>
       <div class="chips" id="tkSplit"></div>
       <div class="row">
         <div><label class="lbl">Voix IA</label><select id="tkVoice"></select></div>
@@ -2018,7 +2018,7 @@ const TK={images:[],src:'text',split:'same',rec:null,recUri:null,fileUri:null,tt
 function tkLines(){const t=$('tkText').value.trim();if(!t)return[];if(TK.split==='lines'){const l=t.split(/\n+/).map(x=>x.trim()).filter(Boolean);return TK.images.map((_,i)=>l[i]||l[l.length-1])}return TK.images.map(()=>t)}
 function tkPrice(){
   const q=AVATAR[$('tkQual').value];const n=Math.max(1,TK.images.length);let secs=0,chars=0;
-  if(TK.src==='text'){const lines=tkLines();const uniq=[...new Set(lines)];uniq.forEach(l=>chars+=l.length);lines.forEach(l=>secs+=Math.max(2,l.length/14));if(!lines.length)secs=n*5}
+  if(TK.src==='text'){const lines=tkLines();const uniq=[...new Set(lines)];uniq.forEach(l=>chars+=l.length);lines.forEach(l=>{const body=tkStripMoral(l).replace(/^\s*public\s*[:：].*$/gim,'');secs+=Math.max(2,body.length/14+(tkHasPublic(l)?1.2*(l.match(/^\s*public\s*[:：]/gim)||[]).length:0))});if(!lines.length)secs=n*5}
   else secs=n*(TK.dur||8);
   const cost=secs*q.price+chars*TTS_PRICE+(($('tkFit').value==='extend'&&$('tkRatio').value!=='orig')?n*IMG_PRICE:0);
   $('tkPrice').innerHTML='Estimation : <b>'+money(cost)+'</b> pour '+n+' vidéo'+(n>1?'s':'')+' (~'+Math.round(secs/n)+' s chacune)';
@@ -2051,6 +2051,8 @@ async function tkRecToggle(){
 }
 // « Public : Krak ! » -> réponse du public (plusieurs voix ensemble), le personnage se tait pendant ce temps
 const PUBLIC_VOICES=['Laura','Chris','Lily','Will'];
+function tkMoral(t){const m=String(t||'').match(/^\s*(?:moralit[ée]|morale)\s*[:：]\s*(.+)$/im);return m?m[1].trim():''}
+function tkStripMoral(t){return String(t||'').split(/\n/).filter(l=>!/^\s*(?:moralit[ée]|morale)\s*[:：]/i.test(l)).join('\n')}
 function tkHasPublic(t){return /^\s*public\s*[:：]/im.test(t||'')}
 async function ttsWith(text,voice){const res=await falRun(TTS,{text,voice,language_code:$('tkLang').value||'fr',stability:0.4,similarity_boost:0.75});addSpend(text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');return u}
 async function tkDialogue(text,onMsg){
@@ -2079,7 +2081,8 @@ async function tkGo(){
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('tkOut').prepend(ph);const pe=ph.querySelector('[data-p]');
     try{
       let audio=TK.src==='mic'?TK.recUri:TK.src==='file'?TK.fileUri:null;
-      let crowd=null;
+      let crowd=null,moral='';
+      if(TK.src==='text'){moral=tkMoral(audios[i]);audios[i]=tkStripMoral(audios[i])||audios[i]}
       if(TK.src==='text'){pe.textContent='Voix…';if(tkHasPublic(audios[i])){const d=await tkDialogue(audios[i],m=>pe.textContent=m);audio=d.datauri;crowd=d.overlays}else audio=await tts(audios[i])}
       const img=await fitImage(TK.images[i].uri,$('tkRatio').value,$('tkFit').value,m=>pe.textContent=m,'talk');
       const res=await falRun(q.id,{image_url:img,audio_url:audio,prompt:$('tkPrompt').value.trim()||'.'},m=>pe.textContent=m);
@@ -2089,6 +2092,10 @@ async function tkGo(){
       if(crowd&&crowd.length&&local){pe.textContent='Le public répond…';
         const voices=[];crowd.forEach(o=>o.urls.forEach(u=>voices.push({url:u,start:o.start,text:'',together:true,vol:0.75})));
         const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:local,voices,orig_volume:1,subs:false,title:'parlant_public'})});const d2=await r2.json();if(r2.ok)local=d2.path;else toast('Voix du public non ajoutée : '+(d2.detail||''),'warn')}
+      if(moral&&local){pe.textContent='Moralité…';
+        try{const mu=await tts('La moralité de l\'histoire… '+moral);
+          const r3=await fetch('/api/endcard',{method:'POST',body:JSON.stringify({video:local,audio_url:mu,title:'La moralité de l\'histoire',text:moral.charAt(0).toUpperCase()+moral.slice(1)})});const d3=await r3.json();if(r3.ok)local=d3.path;else toast('Moralité non ajoutée : '+(d3.detail||''),'warn')}
+        catch(e){toast('Moralité non ajoutée : '+(e.message||e),'warn')}}
       addHist({kind:'video',type:'Parlant',title:(audios[i]||'Voix').slice(0,40),url,local,cost:c});
       ph.replaceWith(resCard({kind:'video',url,local,title:'Parlant '+(i+1)}));done++;
     }catch(e){pe.textContent='✕ '+e.message}
