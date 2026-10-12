@@ -1934,7 +1934,7 @@ async function dnGo(){
 }
 /* ---------- voix off ---------- */
 const LANG_NAME={fr:'French',en:'English',es:'Spanish',pt:'Portuguese',it:'Italian',de:'German',nl:'Dutch',ar:'Arabic',tr:'Turkish',ru:'Russian',pl:'Polish',zh:'Chinese',ja:'Japanese',ko:'Korean',hi:'Hindi'};
-const VO_VOICE=[['homme grave','Brian'],['grave et posée','Charlotte'],['femme grave','Charlotte'],['homme jeune','Liam'],['jeune homme','Liam'],['homme posé','George'],['homme rauque','Bill'],['homme âgé','Bill'],['vieil homme','Bill'],['femme douce','Sarah'],['femme énergique','Laura'],['femme jeune','Lily'],['jeune femme','Lily'],['femme âgée','Matilda'],['enfant','Lily'],['narrateur','Daniel'],['robot','Roger'],['grave','Brian'],['posé','George'],['douce','Sarah']];
+const VO_VOICE=[['americaine','Jessica'],['americain','Chris'],['homme grave','Brian'],['grave et posée','Charlotte'],['femme grave','Charlotte'],['homme jeune','Liam'],['jeune homme','Liam'],['homme posé','George'],['homme rauque','Bill'],['homme âgé','Bill'],['vieil homme','Bill'],['femme douce','Sarah'],['femme énergique','Laura'],['femme jeune','Lily'],['jeune femme','Lily'],['femme âgée','Matilda'],['enfant','Lily'],['narrateur','Daniel'],['robot','Roger'],['grave','Brian'],['posé','George'],['douce','Sarah']];
 const VO_DEFAULT=['George','Brian','Sarah','Liam','Charlotte','Daniel'];
 function voVoice(hint){const h=norm(hint||'');if(!h)return null;const direct=VOICES.find(([v])=>norm(v)===h);if(direct)return direct[0];const m=VO_VOICE.find(([k])=>h.includes(norm(k)));return m?m[1]:null}
 function parseVO(text){
@@ -1944,7 +1944,8 @@ function parseVO(text){
     if(!m)return;const start=m[1]!=null?parseFloat(m[1].replace(',','.')):null;const name=(m[2]||'').trim();const txt=m[4].trim();
     let voice=voVoice(m[3]);const key=norm(name)||'_';
     if(!voice)voice=seen[key]||VO_DEFAULT.find(v=>!Object.values(seen).includes(v))||VO_DEFAULT[k++%VO_DEFAULT.length];seen[key]=voice;
-    out.push({start,name,voice,text:txt});
+    const h=norm(m[3]||'');const accent=/americ/.test(h)?'American':/anglais|british/.test(h)?'British':/espagnol/.test(h)?'Spanish':/italien/.test(h)?'Italian':/bresil/.test(h)?'Brazilian':/africain/.test(h)?'African':'';
+    out.push({start,name,voice,text:txt,accent});
   });
   return out;
 }
@@ -1957,7 +1958,9 @@ async function anVoiceOver(){
   try{
     const lang=$('anVOLang').value;const voices=[];
     for(const l of lines){
-      const res=await falRun(TTS,{text:l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
+      let res=null;
+      if(l.accent){try{res=await falRun(TTS_V3,{text:'['+l.accent+' accent] '+l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75})}catch(e){res=null}}
+      if(!res||!res.audio)res=await falRun(TTS,{text:l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
       addSpend(l.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix non reçue');
       voices.push({url:u,start:l.start,text:(lines.some(x=>x.name)&&l.name?l.name+' : ':'')+l.text});
     }
