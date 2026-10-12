@@ -1330,7 +1330,9 @@ function stImgPrompt(s,hasRef,legend){
   const f=FORMATS[ST.format];const place=stPlace();const ch=$('stChar').value.trim();
   const body=s.kind==='move'?' Full body visible from head to feet, standing facing the camera, arms slightly away from the body, nobody else around.':'';
   return (legend?legend:hasRef?'Keep this exact same person: same face, hairstyle, skin tone, body, tattoos and outfit. Place them in a new scene. ':(ch?'Main character: '+ch+'. ':''))+
-    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+''+body+' '+f.img+' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.';
+    (hasRef||legend?'Use the reference photos only for the people: ignore their original background, pose and setting. ':'')+
+    (s.decor||place)+(place&&s.decor?' Setting: '+place+'.':'')+othersInScene(s).map(c=>' Also in the scene: '+c.name+(c.desc?', '+c.desc:'')+'.').join('')+
+    (othersInScene(s).length&&s.kind!=='move'?' Exactly '+(othersInScene(s).length+1)+' main people in the photo ('+[stMainName()].concat(othersInScene(s).map(c=>c.name)).join(' and ')+'), each appears only once, nobody is duplicated; any passersby stay small in the background.':'')+body+' '+f.img+(ST.format==='vlog'?' Hyper-realistic real iPhone front-camera photo, natural daylight, real skin texture, slight motion, not posed, no studio lighting, vertical 9:16 photo, no text.':' Photorealistic, natural skin, cinematic lighting, vertical 9:16 photo, no text.');
 }
 function stCamFor(s){return camPrompt(s&&s.cam||$('stCam').value)}
 function stBeatSuffix(s,o){
