@@ -392,6 +392,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
         <div><label class="lbl">Langue</label><select id="tkLang"><option value="fr">Français</option><option value="en">Anglais</option><option value="es">Espagnol</option><option value="pt">Portugais</option><option value="it">Italien</option><option value="de">Allemand</option><option value="nl">Néerlandais</option><option value="ar">Arabe</option><option value="tr">Turc</option><option value="ru">Russe</option><option value="pl">Polonais</option><option value="zh">Chinois</option><option value="ja">Japonais</option><option value="ko">Coréen</option><option value="hi">Hindi</option><option value="">Automatique (autre langue)</option></select></div>
       </div>
       <div class="row">
+        <div><label class="lbl">Accent</label><select id="tkAccent"><option value="">Aucun (natif)</option><option value="American">🇺🇸 Américain</option><option value="British">🇬🇧 Anglais</option><option value="Spanish">🇪🇸 Espagnol</option><option value="Italian">🇮🇹 Italien</option><option value="Brazilian">🇧🇷 Brésilien</option><option value="African">🌍 Africain</option></select></div>
         <div><label class="lbl">Vitesse</label><select id="tkSpeed"><option value="0.9">Lente</option><option value="1" selected>Normale</option><option value="1.1">Rapide</option></select></div>
       </div>
       <button class="btn sec" id="tkPreview">▶️ Écouter la voix (première ligne)</button>
@@ -1059,7 +1060,8 @@ const VOICE_TYPES=[['auto','Automatique',''],['homme_grave','Homme · grave','de
 /* ---------- écouter une voix avant de choisir ---------- */
 const PREVIEW_TXT={fr:"Salut ! Voilà ma voix. Tu me choisis pour ta prochaine vidéo ?",en:"Hi! This is my voice. Will you pick me for your next video?",es:"¡Hola! Esta es mi voz. ¿Me eliges para tu próximo video?",pt:"Olá! Esta é a minha voz. Escolhes-me para o teu próximo vídeo?",it:"Ciao! Questa è la mia voce. Mi scegli per il tuo prossimo video?",de:"Hallo! Das ist meine Stimme. Nimmst du mich für dein nächstes Video?",nl:"Hoi! Dit is mijn stem. Kies je mij voor je volgende video?",ar:"مرحبا! هذا صوتي. هل تختارني لفيديوك القادم؟",tr:"Merhaba! Bu benim sesim. Bir sonraki videon için beni seçer misin?",ru:"Привет! Это мой голос. Выберешь меня для следующего видео?",pl:"Cześć! To mój głos. Wybierzesz mnie do następnego filmu?",zh:"你好！这是我的声音。下一个视频选我吗？",ja:"こんにちは！これが私の声です。次の動画に選んでくれる？",ko:"안녕하세요! 제 목소리예요. 다음 영상에 저를 골라줄래요?",hi:"नमस्ते! यह मेरी आवाज़ है। अगले वीडियो के लिए मुझे चुनोगे?"};
 let PREV_AUDIO=null;
-async function previewVoice(voice,lang,btn){
+async function previewVoice(voice,lang,btn,own){
+  if(own){const old=btn.textContent;try{btn.textContent='⏳';btn.disabled=true;const u=await own();if(PREV_AUDIO)PREV_AUDIO.pause();PREV_AUDIO=new Audio(u);await PREV_AUDIO.play()}catch(e){toast('Écoute impossible : '+(e.message||e),'warn')}finally{btn.textContent=old;btn.disabled=false}return}
   lang=PREVIEW_TXT[lang]?lang:'fr';const k='ms_vprev_'+voice+'_'+lang;let u=LS.get(k,null);const old=btn.textContent;
   try{
     if(!u){btn.textContent='⏳';btn.disabled=true;
@@ -1070,12 +1072,12 @@ async function previewVoice(voice,lang,btn){
   }catch(e){toast('Écoute impossible : '+(e.message||e),'warn')}
   finally{btn.textContent=old;btn.disabled=false}
 }
-function addPreview(selId,getLang,getVoice){
+function addPreview(selId,getLang,getVoice,own){
   const sel=$(selId);if(!sel||sel.dataset.prev)return;sel.dataset.prev=1;
   const wrap=document.createElement('div');wrap.style.cssText='display:flex;gap:.4rem;align-items:center';
   sel.parentNode.insertBefore(wrap,sel);wrap.appendChild(sel);sel.style.flex='1';
   const b=document.createElement('button');b.type='button';b.className='btn sec small';b.textContent='▶ Écouter';b.title='Écouter cette voix (~0,01 $ la 1re fois, gratuit ensuite)';
-  b.onclick=()=>{const v=getVoice?getVoice():sel.value;if(!v)return toast('Choisis d\'abord une voix','warn');previewVoice(v,getLang(),b)};wrap.appendChild(b);
+  b.onclick=()=>{const v=getVoice?getVoice():sel.value;if(!v)return toast('Choisis d\'abord une voix','warn');previewVoice(v,getLang(),b,own&&own())};wrap.appendChild(b);
 }
 function voiceOpts(sel){return VOICE_TYPES.map(([v,l])=>'<option value="'+v+'" '+(v===sel?'selected':'')+'>'+l+'</option>').join('')}
 function voiceDesc(v){const t=VOICE_TYPES.find(x=>x[0]===v);return t?t[2]:''}
@@ -2021,8 +2023,11 @@ function tkPrice(){
   $('tkPrice').innerHTML='Estimation : <b>'+money(cost)+'</b> pour '+n+' vidéo'+(n>1?'s':'')+' (~'+Math.round(secs/n)+' s chacune)';
   return cost;
 }
+function tkAccentText(text){const a=$('tkAccent').value;return a?'['+a+' accent] '+text:text}
 async function tts(text){
-  const key=text+'|'+$('tkVoice').value+'|'+$('tkSpeed').value+'|'+$('tkLang').value;if(TK.ttsCache[key])return TK.ttsCache[key];
+  const key=text+'|'+$('tkVoice').value+'|'+$('tkSpeed').value+'|'+$('tkLang').value+'|'+$('tkAccent').value;if(TK.ttsCache[key])return TK.ttsCache[key];
+  if($('tkAccent').value){let res;try{res=await falRun(TTS_V3,{text:tkAccentText(text),voice:$('tkVoice').value,...($('tkLang').value?{language_code:$('tkLang').value}:{}),stability:0.5,similarity_boost:0.75})}catch(e){res=null}
+    if(res&&res.audio&&res.audio.url){addSpend(text.length*TTS_PRICE);TK.ttsCache[key]=res.audio.url;return res.audio.url}}
   const res=await falRun(TTS,{text,voice:$('tkVoice').value,speed:+$('tkSpeed').value,...($('tkLang').value?{language_code:$('tkLang').value}:{}),stability:0.5,similarity_boost:0.75});
   addSpend(text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');TK.ttsCache[key]=u;return u;
 }
@@ -2259,7 +2264,7 @@ async function checkServer(){
   $('txCount').onchange=txPrice;$('txGo').onclick=txGo;txPrice();
 
   // Parlant
-  $('tkVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');addPreview('tkVoice',()=>$('tkLang').value||'fr');
+  $('tkVoice').innerHTML=VOICES.map(([v,l])=>'<option value="'+v+'">'+v+' — '+l+'</option>').join('');$('tkAccent').value=LS.get('ms_tkAccent','');$('tkAccent').onchange=e=>{LS.set('ms_tkAccent',e.target.value);if(typeof tkPrice==='function')tkPrice()};addPreview('tkVoice',()=>$('tkLang').value||'fr',null,()=>{const t=($('tkText').value.trim().split(/\n+/)[0]||'').trim();return t?()=>tts(t):null});
   {const seen=new Set();$('anVOTry').innerHTML='<option value="">🎧 Écouter les voix de la voix off…</option>'+VO_VOICE.filter(([k,v])=>k.includes(' ')&&!seen.has(v)&&seen.add(v)).map(([k,v])=>'<option value="'+v+'">('+k+') — '+v+'</option>').join('');addPreview('anVOTry',()=>$('anVOLang').value||'fr')}
   chips($('tkSrc'),[['text','⌨️ Texte → voix IA'],['mic','🎙️ Ma voix'],['file','📂 Fichier audio']],TK.src,v=>{TK.src=v;$('tkTextBox').classList.toggle('hide',v!=='text');$('tkMicBox').classList.toggle('hide',v!=='mic');$('tkFileBox').classList.toggle('hide',v!=='file');tkPrice()});
   chips($('tkSplit'),[['same','Même texte pour toutes les photos'],['lines','Une ligne par photo']],TK.split,v=>{TK.split=v;tkPrice()});
