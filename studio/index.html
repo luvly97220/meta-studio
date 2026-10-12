@@ -1970,7 +1970,7 @@ async function anVoiceOver(){
     addHist({kind:'video',type:'Photo→vidéo',title:'Avec voix off',local:d.path,cost:0});
     $('anVOOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Voix off · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='.6rem auto 0';$('anVOOut').appendChild(c);
     captionTool($('anVOOut'),()=>'Type: short cinematic action film\nLines: '+lines.map(l=>l.text).join(' / ')+'\nStory: '+$('anStory').value);
-    toast('Voix off ajoutées ✓','ok');
+    if(d.extended>0.3)toast('Les voix dépassaient la vidéo de '+d.extended.toFixed(1).replace('.',',')+' s : la dernière image est prolongée. Pour éviter ça, raccourcis ou enlève une réplique.','warn',7000);else toast('Voix off ajoutées ✓','ok');
   }catch(e){toast('Voix off : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎙️ Ajouter les voix off (~0,01 $)'}
 }

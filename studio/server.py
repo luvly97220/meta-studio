@@ -335,6 +335,19 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
             st = max(st, files[-1][1] + files[-1][2] + 0.15)
         files.append((dest, st, d, v.get("text", ""), v.get("fx", ""), float(v.get("vol", 1.8))))
         t = st + d + 0.25
+    # si les voix depassent la fin, on prolonge la derniere image (rien n'est coupe)
+    extended = 0.0
+    end = max([st + d for (_, st, d, _, _, _) in files] or [0]) + 0.5
+    tmp_ext = None
+    if end > total + 0.05:
+        extended = end - total
+        tmp_ext = os.path.join(WORK, "ext_%s.mp4" % stamp)
+        cmd0 = ["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", "tpad=stop_mode=clone:stop_duration=%.2f" % extended]
+        if has_audio(src):
+            cmd0 += ["-af", "apad=pad_dur=%.2f" % extended]
+        run(cmd0 + ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "160k", "-t", "%.2f" % end, tmp_ext])
+        src, total = tmp_ext, end
     work = src
     if subs:
         work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx, _fx, _v) in files], stamp)
@@ -374,13 +387,13 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
             os.remove(f)
         except OSError:
             pass
-    if work != src:
+    for f in {work, tmp_ext} - {None, local_path(video)}:
         try:
-            os.remove(work)
+            os.remove(f)
         except OSError:
             pass
     loud_tiktok(out)
-    return "/videos/" + name, duration(out)
+    return "/videos/" + name, duration(out), extended
 
 
 def audio_cut_datauri(rel, start, dur):
@@ -698,10 +711,10 @@ class Handler(SimpleHTTPRequestHandler):
 
             if p.path == "/api/mixvoices":
                 d = json.loads(self.body() or b"{}")
-                path, dur = mix_voices(d.get("video", ""), d.get("voices", []),
+                path, dur, ext = mix_voices(d.get("video", ""), d.get("voices", []),
                                        float(d.get("orig_volume", 0.7)), bool(d.get("subs", True)),
                                        d.get("title", "voixoff"), bool(d.get("duck")))
-                return self.send_json({"path": path, "duration": dur})
+                return self.send_json({"path": path, "duration": dur, "extended": round(ext, 1)})
 
             if p.path == "/api/audiocut":
                 d = json.loads(self.body() or b"{}")
