@@ -169,6 +169,36 @@ def burn_subs(src, subs, stamp):
     return out, False
 
 
+def burn_title(src, text, stamp, dur=2.6):
+    """Titre en haut de l'image pendant les premieres secondes (gros, blanc, fond sombre)."""
+    font = find_font()
+    lines = wrap_sub(clean_sub(text or ""), 18)
+    if not font or not lines:
+        return src
+    W, H = video_size(src)
+    k = W / 720.0
+    filters, tmp = [], []
+    for j, line in enumerate(lines[:3]):
+        tf = os.path.join(WORK, "ti_%s_%d.txt" % (stamp, j))
+        with open(tf, "w", encoding="utf-8") as fh:
+            fh.write(line)
+        tmp.append(tf)
+        filters.append(
+            "drawtext=fontfile='%s':textfile='%s':expansion=none:fontcolor=white:fontsize=%d:"
+            "box=1:boxcolor=black@0.55:boxborderw=%d:x=(w-text_w)/2:y=h*0.11+%d:"
+            "alpha='if(lt(t,0.25),t/0.25,if(gt(t,%.2f),max(0,(%.2f-t)/0.3),1))':enable='between(t,0,%.2f)'"
+            % (ffp(font), ffp(tf), int(58 * k), int(16 * k), int(j * 84 * k), dur - 0.3, dur, dur))
+    out = os.path.join(WORK, "title_%s.mp4" % stamp)
+    run(["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", ",".join(filters),
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "copy", out])
+    for t in tmp:
+        try:
+            os.remove(t)
+        except OSError:
+            pass
+    return out
+
+
 def video_size(src):
     try:
         out = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
@@ -311,7 +341,7 @@ def concat(files, music=None, music_volume=0.35, title="histoire",
     return "/videos/" + final_name, duration(final), no_font
 
 
-def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=False):
+def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=False, title_text=""):
     """Pose des voix off (fichiers fal) sur une video, avec sous-titres optionnels."""
     if not has_ffmpeg():
         raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
@@ -348,6 +378,13 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
         run(cmd0 + ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
                     "-c:a", "aac", "-b:a", "160k", "-t", "%.2f" % end, tmp_ext])
         src, total = tmp_ext, end
+    tmp_title = None
+    if title_text:
+        tmp_title = burn_title(src, title_text, stamp)
+        if tmp_title != src:
+            src = tmp_title
+        else:
+            tmp_title = None
     work = src
     if subs:
         work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx, _fx, _v) in files], stamp)
@@ -387,7 +424,7 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
             os.remove(f)
         except OSError:
             pass
-    for f in {work, tmp_ext} - {None, local_path(video)}:
+    for f in {work, tmp_ext, tmp_title} - {None, local_path(video)}:
         try:
             os.remove(f)
         except OSError:
@@ -713,7 +750,7 @@ class Handler(SimpleHTTPRequestHandler):
                 d = json.loads(self.body() or b"{}")
                 path, dur, ext = mix_voices(d.get("video", ""), d.get("voices", []),
                                        float(d.get("orig_volume", 0.7)), bool(d.get("subs", True)),
-                                       d.get("title", "voixoff"), bool(d.get("duck")))
+                                       d.get("title", "voixoff"), bool(d.get("duck")), d.get("title_text", ""))
                 return self.send_json({"path": path, "duration": dur, "extended": round(ext, 1)})
 
             if p.path == "/api/audiocut":

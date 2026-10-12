@@ -295,6 +295,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Langue des voix</label><select id="anVOLang"><option value="fr">Français</option><option value="en">Anglais</option><option value="es">Espagnol</option><option value="pt">Portugais</option><option value="it">Italien</option><option value="de">Allemand</option><option value="nl">Néerlandais</option><option value="ar">Arabe</option><option value="tr">Turc</option><option value="ru">Russe</option><option value="pl">Polonais</option><option value="zh">Chinois</option><option value="ja">Japonais</option><option value="ko">Coréen</option><option value="hi">Hindi</option></select></div>
       <div><label class="lbl">Son de la vidéo : <span id="anVOVolV">60</span>%</label><input type="range" id="anVOVol" min="0" max="100" value="60"></div>
     </div>
+    <label class="lbl">🏷️ Titre au début (optionnel)</label><input type="text" id="anVOTitle" placeholder="ex : Ma storytime du jour"><div class="hint">S'affiche en haut de l'image pendant les 2-3 premières secondes. Les emojis ne s'affichent pas : ajoute-les dans TikTok si tu veux.</div>
     <div class="toggle"><span>💬 Sous-titres des répliques</span><label class="sw"><input type="checkbox" id="anVOSubs" checked><span></span></label></div>
     <label class="lbl">Univers</label>
     <input type="text" id="anUnivSearch" placeholder="🔎 Chercher un univers">
@@ -1883,7 +1884,7 @@ function newMontage(tab){
   }else{
     AN.images=[];AN.end=null;AN.results=[];AN.finalPath=null;AN.voFile=null;DN.ref=null;
     renderThumbs($('anThumbs'),AN.images,anPrice);
-    ['anChar','anBeats','anVO'].forEach(id=>{$(id).value='';LS.set('ms_'+id,'')});$('anStory').value='';
+    ['anChar','anBeats','anVO','anVOTitle'].forEach(id=>{$(id).value='';LS.set('ms_'+id,'')});$('anStory').value='';
     $('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide');
     $('anVOFileName').textContent='📂 Choisir une vidéo déjà faite (optionnel)';$('dnFileName').textContent='📂 Choisir la vidéo de danse (3 à 30 s)';
     ['anOut','anFinal','anVOOut','dnOut'].forEach(id=>$(id).innerHTML='');['anProg','dnProg'].forEach(id=>$(id).textContent='');
@@ -1965,7 +1966,7 @@ async function anVoiceOver(){
       voices.push({url:u,start:l.start,text:(lines.some(x=>x.name)&&l.name?l.name+' : ':'')+l.text.replace(/\[[^\]]{1,30}\]\s*/g,'').trim()});
     }
     b.innerHTML='<span class="spin"></span> Mixage…';
-    const r=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:target,voices,orig_volume:+$('anVOVol').value/100,subs:$('anVOSubs').checked,title:'voixoff'})});
+    const r=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:target,voices,orig_volume:+$('anVOVol').value/100,subs:$('anVOSubs').checked,title:'voixoff',title_text:$('anVOTitle').value.trim()})});
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'mixage impossible');
     addHist({kind:'video',type:'Photo→vidéo',title:'Avec voix off',local:d.path,cost:0});
     $('anVOOut').innerHTML='';const c=resCard({kind:'video',local:d.path,title:'Voix off · '+Math.round(d.duration)+' s'});c.style.maxWidth='360px';c.style.margin='.6rem auto 0';$('anVOOut').appendChild(c);
@@ -2282,6 +2283,7 @@ async function checkServer(){
   $('anBeats').value=LS.get('ms_anBeats','');$('anBeats').oninput=e=>LS.set('ms_anBeats',e.target.value);
   $('anMontage').onclick=anMontage;
   $('anVO').value=LS.get('ms_anVO','');$('anVO').oninput=e=>LS.set('ms_anVO',e.target.value);
+  $('anVOTitle').value=LS.get('ms_anVOTitle','');$('anVOTitle').oninput=e=>LS.set('ms_anVOTitle',e.target.value);
   $('anVOLang').value=LS.get('ms_anVOLang','fr');$('anVOLang').onchange=e=>LS.set('ms_anVOLang',e.target.value);
   $('anVOVol').oninput=e=>$('anVOVolV').textContent=e.target.value;
   $('anVOGo').onclick=anVoiceOver;
