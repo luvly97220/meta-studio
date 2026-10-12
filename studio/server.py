@@ -473,7 +473,8 @@ def end_card(video, audio_url, title, text):
     card = "scale=%d:%d,boxblur=14:2,eq=brightness=-0.42" % (W, H)
     tmp = [au, last]
     if font:
-        rows = [(l, 52, "0xFFD54A") for l in wrap_sub(clean_sub(title), 20)] + [(l, 48, "white") for l in wrap_sub(clean_sub(text), 22)]
+        k = W / 720.0
+        rows = [(l, int(60 * k), "0xFFD54A") for l in wrap_sub(clean_sub(title), 18)] + [(l, int(58 * k), "white") for l in wrap_sub(clean_sub(text), 19)]
         y0 = 0.40 - len(rows) * 0.03
         for j, (line, size, col) in enumerate(rows):
             tf = os.path.join(WORK, "ec_%s_%d.txt" % (stamp, j))
@@ -481,7 +482,7 @@ def end_card(video, audio_url, title, text):
                 fh.write(line)
             tmp.append(tf)
             card += (",drawtext=fontfile='%s':textfile='%s':expansion=none:fontcolor=%s:fontsize=%d:"
-                     "borderw=4:bordercolor=black@0.8:x=(w-text_w)/2:y=h*%.3f+%d" % (font, tf, col, size, y0, j * 68 + (28 if col == "white" else 0)))
+                     "borderw=4:bordercolor=black@0.8:x=(w-text_w)/2:y=h*%.3f+%d" % (font, tf, col, size, y0, int(j * 78 * k) + (30 if col == "white" else 0)))
     fc = ("[0:v]fps=30,scale=%d:%d,setsar=1[v0];[0:a]aresample=44100,aformat=channel_layouts=stereo[a0];"
           "[1:v]%s,fps=30,setsar=1,trim=duration=%.2f[v1];"
           "[2:a]aresample=44100,aformat=channel_layouts=stereo,volume=1.6,apad=whole_dur=%.2f[a1];"
