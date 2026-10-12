@@ -1129,8 +1129,8 @@ function parseDialogue(line){
 function dialoguePrompt(line,lang,masked){
   const parts=parseDialogue(line);if(!parts.length)return '';
   const desc=c=>{const v=voiceDesc(c.voice);const d=[v,c.main?'':c.desc].filter(Boolean).join(', ');return c.name+(d?' ('+d+')':'')};
-  if(parts.length===1&&parts[0].char.main)return 'The person speaks to the camera'+(masked?'':' with accurate lip-sync')+(voiceDesc(parts[0].char.voice)?' with a '+voiceDesc(parts[0].char.voice):'')+', saying in '+lang+': "'+parts[0].text+'". ';
-  return 'Dialogue in '+lang+', each character with their own distinct voice and accurate lip-sync: '+parts.map((p,i)=>desc(p.char)+(i?' replies':' says')+': "'+p.text+'"').join('. Then ')+'. ';
+  if(parts.length===1&&parts[0].char.main)return 'The person speaks to the camera'+(masked?'':' with accurate lip-sync')+(voiceDesc(parts[0].char.voice)?' with a '+voiceDesc(parts[0].char.voice):'')+', saying in '+lang+', slowly and clearly, articulating every word: "'+parts[0].text+'". ';
+  return 'Dialogue in '+lang+', spoken slowly and clearly, every word well articulated, each character with their own distinct voice and accurate lip-sync: '+parts.map((p,i)=>desc(p.char)+(i?' replies':' says')+': "'+p.text+'"').join('. Then ')+'. ';
 }
 function screenLine(s){
   const parts=parseDialogue(s&&s.line);const many=stChars().length>1;
