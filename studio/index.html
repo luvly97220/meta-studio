@@ -386,6 +386,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
     <div id="tkTextBox">
       <label class="lbl">Texte à dire</label>
       <textarea id="tkText" placeholder="Une ligne par photo, ou un seul texte pour toutes"></textarea>
+      <div class="hint">💡 Une ligne <b>Public : Krak !</b> est dite par plusieurs autres voix ensemble (le personnage se tait pendant ce temps).</div>
       <div class="chips" id="tkSplit"></div>
       <div class="row">
         <div><label class="lbl">Voix IA</label><select id="tkVoice"></select></div>
@@ -2048,6 +2049,22 @@ async function tkRecToggle(){
     mr.start();b.textContent='⏹ Arrêter l\'enregistrement';
   }catch(e){toast('Micro inaccessible : autorise le micro pour localhost','err',4500)}
 }
+// « Public : Krak ! » -> réponse du public (plusieurs voix ensemble), le personnage se tait pendant ce temps
+const PUBLIC_VOICES=['Laura','Chris','Lily','Will'];
+function tkHasPublic(t){return /^\s*public\s*[:：]/im.test(t||'')}
+async function ttsWith(text,voice){const res=await falRun(TTS,{text,voice,language_code:$('tkLang').value||'fr',stability:0.4,similarity_boost:0.75});addSpend(text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('pas d\'audio');return u}
+async function tkDialogue(text,onMsg){
+  const parts=[];let buf=[];
+  const flush=async()=>{if(!buf.length)return;const t=buf.join(' ');buf=[];parts.push({main:true,urls:[await tts(t)]})};
+  for(const l of String(text).split(/\n+/).map(x=>x.trim()).filter(Boolean)){
+    const m=l.match(/^public\s*[:：]\s*(.+)$/i);
+    if(m){await flush();onMsg&&onMsg('Voix du public…');parts.push({urls:await Promise.all(PUBLIC_VOICES.map(v=>ttsWith(m[1],v)))})}
+    else buf.push(l);
+  }
+  await flush();
+  const r=await fetch('/api/voicebuild',{method:'POST',body:JSON.stringify({parts})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'montage de la voix impossible');
+  return d;
+}
 async function tkGo(){
   if(!TK.images.length)return toast('Ajoute une photo','warn');
   const q=AVATAR[$('tkQual').value];
@@ -2055,18 +2072,24 @@ async function tkGo(){
   if(TK.src==='text'){const lines=tkLines();if(!lines.length)return toast('Écris le texte à dire','warn');audios=lines}
   else if(TK.src==='mic'){if(!TK.recUri)return toast('Enregistre ta voix d\'abord','warn');audios=TK.images.map(()=>null)}
   else{if(!TK.fileUri)return toast('Choisis un fichier audio','warn');audios=TK.images.map(()=>null)}
+  if(TK.src==='text'&&audios.some(tkHasPublic)&&!S.server)return toast('Lance python server.py pour les répliques « Public : »','err',4500);
   if(!budgetOk(tkPrice()))return;
   $('tkGo').disabled=true;let done=0;
   for(let i=0;i<TK.images.length;i++){
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;text-align:center;padding:.5rem" data-p>Vidéo '+(i+1)+'</div>';$('tkOut').prepend(ph);const pe=ph.querySelector('[data-p]');
     try{
       let audio=TK.src==='mic'?TK.recUri:TK.src==='file'?TK.fileUri:null;
-      if(TK.src==='text'){pe.textContent='Voix…';audio=await tts(audios[i])}
+      let crowd=null;
+      if(TK.src==='text'){pe.textContent='Voix…';if(tkHasPublic(audios[i])){const d=await tkDialogue(audios[i],m=>pe.textContent=m);audio=d.datauri;crowd=d.overlays}else audio=await tts(audios[i])}
       const img=await fitImage(TK.images[i].uri,$('tkRatio').value,$('tkFit').value,m=>pe.textContent=m,'talk');
       const res=await falRun(q.id,{image_url:img,audio_url:audio,prompt:$('tkPrompt').value.trim()||'.'},m=>pe.textContent=m);
       const url=res.video&&res.video.url;if(!url)throw new Error('pas de vidéo');
       const c=(res.duration||8)*q.price;addSpend(c);
-      const local=await saveLocal(url,'parlant');addHist({kind:'video',type:'Parlant',title:(audios[i]||'Voix').slice(0,40),url,local,cost:c});
+      let local=await saveLocal(url,'parlant');
+      if(crowd&&crowd.length&&local){pe.textContent='Le public répond…';
+        const voices=[];crowd.forEach(o=>o.urls.forEach(u=>voices.push({url:u,start:o.start,text:'',together:true,vol:0.75})));
+        const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:local,voices,orig_volume:1,subs:false,title:'parlant_public'})});const d2=await r2.json();if(r2.ok)local=d2.path;else toast('Voix du public non ajoutée : '+(d2.detail||''),'warn')}
+      addHist({kind:'video',type:'Parlant',title:(audios[i]||'Voix').slice(0,40),url,local,cost:c});
       ph.replaceWith(resCard({kind:'video',url,local,title:'Parlant '+(i+1)}));done++;
     }catch(e){pe.textContent='✕ '+e.message}
   }

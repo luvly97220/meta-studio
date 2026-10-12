@@ -324,13 +324,13 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
         d = duration(dest)
         st = v.get("start")
         st = float(st) if st not in (None, "") else t
-        if files:  # jamais deux voix en meme temps
+        if files and not v.get("together"):  # jamais deux voix en meme temps (sauf choeur)
             st = max(st, files[-1][1] + files[-1][2] + 0.15)
-        files.append((dest, st, d, v.get("text", ""), v.get("fx", "")))
+        files.append((dest, st, d, v.get("text", ""), v.get("fx", ""), float(v.get("vol", 1.8))))
         t = st + d + 0.25
     work = src
     if subs:
-        work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx, _fx) in files], stamp)
+        work, _ = burn_subs(src, [{"start": st, "end": st + d, "text": tx} for (_, st, d, tx, _fx, _v) in files], stamp)
     cmd = ["ffmpeg", "-y", "-v", "error", "-i", work]
     if not has_audio(work):
         cmd += ["-f", "lavfi", "-t", "%.2f" % total, "-i", "anullsrc=r=44100:cl=stereo"]
@@ -338,16 +338,16 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
     else:
         base = 0
     first = len(cmd)
-    for (f, _, _, _, _) in files:
+    for (f, _, _, _, _, _) in files:
         cmd += ["-i", f]
     n0 = 2 if base == 1 else 1
     fc = ["[%d:a]volume=%.2f,aresample=44100[a0]" % (base, float(orig_volume))]
     labels = ["[a0]"]
-    for i, (_, st, _, _, fx) in enumerate(files):
+    for i, (_, st, _, _, fx, vol) in enumerate(files):
         ms = int(st * 1000)
         # echo : voix de boss / voix venue de l'ombre
         eff = ",apad=pad_dur=1,aecho=0.8:0.75:70|140:0.35|0.18" if fx == "echo" else ""
-        fc.append("[%d:a]aresample=44100%s,volume=1.8,adelay=%d|%d[v%d]" % (n0 + i, eff, ms, ms, i))
+        fc.append("[%d:a]aresample=44100%s,volume=%.2f,adelay=%d|%d[v%d]" % (n0 + i, eff, vol, ms, ms, i))
         labels.append("[v%d]" % i)
     if duck and len(labels) > 1:
         # le fond (bruitages, musique) baisse tout seul pendant que quelqu'un parle
@@ -362,7 +362,7 @@ def mix_voices(video, voices, orig_volume=0.7, subs=True, title="voixoff", duck=
     cmd += ["-filter_complex", ";".join(fc), "-map", "0:v", "-map", "[a]", "-c:v", "copy",
             "-c:a", "aac", "-b:a", "192k", "-t", "%.2f" % total, out]
     run(cmd)
-    for (f, _, _, _, _) in files:
+    for (f, _, _, _, _, _) in files:
         try:
             os.remove(f)
         except OSError:
@@ -449,6 +449,55 @@ def fal_upload(data, content_type, file_name, auth):
     except urllib.error.HTTPError as e:
         raise RuntimeError("envoi sur fal.ai impossible (%s)" % e.code)
     return info["file_url"]
+
+
+def voice_build(parts):
+    """Piste du personnage qui parle (ses repliques) avec des blancs a la place des repliques
+    du public ; renvoie le MP3 (data uri) et les instants ou poser les voix du public."""
+    if not has_ffmpeg():
+        raise RuntimeError("ffmpeg manquant : tape  pkg install ffmpeg  dans Termux")
+    stamp = str(int(time.time() * 1000))
+    cmd, labels, overlays, t, n = ["ffmpeg", "-y", "-v", "error"], [], [], 0.0, 0
+    fc = []
+    for i, part in enumerate(parts):
+        urls = part.get("urls") or []
+        files = []
+        for j, url in enumerate(urls):
+            if not host_ok(url):
+                raise RuntimeError("adresse de voix refusee")
+            dest = os.path.join(WORK, "vb_%s_%02d_%d.mp3" % (stamp, i, j))
+            with urllib.request.urlopen(url, timeout=120) as r, open(dest, "wb") as fh:
+                shutil.copyfileobj(r, fh)
+            files.append(dest)
+        if not files:
+            continue
+        durs = [duration(f) for f in files]
+        if part.get("main"):
+            cmd += ["-i", files[0]]
+            fc.append("[%d:a]aresample=44100,aformat=channel_layouts=mono[s%d]" % (n, len(labels)))
+            n += 1
+            labels.append("[s%d]" % len(labels))
+            t += durs[0]
+        else:
+            gap = max(durs) + 0.35
+            overlays.append({"start": round(t + 0.1, 2), "urls": urls})
+            fc.append("anullsrc=r=44100:cl=mono,atrim=duration=%.2f[s%d]" % (gap, len(labels)))
+            labels.append("[s%d]" % len(labels))
+            t += gap
+    if not labels:
+        raise RuntimeError("aucune voix")
+    fc.append("%sconcat=n=%d:v=0:a=1[a]" % ("".join(labels), len(labels)))
+    out = os.path.join(UPLOADS, "dialogue_%s.mp3" % stamp)
+    run(cmd + ["-filter_complex", ";".join(fc), "-map", "[a]", "-ac", "1", "-ar", "44100", "-b:a", "128k", out])
+    for f in os.listdir(WORK):
+        if f.startswith("vb_%s_" % stamp):
+            try:
+                os.remove(os.path.join(WORK, f))
+            except OSError:
+                pass
+    with open(out, "rb") as fh:
+        data = fh.read()
+    return "data:audio/mpeg;base64," + base64.b64encode(data).decode(), overlays, duration(out)
 
 
 def to_mp3_datauri(raw, ext):
@@ -580,6 +629,11 @@ class Handler(SimpleHTTPRequestHandler):
                     except Exception:
                         dur = 0.0
                 return self.send_json({"path": "/uploads/" + name, "duration": dur})
+
+            if p.path == "/api/voicebuild":
+                d = json.loads(self.body() or b"{}")
+                uri, overlays, dur = voice_build(d.get("parts", []))
+                return self.send_json({"datauri": uri, "overlays": overlays, "duration": dur})
 
             if p.path == "/api/mixvoices":
                 d = json.loads(self.body() or b"{}")
