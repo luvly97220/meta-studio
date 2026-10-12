@@ -1121,7 +1121,7 @@ function parseDialogue(line){
   String(line||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(l=>{
     const m=l.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/);
     let c=null,text=l;
-    if(m&&!/^https?$/i.test(m[1].trim())){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;text=m[2].trim();if(!c&&!/^[A-ZÀ-Ý][^\s:]*( [A-ZÀ-Ý][^\s:]*)?$/.test(m[1].trim())){text=l}else if(!c){let k=0;for(const ch of nm)k=(k*31+ch.charCodeAt(0))%997;c={name:m[1].trim(),voice:'auto',desc:'',tts:AD_HOC_TTS[k%AD_HOC_TTS.length]}}}
+    if(m&&!/^https?$/i.test(m[1].trim())){const nm=m[1].trim().toLowerCase();c=chars.find(x=>x.name.toLowerCase()===nm)||null;text=m[2].trim();if(!c&&!/^[A-ZÀ-Ý][^\s:]*( [A-ZÀ-Ý][^\s:]*)?$/.test(m[1].trim())){text=l}else if(!c){let k=0;for(const ch of nm)k=(k*31+ch.charCodeAt(0))%997;c={name:m[1].trim(),voice:'auto',desc:'',tts:AD_HOC_TTS[k%AD_HOC_TTS.length],vo:/^public$/i.test(m[1].trim())}}}
     out.push({char:c||chars[0],text:text.replace(/\[[^\]]{1,30}\]\s*/g,'').trim(),raw:text});
   });
   return out;
@@ -1442,10 +1442,10 @@ async function stMontage(){
     const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');
     if(d.subs_skipped)toast('Sous-titres non ajoutés : aucune police trouvée sur le téléphone','warn',4500);
     // voix off (personnages masqués, de dos, narrateur) posées par-dessus
-    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(pt.char&&(allVO||pt.char.vo||s.kind))vo.push({start:t+D*k/parts.length+0.15,text:pt.text,raw:pt.raw,fx:(pt.char.vo||pt.char.voice==='narrateur')&&ST.format!=='vlog'?'echo':'',voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
+    const vo=[];{let t=0;ST.scenes.forEach((s,i)=>{const parts=parseDialogue(s.line);const D=durs[i];parts.forEach((pt,k)=>{if(!(pt.char&&(allVO||pt.char.vo||s.kind)))return;if(/^public$/i.test(pt.char.name||'')){PUBLIC_VOICES.forEach(v=>vo.push({start:t+D*k/parts.length+0.15,text:pt.text,raw:pt.text,voice:v,together:true,vol:0.75,chorus:true}));return}vo.push({start:t+D*k/parts.length+0.15,text:pt.text,raw:pt.raw,fx:(pt.char.vo||pt.char.voice==='narrateur')&&ST.format!=='vlog'?'echo':'',voice:pt.char.tts||ttsFromType(pt.char.voice)})});t+=D})}
     if(vo.length){
       b.innerHTML='<span class="spin"></span> Voix off…';const lang=TTS_LANG[$('stLang').value]||'fr';const voices=[];
-      for(const v of vo){const res=await ttsActor(v.raw||v.text,v.voice,lang,ST.format);addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.text,fx:v.fx})}
+      for(const v of vo){const res=v.chorus?await falRun(TTS,{text:v.text,voice:v.voice,language_code:lang,stability:0.4,similarity_boost:0.75}):await ttsActor(v.raw||v.text,v.voice,lang,ST.format);addSpend(v.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix off non reçue');voices.push({url:u,start:v.start,text:v.chorus?'':v.text,fx:v.fx,together:v.together,vol:v.vol})}
       const r2=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:d.path,voices,orig_volume:allVO?(sfxOn?0.8:1):0.8,duck:allVO,subs:false,title:LS.get('ms_story_title','histoire')})});
       const d2=await r2.json();if(!r2.ok)throw new Error(d2.detail||'mixage des voix off impossible');d.path=d2.path;d.duration=d2.duration;
     }
