@@ -1959,10 +1959,10 @@ async function anVoiceOver(){
     const lang=$('anVOLang').value;const voices=[];
     for(const l of lines){
       let res=null;
-      if(l.accent){try{res=await falRun(TTS_V3,{text:'['+l.accent+' accent] '+l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75})}catch(e){res=null}}
-      if(!res||!res.audio)res=await falRun(TTS,{text:l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
+      if(l.accent||/\[[^\]]{1,30}\]/.test(l.text)){try{res=await falRun(TTS_V3,{text:(l.accent?'['+l.accent+' accent] ':'')+l.text,voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75})}catch(e){res=null}}
+      if(!res||!res.audio)res=await falRun(TTS,{text:l.text.replace(/\[[^\]]{1,30}\]\s*/g,''),voice:l.voice,language_code:lang,stability:0.5,similarity_boost:0.75,speed:1});
       addSpend(l.text.length*TTS_PRICE);const u=res.audio&&res.audio.url;if(!u)throw new Error('voix non reçue');
-      voices.push({url:u,start:l.start,text:(lines.some(x=>x.name)&&l.name?l.name+' : ':'')+l.text});
+      voices.push({url:u,start:l.start,text:(lines.some(x=>x.name)&&l.name?l.name+' : ':'')+l.text.replace(/\[[^\]]{1,30}\]\s*/g,'').trim()});
     }
     b.innerHTML='<span class="spin"></span> Mixage…';
     const r=await fetch('/api/mixvoices',{method:'POST',body:JSON.stringify({video:target,voices,orig_volume:+$('anVOVol').value/100,subs:$('anVOSubs').checked,title:'voixoff'})});
