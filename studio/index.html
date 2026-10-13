@@ -792,8 +792,8 @@ const UNIVERS=[
 
 /* ---------- Modèles fal.ai (prix en $ par seconde de vidéo) ---------- */
 const VIDEO_MODELS={
-  k3:{label:'Kling 3.0 · avec son et voix',short:'Kling 3.0',i2v:'fal-ai/kling-video/o3/standard/image-to-video',t2v:'fal-ai/kling-video/o3/standard/text-to-video',price:0.084,priceAudio:0.112,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
-  k3pro:{label:'Kling 3.0 Pro · action, plus fluide',short:'Kling 3.0 Pro',i2v:'fal-ai/kling-video/o3/pro/image-to-video',t2v:'fal-ai/kling-video/o3/pro/text-to-video',price:0.112,priceAudio:0.14,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
+  k3:{label:'Kling 3.0 · avec son et voix',short:'Kling 3.0',i2v:'fal-ai/kling-video/o3/standard/image-to-video',t2v:'fal-ai/kling-video/o3/standard/text-to-video',price:0.14,priceAudio:0.168,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
+  k3pro:{label:'Kling 3.0 Pro · action, plus fluide',short:'Kling 3.0 Pro',i2v:'fal-ai/kling-video/o3/pro/image-to-video',t2v:'fal-ai/kling-video/o3/pro/text-to-video',price:0.14,priceAudio:0.168,durations:[3,4,5,6,7,8,9,10,12,15],def:8,audio:true,endFrame:true,multi:true},
   eco:{label:'Kling 2.5 Turbo · éco, muet',short:'Kling 2.5',i2v:'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',t2v:'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',price:0.07,priceAudio:0.07,durations:[5,10],def:5,audio:false,endFrame:true}
 };
 const IMG_EDIT='fal-ai/nano-banana/edit',IMG_GEN='fal-ai/nano-banana',IMG_PRICE=0.039;
@@ -1903,7 +1903,7 @@ const DANCE_MODELS={
   v26:{l:'Kling 2.6 · éco (0,07 $/s)',id:'fal-ai/kling-video/v2.6/standard/motion-control',price:0.07},
   v3:{l:'Kling 3.0 · net (0,126 $/s)',id:'fal-ai/kling-video/v3/standard/motion-control',price:0.126},
   v3pro:{l:'Kling 3.0 Pro · le plus fluide (0,168 $/s)',id:'fal-ai/kling-video/v3/pro/motion-control',price:0.168},
-  swap:{l:'🎭 Remplacer la personne · garde décor, tenues, caméra (Kling O1, ~0,17 $/s)',id:'fal-ai/kling-video/o1/standard/video-to-video/edit',price:0.168,swap:true}
+  swap:{l:'🎭 Remplacer la personne · garde décor, tenues, caméra (Kling O1, 0,126 $/s)',id:'fal-ai/kling-video/o1/standard/video-to-video/edit',price:0.126,swap:true}
 };
 // découpe une durée en morceaux de 3 à 10 s (limite de Kling O1)
 function swapChunks(len){const n=Math.ceil(len/10);const c=len/n;return Array.from({length:n},(_,i)=>({start:i*c,len:c}))}
