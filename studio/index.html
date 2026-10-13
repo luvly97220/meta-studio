@@ -96,7 +96,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
 <header>
   <h1>🎬 Méta-Studio</h1>
   <div style="display:flex;align-items:center">
-    <div class="spent">Dépensé ce mois<br><b id="spentMonth">0,00 $</b></div>
+    <div class="spent" id="spentBox" title="Touche pour corriger avec le montant réel de fal" style="cursor:pointer">Dépensé ce mois<br><b id="spentMonth">0,00 $</b></div>
     <button class="gear" id="openPersos" aria-label="Personnages">👤</button><button class="gear" id="openSettings" aria-label="Réglages">⚙️</button>
   </div>
 </header>
@@ -930,6 +930,7 @@ function monthKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 function spentMonth(){const sp=LS.get('ms_spend',{});return sp[monthKey()]||0}
 function addSpend(v){const sp=LS.get('ms_spend',{});sp[monthKey()]=(sp[monthKey()]||0)+v;LS.set('ms_spend',sp);updSpent()}
 function updSpent(){$('spentMonth').textContent=money(spentMonth())}
+document.addEventListener('click',e=>{if(!e.target.closest||!e.target.closest('#spentBox'))return;const v=prompt('Montant réel dépensé ce mois sur fal.ai (en $, ex : 72.14) :',spentMonth().toFixed(2));if(v==null)return;const n=parseFloat(String(v).replace(',','.'));if(isNaN(n)||n<0)return toast('Montant invalide','warn');const sp=LS.get('ms_spend',{});sp[monthKey()]=n;LS.set('ms_spend',sp);updSpent();toast('Compteur corrigé ✓','ok')});
 function budgetOk(cost){const b=parseFloat(LS.get('ms_budget',''));if(!b)return true;if(spentMonth()+cost>b)return confirm('Attention : avec cette génération (~'+money(cost)+'), tu dépasses ton budget du mois ('+money(b)+'). Continuer quand même ?');return true}
 
 /* ---------- historique ---------- */
