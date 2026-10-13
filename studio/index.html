@@ -326,7 +326,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   </div>
   <div class="card" style="margin-top:.8rem">
     <label class="lbl">💃 Copier une danse / 🎭 refaire une tendance</label>
-    <div class="hint">Ton personnage refait exactement les gestes d'une vraie vidéo de danse. Utilise la <b>1re image</b> ajoutée en haut. Idéal : une vidéo où <b>toi ou un proche</b> danse, en pied, bien visible (ou une vidéo libre de droits).<br>🎭 <b>Remplacer la personne</b> (dans Qualité) : garde toute la vidéo (décor, chute, ventilateur, changements de tenue) et met ton personnage à la place. Photo 1 = visage de face, photo 2 (facultatif) = autre angle.</div>
+    <div class="hint">Ton personnage refait exactement les gestes d'une vraie vidéo de danse. Utilise la <b>1re image</b> ajoutée en haut. Idéal : une vidéo où <b>toi ou un proche</b> danse, en pied, bien visible (ou une vidéo libre de droits).<br>🎭 <b>Remplacer la personne</b> (dans Qualité) : garde les mouvements et la caméra de la vidéo et met ton personnage à la place. <b>1 photo</b> = garde les tenues et le décor de la vidéo. <b>Plusieurs photos</b> = tes tenues et ton décor, une photo par morceau (ta patte).</div>
     <div class="up" data-pick="dnFile" style="padding:.7rem"><input type="file" id="dnFile" accept="video/*"><div class="t" id="dnFileName">📂 Choisir la vidéo de danse (3 à 30 s)</div></div>
     <div class="row">
       <div><label class="lbl">Qualité</label><select id="dnModel"></select></div>
@@ -336,6 +336,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Début dans la vidéo (s)</label><input type="number" id="dnStart" min="0" step="0.5" value="0"></div>
       <div><label class="lbl">Durée max (s)</label><input type="number" id="dnMax" min="3" max="30" step="1" value="15"></div>
     </div>
+    <div id="dnCutsBox"><label class="lbl">🎭 Découpage par tenue (facultatif)</label><input id="dnCuts" placeholder="ex : 0-6, 6-9, 9-12, 12-15"><div class="hint">Avec plusieurs photos en haut : photo 1 = 1er morceau, photo 2 = 2e morceau… (tes tenues, ton décor). Coupe au moment où l'hélice passe. Chaque morceau : 3 à 10 s. Vide = parts égales.</div></div>
     <div class="toggle"><span>🔊 Garder le son de la vidéo de danse</span><label class="sw"><input type="checkbox" id="dnSound"><span></span></label></div>
     <button class="btn" id="dnGo">💃 Copier la danse</button>
     <div class="prog" id="dnProg"></div>
@@ -1944,7 +1945,19 @@ async function dnGo(){
 }
 // 🎭 Remplacer la personne d'une vidéo tendance par ton personnage (Kling O1 edit), morceau par morceau
 async function dnSwap(m,len,b,upd){
-  const look=$('anChar').value.trim();const t0=+$('dnStart').value||0;const parts=swapChunks(len);
+  const look=$('anChar').value.trim();const t0=+$('dnStart').value||0;
+  const own=AN.images.length>1;let parts=swapChunks(len);
+  if(own){
+    const txt=$('dnCuts').value.trim();
+    if(txt){parts=txt.split(/[,;]/).map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.replace(/s/g,'').split('-').map(Number);return {start:m[0],len:m[1]-m[0]}})
+      if(parts.some(P=>!(P.len>=3&&P.len<=10.05)||isNaN(P.start)))return fin('Découpage : chaque morceau doit faire entre 3 et 10 s (ex : 0-6, 6-9, 9-12, 12-15)');
+      if(parts.length!==AN.images.length)return fin('Découpage : '+parts.length+' morceaux mais '+AN.images.length+' photos. Il faut autant de photos que de morceaux.')}
+    else{const n=AN.images.length,c=len/n;if(c<3)return fin('Trop de photos pour '+Math.round(len)+' s : chaque morceau doit faire 3 s minimum');if(c>10.05)return fin('Morceaux trop longs : ajoute un découpage (10 s max chacun)');parts=Array.from({length:n},(_,i)=>({start:i*c,len:c}))}
+  }
+  function fin(msg){toast(msg,'warn',6000);upd('✕ '+msg);b.disabled=false;dnPrice()}
+  const cost=parts.reduce((a,P)=>a+P.len,0)*m.price;if(!budgetOk(cost)){b.disabled=false;return}
+  const faceUri=AN.images[0].uri;
+  const promptOwn='Replace the person in the video with @Element1: same face, hair and body, and wearing exactly the outfit and shoes she wears in @Element1 during the whole clip (ignore the clothes of the original person).'+(look?' Character: '+look+'.':'')+' Restyle the room, sofa, rug, floor and lighting to match @Image1. Keep exactly the same camera angle, camera movement, timing, actions, poses and falls, and any object passing in front of the camera (like a ceiling fan blade). Realistic, no text, no watermark.';
   const el={frontal_image_url:AN.images[0].uri,reference_image_urls:[(AN.images[1]||AN.images[0]).uri]};
   const prompt='Replace the person in the video with @Element1: same face, same hair, same skin tone and body as @Element1.'+(look?' Character: '+look+'.':'')+' Keep everything else exactly identical to the video: the room and background, camera angle and camera movement, lighting, timing, her actions, poses and falls, every object passing in front of the camera, and the outfits she wears in the video. Only the identity of the person changes. Realistic, no text, no watermark.';
   const locals=[];let spent=0;
@@ -1954,7 +1967,9 @@ async function dnSwap(m,len,b,upd){
       upd('Envoi de la vidéo'+tag+'…');
       const r=await fetch('/api/refvideo',{method:'POST',headers:falHeaders(),body:JSON.stringify({path:DN.ref.path,start:t0+P.start,max:P.len})});
       const d=await r.json();if(!r.ok)throw new Error(d.detail||'vidéo illisible');
-      const res=await falRun(m.id,{prompt,video_url:d.url,elements:[el],keep_audio:$('dnSound').checked},t=>upd('Remplacement'+tag+' · '+t),'anim');
+      const inp=own?{prompt:promptOwn,video_url:d.url,elements:[{frontal_image_url:AN.images[i].uri,reference_image_urls:[i?faceUri:AN.images[i].uri]}],image_urls:[AN.images[i].uri],keep_audio:$('dnSound').checked}
+                   :{prompt,video_url:d.url,elements:[el],keep_audio:$('dnSound').checked};
+      const res=await falRun(m.id,inp,t=>upd('Remplacement'+tag+' · '+t),'anim');
       const url=res.video&&res.video.url;if(!url)throw new Error('Pas de vidéo reçue');
       const real=d.duration||P.len;addSpend(real*m.price);spent+=real*m.price;
       locals.push(await saveLocal(url,'remplace'+(i+1)));
