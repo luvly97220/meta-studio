@@ -305,7 +305,7 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
       <div><label class="lbl">Intensité</label><select id="anInt"><option value="moderate">Modérée</option><option value="subtle">Subtile</option><option value="strong">Forte</option></select></div>
     </div>
     <label class="lbl">🎥 Mouvement de caméra</label><select id="anCam"></select>
-    <label class="lbl">Mode</label><select id="anMode"><option value="indep">🖼️ Chaque photo indépendante</option><option value="story">📖 Histoire enchaînée</option><option value="random">🎲 Univers aléatoire</option></select>
+    <label class="lbl">Mode</label><select id="anMode"><option value="indep">🖼️ Chaque photo indépendante</option><option value="story">📖 Histoire enchaînée</option><option value="random">🎲 Univers aléatoire</option><option value="trans">🔁 Transitions (chaque photo → la suivante)</option></select>
     <div class="row">
       <div><label class="lbl">Format de la vidéo</label><select id="anRatio"></select></div>
       <div><label class="lbl">Si la photo n'a pas ce format</label><select id="anFit"></select></div>
@@ -1829,17 +1829,22 @@ function anPrompt(u,story,idx,total,mode){
 async function anGo(){
   if(!AN.images.length)return toast('Ajoute au moins une image','warn');
   const o=anModel.get();const mode=$('anMode').value;const story=$('anStory').value.trim();
-  const cost=AN.images.length*videoCost(o.model,o.duration,o.audio)+(await fitCount(AN.images,$('anRatio').value,$('anFit').value))*IMG_PRICE;
+  // 🔁 Transitions : la vidéo i part de la photo i et finit sur la photo i+1 (ex : changement de tenue)
+  const trans=mode==='trans';
+  if(trans&&AN.images.length<2)return toast('Mode Transitions : ajoute au moins 2 photos (dans l\'ordre)','warn',4500);
+  if(trans&&!/^k3/.test(o.model))toast('Les transitions marchent le mieux avec Kling 3.0 (image de fin)','warn',4500);
+  const list=trans?AN.images.slice(0,-1):AN.images;
+  const cost=list.length*videoCost(o.model,o.duration,o.audio)+(await fitCount(AN.images,$('anRatio').value,$('anFit').value))*IMG_PRICE;
   if(!budgetOk(cost))return;
   AN.busy=true;S.stop.anim=false;$('anGo').disabled=true;$('anStop').classList.remove('hide');$('anMontage').classList.add('hide');AN.finalPath=null;AN.voFile=null;$('anVOFileName').textContent='📂 Choisir une vidéo déjà faite (optionnel)';
-  let done=0,fail=0;const total=AN.images.length;AN.results=new Array(total).fill(null);
+  let done=0,fail=0;const total=list.length;AN.results=new Array(total).fill(null);
   // une chorégraphie par image : blocs séparés par une ligne ---
   const blocks=$('anBeats').value.split(/\n\s*-{3,}\s*\n?/).map(splitBeats).filter(b=>b.length);
   const beatsFor=i=>blocks.length?blocks[Math.min(i,blocks.length-1)]:[];
   const beats=beatsFor(0);const multiOk=VIDEO_MODELS[o.model].multi;
   if(AN.end&&multiOk&&beatsFor(total-1).length>1)toast('Image de fin ignorée : Kling ne l\'accepte pas avec la chorégraphie multi-plans','warn',5000);
   if(blocks.some(b=>b.length>1)&&!multiOk)toast('La chorégraphie en plusieurs plans marche avec Kling 3.0 / 3.0 Pro','warn',4000);
-  const tasks=AN.images.map((img,i)=>async()=>{
+  const tasks=list.map((img,i)=>async()=>{
     const u=mode==='random'?rand(UNIVERS):anUniv.get();
     const ph=document.createElement('div');ph.className='res';ph.innerHTML='<div style="aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;color:var(--d);font-size:.7rem;padding:.5rem;text-align:center" data-p>Scène '+(i+1)+'<br>en attente</div>';$('anOut').prepend(ph);
     const pe=ph.querySelector('[data-p]');
@@ -1848,10 +1853,10 @@ async function anGo(){
       const sfx=look?'Same character as the first frame: '+look+'.':'Same character, mask and outfit as the first frame.';
       const vo=parseVO($('anVO').value).length>0;const ln=LANG_NAME[$('anVOLang').value]||'French';
       const tail=(camText()?camText()+', ':'')+INTENS[$('anInt').value]+', cinematic, no blood'+(o.audio?(vo?', no dialogue, no voices, only sound effects and ambience':', all speech in '+ln+' only, never Chinese')+', no music':'')+', no text.';
-      const bi=beatsFor(i);
+      const bi=trans?[]:beatsFor(i);
       const fmt=$('anRatio').value,how=$('anFit').value;
       const src=await fitImage(img.uri,fmt,how,m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
-      const endSrc=i===total-1&&AN.end?await fitImage(AN.end.uri,fmt,'crop'):null;
+      const endSrc=trans?await fitImage(AN.images[i+1].uri,fmt,how,m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim'):(i===total-1&&AN.end?await fitImage(AN.end.uri,fmt,'crop'):null);
       const url=await genVideo(o.model,'i2v',{prompt:anPrompt(u,story,i,total,mode)+($('anChar').value.trim()?' Character (never changes): '+$('anChar').value.trim()+'.':'')+(bi.length?' Action: '+bi.join(', then ')+'.':''),image:src,end:endSrc,duration:o.duration,audio:o.audio,beats:multiOk&&bi.length>1?bi:null,beatPrefix:story,beatSuffix:sfx,beatTail:tail},m=>pe.innerHTML='Scène '+(i+1)+'<br>'+esc(m),'anim');
       const local=await saveLocal(url,'anim'+(i+1));AN.results[i]={url,local};
       const t=(u?u.n:'Animation')+' · '+(i+1);
