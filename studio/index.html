@@ -998,7 +998,7 @@ async function falRun(model,input,onProg,stopKey){
   const statusUrl=d.status_url||base+'/requests/'+d.request_id+'/status';
   const resultUrl=d.response_url||base+'/requests/'+d.request_id;
   const t0=Date.now();
-  for(let i=0;i<400;i++){
+  for(let i=0;Date.now()-t0<75*60*1000;i++){
     if(stopKey&&S.stop[stopKey])throw new Error('stop');
     const sr=await http('GET',statusUrl);
     if(!sr.ok)throw new Error(await readErr(sr));
@@ -1010,9 +1010,9 @@ async function falRun(model,input,onProg,stopKey){
       if(!rr.ok)throw new Error(await readErr(rr));
       return await rr.json();
     }
-    await sleep(i<3?2500:4000);
+    await sleep(i<3?2500:(i<60?4000:8000));
   }
-  throw new Error('Trop long, réessaie');
+  throw new Error('Trop long (plus de 75 min). La vidéo continue peut-être chez fal : regarde fal.ai → Dashboard → Requests');
 }
 /* Enregistre un fichier distant sur le téléphone (via serveur) */
 async function saveLocal(url,name){if(!S.server)return null;try{const r=await fetch('/api/save',{method:'POST',body:JSON.stringify({url,name})});const d=await r.json();return d.path||null}catch(e){return null}}
@@ -1962,18 +1962,22 @@ async function dnSwap(m,len,b,upd){
   const prompt='Replace the person in the video with @Element1: same face, same hair, same skin tone and body as @Element1.'+(look?' Character: '+look+'.':'')+' Keep everything else exactly identical to the video: the room and background, camera angle and camera movement, lighting, timing, her actions, poses and falls, every object passing in front of the camera, and the outfits she wears in the video. Only the identity of the person changes. Realistic, no text, no watermark.';
   const locals=[];let spent=0;
   try{
-    for(let i=0;i<parts.length;i++){
+    const st=parts.map(()=>'…');const show=()=>upd(parts.length>1?st.map((x,k)=>(k+1)+': '+x).join(' | '):st[0]);
+    const one=async i=>{
       const P=parts[i];const tag=parts.length>1?' '+(i+1)+'/'+parts.length:'';
-      upd('Envoi de la vidéo'+tag+'…');
+      st[i]='envoi';show();
       const r=await fetch('/api/refvideo',{method:'POST',headers:falHeaders(),body:JSON.stringify({path:DN.ref.path,start:t0+P.start,max:P.len})});
       const d=await r.json();if(!r.ok)throw new Error(d.detail||'vidéo illisible');
       const inp=own?{prompt:promptOwn,video_url:d.url,elements:[{frontal_image_url:AN.images[i].uri,reference_image_urls:[i?faceUri:AN.images[i].uri]}],image_urls:[AN.images[i].uri],keep_audio:$('dnSound').checked}
                    :{prompt,video_url:d.url,elements:[el],keep_audio:$('dnSound').checked};
-      const res=await falRun(m.id,inp,t=>upd('Remplacement'+tag+' · '+t),'anim');
+      const res=await falRun(m.id,inp,t=>{st[i]=t;show()},'anim');
       const url=res.video&&res.video.url;if(!url)throw new Error('Pas de vidéo reçue');
       const real=d.duration||P.len;addSpend(real*m.price);spent+=real*m.price;
-      locals.push(await saveLocal(url,'remplace'+(i+1)));
-    }
+      locals[i]=await saveLocal(url,'remplace'+(i+1));addHist({kind:'video',type:'Photo→vidéo',title:'Remplacement morceau '+(i+1),url,local:locals[i],cost:real*m.price});st[i]='✓';show();
+    };
+    // tous les morceaux en même temps (même prix, beaucoup plus rapide)
+    const rs=await Promise.allSettled(parts.map((_,i)=>one(i)));
+    const bad=rs.findIndex(r=>r.status==='rejected');if(bad>=0)throw new Error('morceau '+(bad+1)+' : '+rs[bad].reason.message);
     let local=locals[0];
     if(locals.length>1){upd('Assemblage…');const r=await fetch('/api/concat',{method:'POST',body:JSON.stringify({files:locals,title:'remplace'})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'erreur de montage');local=d.path}
     addHist({kind:'video',type:'Photo→vidéo',title:'Personne remplacée',local,cost:spent});
