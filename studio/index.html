@@ -1997,7 +1997,7 @@ async function anMontage(){
   }catch(e){toast('Montage : '+e.message,'err',5000)}
   finally{b.disabled=false;b.textContent='🎞️ Assembler les vidéos dans l\'ordre'}
 }
-async function anPrice(){const o=anModel.get();const n=Math.max(1,AN.images.length);const ex=await fitCount(AN.images,$('anRatio').value,$('anFit').value);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio)+ex*IMG_PRICE)}
+async function anPrice(){const o=anModel.get();const n=Math.max(1,$('anMode').value==='trans'?AN.images.length-1:AN.images.length);const ex=await fitCount(AN.images,$('anRatio').value,$('anFit').value);$('anGo').textContent='Créer '+n+' vidéo'+(n>1?'s':'')+' · ~'+money(n*videoCost(o.model,o.duration,o.audio)+ex*IMG_PRICE)}
 
 /* =====================================================================
    ONGLET TEXTE
@@ -2266,6 +2266,7 @@ async function checkServer(){
   // Animer
   anUniv=univPicker($('anUnivGrid'),$('anUnivSearch'),'anim',true);
   anModel=modelPicker($('anModelCard'),'anim',anPrice,{def:'eco'});
+  $('anMode').addEventListener('change',anPrice);
   $('anFiles').onchange=async e=>{AN.images.push(...await loadImages(e.target.files));renderThumbs($('anThumbs'),AN.images,anPrice);anPrice();e.target.value=''};
   $('anEnd').onchange=async e=>{const l=await loadImages(e.target.files);AN.end=l[0]||null;$('anEndName').textContent=AN.end?'✓ Image de fin choisie (touche pour changer)':'La vidéo se termine sur cette image';$('anEndClear').classList.toggle('hide',!AN.end);e.target.value=''};
   $('anEndClear').onclick=()=>{AN.end=null;$('anEndName').textContent='La vidéo se termine sur cette image';$('anEndClear').classList.add('hide')};
