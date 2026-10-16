@@ -370,6 +370,55 @@ nav button.on{color:#fff}nav button.on .i{transform:scale(1.1)}
   <div class="res-grid" id="txOut"></div>
 </section>
 
+<!-- ================= PROMPT 15 s ================= -->
+<section class="tab" id="t-prompt">
+  <button class="btn sec small" id="pbReset" style="float:right;margin-top:.2rem;width:auto">🆕 Vider</button><h2>📝 Prompt 15 s</h2>
+  <p class="lead">Remplis les cases, le prompt est écrit avec nos règles. Gratuit, sans crédit : copie-le dans Renderforest, Kling ou ici.</p>
+  <div class="card">
+    <label class="lbl">Style</label><select id="pbStyle"></select>
+    <label class="lbl">Mode de génération</label>
+    <select id="pbMode"><option value="img">🖼️ Image de début (1 photo)</option><option value="multi">🗂️ Médias (plusieurs photos)</option><option value="txt">✍️ Texte seul (sans photo)</option></select>
+    <div class="row">
+      <div><label class="lbl">Langue du prompt</label><select id="pbLang"><option value="fr">Français</option><option value="en">Anglais</option></select></div>
+      <div><label class="lbl">Les personnages parlent en</label><select id="pbSay"><option value="en">Anglais</option><option value="fr">Français</option></select></div>
+    </div>
+    <label class="lbl">Décor</label>
+    <input type="text" id="pbDecor" placeholder="ex : salon chaleureux le soir, canapé gris, lumière de lampe">
+  </div>
+  <div class="card">
+    <label class="lbl">Personnages</label>
+    <p class="hint" id="pbPersoHint" style="margin-top:0"></p>
+    <div id="pbPersos"></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Les 15 secondes</label>
+    <p class="hint" style="margin-top:0">Une action simple par moment. Réplique facultative : la phrase exacte, sinon personne ne parle.</p>
+    <div id="pbScenes"></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Règles</label>
+    <div class="chips" id="pbRules"></div>
+  </div>
+  <button class="btn" id="pbMake">📝 Écrire le prompt</button>
+  <div class="card hide" id="pbOutCard" style="margin-top:.9rem">
+    <label class="lbl" style="margin-top:0">Ton prompt</label>
+    <textarea id="pbOut" style="min-height:260px;font-size:.8rem"></textarea>
+    <div class="row"><button class="btn" id="pbCopy">📋 Copier le prompt</button><button class="btn sec" id="pbToText">✍️ Envoyer vers Texte</button></div>
+  </div>
+  <div class="card">
+    <label class="lbl" style="margin-top:0">Consigne pour Meta (sous-titres + titre d'épisode)</label>
+    <div class="row">
+      <div><label class="lbl">Série</label><input type="text" id="pbSerie" placeholder="Jordan & Léa"></div>
+      <div><label class="lbl">Épisode</label><input type="number" id="pbEp" min="1" value="1"></div>
+    </div>
+    <label class="lbl">Voix</label><select id="pbDub"><option value="keep">Garder la voix d'origine + sous-titres français</option><option value="dub">Doubler en français + sous-titres</option></select>
+    <label class="lbl">Où placer les sous-titres</label><select id="pbSubPos"><option value="bas">En bas, sans cacher les visages</option><option value="haut">En haut de l'image</option><option value="noir">Sur une zone sombre (télé, mur noir…)</option></select>
+    <button class="btn sec" id="pbMeta">🌐 Écrire la consigne Meta</button>
+    <textarea id="pbMetaOut" class="hide" style="min-height:120px;font-size:.8rem;margin-top:.6rem"></textarea>
+    <button class="btn hide" id="pbMetaCopy">📋 Copier la consigne</button>
+  </div>
+</section>
+
 <!-- ================= PARLANT ================= -->
 <section class="tab" id="t-talk">
   <h2>🗣️ Vidéo parlante</h2>
@@ -2228,7 +2277,107 @@ function libRender(){
 /* =====================================================================
    NAVIGATION + INIT
    ===================================================================== */
-const TABS=[['story','🎬','Histoire'],['clip','🎵','Clip'],['anim','🖼️','Animer'],['text','✍️','Texte'],['talk','🗣️','Parlant'],['img','🎨','Image'],['lib','📁','Créations']];
+// ================= PROMPT 15 s (gratuit, sans clé) =================
+const PB_SLOTS=['0-3','3-6','6-9','9-12','12-15'];
+const PB_STYLES={
+  real:{n:'🎥 Réaliste (série, couple)',fr:'Scène cinématographique réaliste, éclairage naturel.',en:'Cinematic realistic scene, natural lighting.',move:1,toon:1},
+  humour:{n:'😹 Humour animaux (Parodise)',fr:'Style réaliste, comme une vidéo virale drôle, vraie texture des poils.',en:'Realistic style, like a funny viral video, real fur texture.',move:0,toon:1},
+  cine:{n:'🌙 Cinéma (homme au masque)',fr:'Look cinématographique, ambiance de nuit, ombres profondes, grain de pellicule.',en:'Cinematic film look, night atmosphere, deep shadows, film grain.',move:1,toon:0},
+  luna:{n:'✨ Influenceuse (Luna)',fr:'Vidéo réaliste style influenceuse, lumière douce et flatteuse.',en:'Realistic influencer-style video, soft flattering light.',move:1,toon:1}
+};
+const PB_RULES=[['nocut','Une seule prise, sans coupure',1],['hold','Tenir la fin 2 s',1],['notoon','Pas de 3D / dessin animé',1],['nokiss','Pas de bisous',0],['noexa','Pas de gestes exagérés',1],['nopeople','Personne d\'autre',1],['notext','Pas de texte ni logo',1]];
+const PB_T={
+  fr:{start:'Commence l\'action immédiatement.',decor:'Décor : ',fmt:'Format vertical 9:16, avec le son.',
+    keep1:'Garde exactement les mêmes visages, coiffures, vêtements, décor et lumière que sur l\'image.',
+    keepN:'Garde exactement les mêmes visages, coiffures, vêtements et silhouettes que sur les images.',
+    keep0:'Les mêmes personnages, avec la même apparence, du début à la fin.',
+    move:'Mouvements naturels et posés, léger mouvement de caméra cinématographique.',
+    voice:'Les personnages parlent avec une voix naturelle et une bonne synchronisation des lèvres.',
+    img:(i,n)=>'La personne de l\'image '+i+' est '+n+'.',from1:n=>n+' est la personne de l\'image.',
+    says:(n,l)=>n+' dit '+(l==='fr'?'en français':'en anglais')+' : « ',close:' »',
+    hold:'Tiens ce moment pendant les 2 dernières secondes.',sec:' s : ',
+    nocut:'Pas de coupure, pas de ralenti, pas de déformation, une seule prise continue.',cut:'Pas de ralenti, pas de déformation.',
+    notoon:'Pas de 3D, pas de dessin animé, pas d\'images de synthèse.',nokiss:'Pas de bisous.',noexa:'Pas de gestes exagérés.',nopeople:'Aucune autre personne.',notext:'Aucun texte, aucun logo à l\'écran.'},
+  en:{start:'Begin action immediately.',decor:'Setting: ',fmt:'Vertical 9:16, with sound.',
+    keep1:'Keep faces, hairstyles, clothing, setting and lighting exactly consistent with the image.',
+    keepN:'Keep both faces, hairstyles, clothing and body appearance exactly consistent with the images.',
+    keep0:'Same characters with the same appearance the whole time.',
+    move:'Natural mature movements, subtle cinematic camera movement.',
+    voice:'The characters speak with natural voices and good lip sync.',
+    img:(i,n)=>'The person in Image '+i+' is '+n+'.',from1:n=>n+' is the person from the image.',
+    says:(n,l)=>n+' says in '+(l==='fr'?'French':'English')+': "',close:'"',
+    hold:'Hold this moment for the final 2 seconds.',sec:'s: ',
+    nocut:'No cuts, no slow motion, no morphing, continuous single take.',cut:'No slow motion, no morphing.',
+    notoon:'Not 3D, not cartoon, not CGI.',nokiss:'No kissing.',noexa:'No exaggerated gestures.',nopeople:'No additional people.',notext:'No text, no logo on screen.'}
+};
+let PB=LS.get('ms_pb',null);
+function pbDefault(){return{style:'real',mode:'img',lang:'fr',say:'en',decor:'',persos:[{n:'',d:''},{n:'',d:''},{n:'',d:''}],scenes:PB_SLOTS.map(()=>({a:'',who:'',line:''})),rules:Object.fromEntries(PB_RULES.map(r=>[r[0],!!r[2]])),serie:'',ep:1,dub:'keep',sub:'bas'}}
+if(!PB||!PB.scenes||PB.scenes.length!==5)PB=pbDefault();
+function pbSave(){LS.set('ms_pb',PB)}
+function pbEsc(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function pbRender(){
+  $('pbStyle').innerHTML=Object.entries(PB_STYLES).map(([k,v])=>'<option value="'+k+'">'+v.n+'</option>').join('');
+  ['style','mode','lang','say','decor','serie','ep','dub'].forEach(k=>{const el=$('pb'+k[0].toUpperCase()+k.slice(1));if(el)el.value=PB[k]});
+  $('pbSubPos').value=PB.sub;
+  $('pbPersoHint').textContent=PB.mode==='multi'?'Dans l\'ordre des photos : la 1re ligne = image 1, la 2e = image 2… Description facultative.':PB.mode==='img'?'Le 1er personnage est celui de la photo. Description facultative.':'Sans photo : décris bien chaque personnage (âge, cheveux, tenue…).';
+  $('pbPersos').innerHTML=PB.persos.map((p,i)=>'<div class="row" style="margin-top:.4rem"><input type="text" data-pn="'+i+'" placeholder="Nom (ex : Léa)" value="'+pbEsc(p.n)+'" style="flex:.6"><input type="text" data-pd="'+i+'" placeholder="Description (facultatif)" value="'+pbEsc(p.d)+'"></div>').join('');
+  $('pbScenes').innerHTML=PB.scenes.map((s,i)=>'<div class="scene"><div class="scene-h"><b>'+PB_SLOTS[i]+' s</b></div><textarea data-sa="'+i+'" placeholder="Ce qui se passe (ex : Jordan tend la télécommande, vaincu)">'+pbEsc(s.a)+'</textarea><div class="row" style="margin-top:.3rem"><input type="text" data-sw="'+i+'" placeholder="Qui parle" value="'+pbEsc(s.who)+'" style="flex:.45"><input type="text" data-sl="'+i+'" placeholder="Réplique exacte (facultatif)" value="'+pbEsc(s.line)+'"></div></div>').join('');
+  $('pbRules').innerHTML=PB_RULES.map(r=>'<button class="chip '+(PB.rules[r[0]]?'sel':'')+'" data-r="'+r[0]+'">'+r[1]+'</button>').join('');
+  $('pbRules').querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{PB.rules[b.dataset.r]=!PB.rules[b.dataset.r];b.classList.toggle('sel',PB.rules[b.dataset.r]);pbSave()});
+}
+function pbBuild(){
+  const T=PB_T[PB.lang],st=PB_STYLES[PB.style],L=[];
+  const persos=PB.persos.filter(p=>p.n.trim()||p.d.trim());
+  let head=T.start+' '+st[PB.lang];
+  if(PB.decor.trim())head+=' '+T.decor+PB.decor.trim().replace(/\.?$/,'.');
+  L.push(head);
+  const pl=[];
+  persos.forEach((p,i)=>{const n=p.n.trim()||('#'+(i+1)),d=p.d.trim()?(' '+p.d.trim().replace(/\.?$/,'.')):'';
+    if(PB.mode==='multi')pl.push(T.img(i+1,n)+d);
+    else if(PB.mode==='img'&&i===0)pl.push(T.from1(n)+d);
+    else pl.push(n+(d?' :'+d:'.'))});
+  if(pl.length)L.push(pl.join(' '));
+  let rules=PB.mode==='img'?T.keep1:PB.mode==='multi'?T.keepN:T.keep0;
+  if(st.move)rules+=' '+T.move;
+  rules+=' '+T.fmt;
+  const talks=PB.scenes.some(s=>s.line.trim());
+  if(talks)rules+=' '+T.voice;
+  L.push(rules);
+  let any=false;
+  PB.scenes.forEach((s,i)=>{let a=s.a.trim();const line=s.line.trim();
+    if(!a&&!line&&!(i===4&&PB.rules.hold))return;any=true;
+    let t=PB_SLOTS[i]+T.sec+(a?a.replace(/\.?$/,'.'):'');
+    if(line){const who=s.who.trim()||(persos[0]?persos[0].n.trim():'')||'?';t+=(a?' ':'')+T.says(who,PB.say)+line.replace(/^["«\s]+|["»\s]+$/g,'')+T.close}
+    if(i===4&&PB.rules.hold)t+=' '+T.hold;
+    L.push(t.trim())});
+  const neg=[];
+  if(PB.rules.nokiss)neg.push(T.nokiss);if(PB.rules.noexa)neg.push(T.noexa);if(PB.rules.nopeople)neg.push(T.nopeople);if(PB.rules.notext)neg.push(T.notext);
+  if(PB.rules.notoon&&st.toon)neg.push(T.notoon);
+  neg.push(PB.rules.nocut?T.nocut:T.cut);
+  L.push(neg.join(' '));
+  return{text:L.join('\n'),any};
+}
+function pbMeta(){
+  const serie=PB.serie.trim()||'Ma série',ep=PB.ep||1;
+  const pos=PB.sub==='haut'?'en haut de l\'image':PB.sub==='noir'?'sur la zone sombre de l\'image (télé, mur noir…) pour ne jamais cacher les visages':'en bas de l\'image, sans cacher les visages';
+  const v=PB.dub==='dub'?'Double cette vidéo en français avec des voix naturelles (une voix par personnage).':'Garde la voix originale, ne double pas la vidéo.';
+  return v+'\nAjoute des sous-titres en français qui traduisent exactement ce que disent les personnages, synchronisés avec leurs paroles. Texte blanc en gros caractères avec un contour noir, 2 lignes maximum, placés '+pos+'.\nAjoute au début un titre en gros caractères en haut de l\'image : « '+serie+' · Épisode '+ep+' », affiché de 0 à 3 secondes puis qui disparaît en fondu.';
+}
+async function pbCopyText(t){try{await navigator.clipboard.writeText(t);toast('Copié ✓','ok')}catch(e){prompt('Copie ce texte :',t)}}
+(function pbInit(){
+  pbRender();
+  const top={pbStyle:'style',pbMode:'mode',pbLang:'lang',pbSay:'say',pbDecor:'decor',pbSerie:'serie',pbEp:'ep',pbDub:'dub',pbSubPos:'sub'};
+  Object.entries(top).forEach(([id,k])=>{$(id).addEventListener('input',e=>{PB[k]=k==='ep'?(+e.target.value||1):e.target.value;pbSave();if(k==='mode')pbRender()})});
+  $('pbPersos').addEventListener('input',e=>{const t=e.target;if(t.dataset.pn!=null)PB.persos[+t.dataset.pn].n=t.value;if(t.dataset.pd!=null)PB.persos[+t.dataset.pd].d=t.value;pbSave()});
+  $('pbScenes').addEventListener('input',e=>{const t=e.target;if(t.dataset.sa!=null)PB.scenes[+t.dataset.sa].a=t.value;if(t.dataset.sw!=null)PB.scenes[+t.dataset.sw].who=t.value;if(t.dataset.sl!=null)PB.scenes[+t.dataset.sl].line=t.value;pbSave()});
+  $('pbMake').onclick=()=>{const r=pbBuild();if(!r.any){toast('Écris au moins une action dans les 15 secondes','warn');return}$('pbOut').value=r.text;$('pbOutCard').classList.remove('hide');$('pbOutCard').scrollIntoView({behavior:'smooth',block:'start'})};
+  $('pbCopy').onclick=()=>pbCopyText($('pbOut').value);
+  $('pbToText').onclick=()=>{$('txPrompt').value=$('pbOut').value;go('text');toast('Prompt mis dans l\'onglet Texte','ok')};
+  $('pbMeta').onclick=()=>{$('pbMetaOut').value=pbMeta();$('pbMetaOut').classList.remove('hide');$('pbMetaCopy').classList.remove('hide')};
+  $('pbMetaCopy').onclick=()=>pbCopyText($('pbMetaOut').value);
+  $('pbReset').onclick=()=>{if(!confirm('Vider le formulaire ?'))return;const keep={serie:PB.serie,ep:PB.ep,style:PB.style,mode:PB.mode,lang:PB.lang,say:PB.say};PB=Object.assign(pbDefault(),keep);pbSave();pbRender();$('pbOutCard').classList.add('hide')};
+})();
+const TABS=[['story','🎬','Histoire'],['clip','🎵','Clip'],['anim','🖼️','Animer'],['text','✍️','Texte'],['prompt','📝','Prompt'],['talk','🗣️','Parlant'],['img','🎨','Image'],['lib','📁','Créations']];
 function go(t){LS.set('ms_tab',t);document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='lib')libRender();window.scrollTo(0,0)}
 function updKey(){const k=getKey();$('keyCard').classList.toggle('ok',!!k);$('apiStatus').classList.toggle('ok',!!k);$('apiText').textContent=k?'Clé active · '+k.slice(0,6)+'…'+k.slice(-4):'Aucune clé';$('apiKey').value=k;$('noKey').classList.toggle('hide',!!k)}
 function chips(el,opts,cur,onPick){el.innerHTML=opts.map(([v,l])=>'<button class="chip '+(cur===v?'sel':'')+'" data-v="'+v+'">'+l+'</button>').join('');el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{onPick(b.dataset.v);chips(el,opts,b.dataset.v,onPick)})}
